@@ -1,0 +1,108 @@
+%%{init: {'theme': 'base', 'themeVariables': {
+  'primaryColor': '#AED6F1',
+  'primaryTextColor': '#333',
+  'primaryBorderColor': '#5DADE2',
+  'lineColor': '#85929E'
+}}}%%
+flowchart TB
+    subgraph User["[User] ユーザー / User"]
+        Input["自然言語入力<br/>Natural Language Input<br/>例: コードレビューエージェントが欲しい"]
+    end
+    style User fill:#5D6D7E,stroke:#4A4D60,color:#FFF
+
+    subgraph CLI["[CLI] agentic-shell CLI (Go)"]
+        subgraph Commands["サブコマンド / Subcommands"]
+            SG["spec-gather<br/>仕様収集"]
+            GEN["generate<br/>一括生成"]
+            P["parse"]
+            E["extract"]
+            SS["skill-scan"]
+            M["match"]
+            SG2["skill-gen"]
+            OUT["output"]
+        end
+        style Commands fill:#F5B7B1,stroke:#D98880,color:#333
+    end
+    style CLI fill:#AED6F1,stroke:#5DADE2,color:#333
+
+    subgraph Pipeline["[Pipeline] パイプライン処理 / Pipeline Processing"]
+        direction TB
+        subgraph Phase0["Phase 0: 仕様収束 / Spec Convergence"]
+            GATHER["Spec Gatherer<br/>インタラクティブ収集<br/>Step-back質問手法"]
+            CONF["Confidence Scorer<br/>信頼度スコアリング<br/>閾値: 85%"]
+        end
+        style Phase0 fill:#FAD7A0,stroke:#F5B041,color:#333
+
+        subgraph Phase1["Phase 1: 解析・抽出 / Parse & Extract"]
+            PARSE["Parser<br/>構造化解析"]
+            EXTRACT["Extractor<br/>意図・要件抽出"]
+        end
+        style Phase1 fill:#F9E79F,stroke:#D4AC00,color:#333
+
+        subgraph Phase2["Phase 2: 検索・マッチング / Search & Match"]
+            SCAN["Skill Scanner<br/>既存スキル走査"]
+            MATCH["Matcher<br/>スキル要件マッチング"]
+        end
+        style Phase2 fill:#A9DFBF,stroke:#52BE80,color:#333
+
+        subgraph Phase3["Phase 3: 生成・出力 / Generate & Output"]
+            AGENT["Agent Generator<br/>エージェント定義生成"]
+            SKILL["Skill Generator<br/>新規スキル生成"]
+            OUTPUT["Output Writer<br/>ファイル出力"]
+        end
+        style Phase3 fill:#A3E4D7,stroke:#48C9B0,color:#333
+    end
+    style Pipeline fill:#F4F6F6,stroke:#85929E,color:#333
+
+    subgraph LLM["[LLM] LLM連携 / LLM Integration"]
+        CLAUDE["Claude CLI<br/>subprocess呼び出し<br/>claude -p '...'"]
+        PROMPT["Prompt Builder<br/>プロンプト構築"]
+    end
+    style LLM fill:#D7BDE2,stroke:#AF7AC5,color:#333
+
+    subgraph Data["[Data] データモデル / Data Models"]
+        direction LR
+        IS["IntentSpace<br/>4D型定義<br/>(Goals, Preferences<br/>Objectives, Modality)"]
+        AS["AgentSpec<br/>中間表現<br/>(仕様書)"]
+        AD["ClaudeAgentDefinition<br/>最終出力<br/>(Markdown)"]
+    end
+    style Data fill:#D5F5E3,stroke:#58D68D,color:#333
+
+    subgraph Storage["[Storage] 出力先 / Output Destinations"]
+        AGENTS[".claude/agents/<br/>{name}.md<br/>エージェント定義"]
+        SKILLS[".claude/skills/<br/>{name}.md<br/>スキル定義"]
+        SPEC["spec.yaml/json<br/>仕様書"]
+    end
+    style Storage fill:#A3E4D7,stroke:#48C9B0,color:#333
+
+    %% フロー
+    User -->|"なんとなく入力"| SG
+    User -->|"一括実行"| GEN
+    SG --> GATHER
+    GEN --> GATHER
+
+    GATHER <-->|"質問生成/回答分析"| PROMPT
+    PROMPT --> CLAUDE
+    GATHER --> CONF
+    CONF -->|"信頼度 >= 85%"| AS
+
+    AS --> PARSE
+    PARSE --> EXTRACT
+    EXTRACT --> SCAN
+    SCAN --> MATCH
+    MATCH --> AGENT
+    AGENT --> OUTPUT
+    MATCH -->|"スキル不足"| SKILL
+
+    AGENT --> AD
+    SKILL --> SKILLS
+    OUTPUT --> AGENTS
+    CONF -->|"仕様書出力"| SPEC
+
+    %% データモデル参照
+    IS -.-> GATHER
+    AS -.-> AGENT
+    AD -.-> OUTPUT
+
+    %% スキル参照
+    SCAN -.->|"走査"| SKILLS

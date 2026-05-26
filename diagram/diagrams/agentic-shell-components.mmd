@@ -1,0 +1,80 @@
+%%{init: {'theme': 'base', 'themeVariables': {
+  'primaryColor': '#AED6F1',
+  'primaryTextColor': '#333',
+  'primaryBorderColor': '#5DADE2',
+  'lineColor': '#85929E'
+}}}%%
+flowchart TB
+    subgraph GoProject["agentic-shell (Go Project)"]
+        subgraph cmd["cmd/agentic-shell/"]
+            MAIN["main.go<br/>Entry Point"]
+        end
+        style cmd fill:#AED6F1,stroke:#5DADE2,color:#333
+
+        subgraph internal["internal/"]
+            subgraph cli["cli/"]
+                ROOT["root.go<br/>Cobra Root"]
+                SG["spec_gather.go"]
+                GEN["generate.go"]
+                VER["version.go"]
+            end
+            style cli fill:#F5B7B1,stroke:#D98880,color:#333
+
+            subgraph llm["llm/"]
+                CLIENT["client.go<br/>Claude CLI<br/>Subprocess"]
+                PB["prompt_builder.go<br/>プロンプト構築"]
+            end
+            style llm fill:#D7BDE2,stroke:#AF7AC5,color:#333
+
+            subgraph spec["spec/"]
+                GATHER["gatherer.go<br/>Step-back質問"]
+                VALID["validator.go"]
+                CONF["confidence.go"]
+            end
+            style spec fill:#FAD7A0,stroke:#F5B041,color:#333
+
+            subgraph agent["agent/"]
+                AGENTGEN["generator.go"]
+                TEMPL["templates.go"]
+            end
+            style agent fill:#A9DFBF,stroke:#52BE80,color:#333
+
+            subgraph config["config/"]
+                CFG["config.go<br/>Viper設定"]
+            end
+            style config fill:#A3E4D7,stroke:#48C9B0,color:#333
+        end
+        style internal fill:#F4F6F6,stroke:#85929E,color:#333
+
+        subgraph pkg["pkg/types/"]
+            INTENT["intent.go<br/>IntentSpace"]
+            AGSPEC["agent_spec.go<br/>AgentSpec"]
+            AGDEF["agent_def.go<br/>ClaudeAgentDefinition"]
+        end
+        style pkg fill:#D5F5E3,stroke:#58D68D,color:#333
+    end
+    style GoProject fill:#F8F9F9,stroke:#5D6D7E,color:#333
+
+    %% 依存関係
+    MAIN --> ROOT
+    ROOT --> SG
+    ROOT --> GEN
+    ROOT --> VER
+
+    SG --> GATHER
+    GEN --> GATHER
+    GEN --> AGENTGEN
+
+    GATHER --> CLIENT
+    GATHER --> VALID
+    GATHER --> CONF
+
+    CLIENT --> PB
+
+    AGENTGEN --> TEMPL
+
+    GATHER -.-> INTENT
+    AGENTGEN -.-> AGSPEC
+    AGENTGEN -.-> AGDEF
+
+    ROOT --> CFG
