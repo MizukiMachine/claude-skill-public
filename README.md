@@ -18,6 +18,7 @@ Claude Code 用カスタムスキル集。`~/.claude/skills/` に配置して使
 | Skill | Description |
 |---|---|
 | **frontend-design** | 本番向け UI 構築 + ブラウザスクリーンショット QA |
+| **playwright-testing** | フロントエンドテスト（Playwright MCP / Vitest / フレーキー対策 / ゲームテスト） |
 | **site-metadata-generator** | SEO meta / OGP / sitemap / Schema.org 自動生成 |
 | **og-image-creator** | OG 画像・SNS プレビュー画像生成 |
 | **og-image-ai** | OpenAI GPT Image + Pillow で AI OG 画像生成 |
