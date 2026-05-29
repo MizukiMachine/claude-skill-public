@@ -1,6 +1,6 @@
 ---
 name: frontend-design
-description: "本番向けフロントエンドUIを、コードベースに沿った視覚設計、デザインシステム遵守、アクセシビリティ、インタラクション状態、レスポンシブレイアウト、ブラウザスクリーンショットQAまで含めて構築、再設計、レビュー、改善する。Webコンポーネント、ページ、ダッシュボード、SaaSツール、ランディングページ、アプリ、デザインシステムUI、視覚QA、UIコードレビューを扱うときに使う。特に高品質なデザイン、UI改善、フロントエンド実装、汎用的なAIっぽい見た目の回避を求められた場合に使う。"
+description: "本番向けフロントエンドUIを、コードベースに沿った視覚設計、デザインシステム遵守、アクセシビリティ、インタラクション状態、レスポンシブレイアウト、ブラウザスクリーンショットQAまで含めて構築、再設計、レビュー、改善する。Webコンポーネント、ページ、ダッシュボード、SaaSツール、ランディングページ、アプリ、デザインシステムUI、視覚QA、UIコードレビューを扱うときに使う。特に高品質なデザイン、UI改善、フロントエンド実装、汎用的なAIっぽい見た目の回避、タイポグラフィ設計、テーマ固定、単一デザイン軸の改善を求められた場合に使う。"
 ---
 
 # Frontend Design
@@ -11,7 +11,7 @@ Use this skill to produce working frontend code that feels intentionally designe
 
 ## Operating Model
 
-Great frontend design comes from context, hierarchy, and implementation integrity.
+Great frontend design comes from context, hierarchy, concept, and implementation integrity.
 
 Prioritize:
 
@@ -19,7 +19,7 @@ Prioritize:
 2. Existing framework, design system, and code conventions
 3. Clear visual hierarchy and information density suited to the domain
 4. Responsive stability, accessibility, and interaction states
-5. Distinctive details that support the concept without breaking usability
+5. A distinctive aesthetic concept, typography, and theme that support the task
 6. Browser verification with real screenshots or smoke tests
 
 Before acting, answer:
@@ -27,7 +27,9 @@ Before acting, answer:
 - What is the user trying to accomplish on this screen?
 - Is this an operational tool, marketing surface, portfolio, game, creative app, or content site?
 - What framework, UI library, routing model, assets, fonts, icons, and design tokens already exist?
-- Which one visual idea should make this interface feel specific to the product?
+- Which one visual idea, typographic identity, or themed interaction should make this interface feel specific to the product?
+- Does the screen include a canvas, 3D scene, video, map, or other primary visual layer, and what safe areas must the UI preserve around it?
+- Is the UI driven by external, generated, cached, realtime, or user-provided data, and what provenance, freshness, partial-failure, or stale-state signals must be visible?
 - What states must be designed: loading, empty, error, disabled, hover, active, selected, focused, mobile?
 
 Ask at most one to three questions only when missing constraints would materially change the result.
@@ -37,8 +39,11 @@ Ask at most one to three questions only when missing constraints would materiall
 - Treat the local design system as the source of truth. If Storybook, Figma notes, `DESIGN.md`, component docs, shadcn config, CSS variables, or theme tokens exist, inspect them before inventing new styles.
 - If no design system exists, define a compact token set first: color roles, type scale, spacing, radius, elevation, motion, and interaction states. Implement through CSS variables, Tailwind theme values, or the project's equivalent.
 - Keep scope bounded to the requested surface. Do not replace the framework, router, styling system, or UI library unless the existing stack cannot reasonably support the task.
+- For canvas, 3D, game, map, video, or editor surfaces, treat the visual layer and DOM UI as one composition. Define safe zones, z-index layers, pointer-event ownership, focus behavior, and resize rules before styling overlays.
+- For data-driven products, make data trust part of the design contract. Decide how to show source, freshness, cache/stale state, partial availability, validation warnings, and retry paths before styling the happy path.
 - Design toward WCAG 2.2 AA where feasible: semantic structure, labels, keyboard flow, visible focus, contrast, target size, error identification, and reduced-motion behavior.
 - Translate inspiration into local principles. Do not copy a proprietary brand, product UI, or external asset set unless the user owns it or explicitly provided it for reuse.
+- When the user asks for a targeted refinement such as typography, motion, density, palette, or spacing, isolate that dimension and preserve unrelated structure unless there is a direct conflict.
 
 ## Discovery First
 
@@ -48,6 +53,7 @@ For an existing project, inspect before designing or editing:
 rg --files | rg '(^|/)(DESIGN\.md|AGENTS\.md|README\.md|package.json|src|app|pages|components|styles|public|assets|static|tailwind|vite|next|astro|nuxt|svelte|storybook|\.storybook)'
 rg -n "className=|styled\\.|createTheme|ThemeProvider|tailwind|@theme|:root|--[a-zA-Z0-9-]+|font-family|from ['\\\"]lucide|from ['\\\"]@mui|from ['\\\"]antd|from ['\\\"]@radix-ui|from ['\\\"]react-aria|from ['\\\"]framer-motion|from ['\\\"]motion/react|cva\\(" .
 rg -n "Button|Card|Dialog|Modal|Tabs|Toggle|Select|Slider|Tooltip|Navbar|Sidebar|Header|Footer|Logo|Icon|Empty|Error|Skeleton|Toast" src app pages components stories 2>/dev/null
+rg -n "canvas|WebGLRenderer|three|phaser|pixi|requestAnimationFrame|setAnimationLoop|pointer-events|aria-label|data-role" src app pages components styles 2>/dev/null
 ```
 
 If these searches produce too much output, narrow them to the target route, component, or style folder before reading more.
@@ -60,6 +66,8 @@ Extract:
 - Color tokens, CSS variables, Tailwind config, font loading, spacing scale, radius, elevation, and motion patterns
 - Icon library and any brand/logo assets
 - Existing page layout patterns and responsive breakpoints
+- Primary visual layer constraints: canvas/media bounds, HUD safe areas, overlay stack, pointer-event routing, and resize behavior
+- Data shape and volatility: generated vs curated content, external sources, timestamps, pagination, filtering, sorting, stale/cache states, partial failures, and long or multilingual text
 - Existing loading, empty, error, disabled, selected, focus, and validation patterns
 - Available scripts for lint, typecheck, test, build, and dev preview
 
@@ -70,22 +78,73 @@ For a greenfield page or app, choose the simplest stack already implied by the w
 1. Define the screen job and design direction in a short phrase. Include surface type, audience, density, palette, typography, imagery, motion, and one memorable product-specific move.
 2. Align or create the token contract. Decide color roles, type scale, spacing, radius, elevation, focus ring, disabled treatment, and motion rules before styling many components.
 3. Map the interaction surface: navigation, primary and secondary actions, controls, data states, feedback states, keyboard paths, touch ergonomics, and responsive behavior.
-4. Implement in the project's native style. Reuse local components, CSS variables, Tailwind utilities, icon libraries, accessibility primitives, and framework patterns before adding new abstractions.
-5. Use appropriate visual assets. Product, venue, person, object, game, and website experiences need real or generated visual signals, not abstract placeholders. If raster assets are required and absent, use an image-generation workflow when available.
-6. Add polished states: hover, focus-visible, active, disabled, loading, empty, error, selected, drag/resize if relevant.
-7. Keep layout stable with explicit constraints such as aspect ratio, min/max sizes, grid tracks, container queries where useful, and fixed control dimensions.
-8. Verify visually at desktop and mobile sizes, then revise anything that overlaps, clips, wraps badly, shifts unexpectedly, or renders blank.
+4. For canvas, 3D, media, map, game, or editor screens, reserve the primary visual layer first. Place HUD, rails, toolbars, modals, and status bars in stable safe zones and decide which layer owns pointer and keyboard input.
+5. For data-heavy screens, design the scan loop, detail loop, and trust loop. Decide what users can compare at a glance, what opens deeper detail, and where source/freshness/error context appears.
+6. Implement in the project's native style. Reuse local components, CSS variables, Tailwind utilities, icon libraries, accessibility primitives, and framework patterns before adding new abstractions.
+7. Use appropriate visual assets. Product, venue, person, object, game, and website experiences need real or generated visual signals, not abstract placeholders. If raster assets are required and absent, use an image-generation workflow when available.
+8. Add polished states: hover, focus-visible, active, disabled, loading, empty, error, selected, drag/resize if relevant.
+9. Keep layout stable with explicit constraints such as aspect ratio, min/max sizes, grid tracks, container queries where useful, and fixed control dimensions.
+10. Verify visually at desktop and mobile sizes, then revise anything that overlaps, clips, wraps badly, shifts unexpectedly, or renders blank.
 
 ## Direction By Surface
 
 | Surface | Design Bias |
 |---------|-------------|
 | SaaS, CRM, admin, finance, operations | Quiet, dense, scan-friendly, restrained color, strong tables/forms, predictable navigation |
+| Data, feed, search, analytics, or AI-generated content workspace | Dense scanning, provenance and freshness signals, strong filters/sort/search, detail drilldowns, graceful stale/partial data states |
 | Creative tool or editor | Full working canvas, compact controls, icon buttons with tooltips, stable toolbars, no explanatory marketing copy |
+| Canvas, 3D, map, or media app | Primary visual layer first, DOM controls in safe zones, pointer-event contract, responsive framing, readable overlays |
 | Consumer app | More expressive brand moments, warm feedback, clear task progression, mobile ergonomics |
 | Landing or product page | First viewport must clearly show the brand/product/place/person; hint at the next section; avoid generic split hero cards |
 | Portfolio, editorial, culture | Strong typography, art direction, image rhythm, intentional whitespace |
-| Game or playful experience | More animation, custom assets, immediate playable or interactive surface |
+| Game or playful experience | Immediate playable surface, readable HUD, custom assets, responsive input, pause/game-over/settings states |
+
+## Data-Dense Workspaces
+
+For dashboards, feeds, search results, generated-content lists, analytics, and research tools, design the workspace around repeated decisions rather than a static presentation.
+
+- Put search, counts, filters, sort, view modes, pagination, and refresh/status controls in predictable tool regions. Keep their dimensions stable and make horizontal overflow local to the control group when needed.
+- Use a scannable primary list or grid, then provide side panels, drawers, modals, or split panes for deeper context. Do not force every detail into repeated cards.
+- Surface trust metadata close to the decision it affects: source, timestamp, status, confidence, validation warning, cache/stale marker, or retry affordance.
+- Treat generated or external text as hostile to layout. Normalize display text where appropriate, cap repeated summaries, preserve full text in details or titles, and use `overflow-wrap: anywhere` for user/source-provided strings.
+- Reflow deliberately: sidebars can become inline panels, right rails can move below content, toolbars can wrap into rows, and pagination/filter strips can scroll locally. Avoid whole-page horizontal scrolling.
+
+## Aesthetic Direction
+
+Choose a specific visual concept instead of a generic "modern" look. The concept can be quiet or loud, but it must be deliberate and appropriate to the surface.
+
+Use strong directions when the product can support them:
+
+- **Brutally minimal**: sparse structure, precise spacing, strong type contrast, few effects
+- **Editorial or magazine-like**: expressive display type, image rhythm, asymmetric pacing
+- **Industrial or technical**: exposed grids, utility color, monospaced accents, dense controls
+- **Luxury or refined**: restrained palette, high-quality imagery, subtle motion, careful proportion
+- **Playful or toy-like**: saturated accents, tactile controls, bouncy feedback, custom assets
+- **Retro-futuristic, solarpunk, cyberpunk, art deco, Memphis, or brutalist**: use only when it fits the product or the user asks for it
+
+Theme-locking rule: when the user names an aesthetic, lock color, typography, layout rhythm, texture, motion, and component detailing to that theme. Match implementation complexity to the concept: maximal directions need richer layers and motion; refined minimal directions need stricter spacing, contrast, and restraint.
+
+## Typography And Theme
+
+- Treat typography as a core design system, not an afterthought. Choose display, body, numeric, and code styles deliberately.
+- Reuse existing fonts when the project already has a brand or performance budget. For greenfield work, avoid defaulting to Inter, Roboto, Arial, or system fonts unless the product calls for utilitarian neutrality.
+- Pair fonts for contrast when useful: serif with geometric sans, display with restrained body, or mono accents with a readable UI face.
+- Use strong weight and scale contrast for heroes, editorial surfaces, and brand moments; use compact, stable type scales for dashboards, editors, and operational tools.
+- Load fonts through the project's established mechanism. Avoid adding remote font dependencies when offline use, privacy, or performance constraints make that a poor tradeoff.
+- Build the theme with variables or tokens. Color, radius, shadow, type scale, focus, disabled state, and motion should be reusable rather than scattered one-offs.
+- Pull palette inspiration from the domain, product materials, imagery, or named aesthetic. Use dominant roles plus sharp accents; avoid timid evenly distributed palettes.
+
+## Targeted Refinement
+
+When the user asks to improve one dimension, keep the edit narrowly focused:
+
+| Request | Preserve | Change |
+|---------|----------|--------|
+| Better typography | Layout, palette, components | Font choice, scale, weight, line-height, measure, hierarchy |
+| Better color/theme | Layout, type hierarchy, workflow | Tokens, semantic roles, contrast, accents, surfaces |
+| Better motion | Layout, palette, information architecture | Timing, easing, entrance, hover/focus, state transitions |
+| More premium/playful/minimal/etc. | Core workflow and accessibility | Aesthetic tokens, imagery, texture, rhythm, detailing |
+| Fix responsive polish | Visual identity and behavior | Constraints, wrapping, breakpoints, overflow, touch targets |
 
 ## Interaction Rules
 
@@ -94,8 +153,10 @@ For a greenfield page or app, choose the simplest stack already implied by the w
 - Give each async region a loading, empty, error, retry, and success or saved state when relevant.
 - Prefer URL state for shareable filters, search, sort, tabs, and pagination. Use local state for transient UI such as open menus and temporary selections.
 - Build forms with persistent labels, useful helper text, inline validation, submit feedback, and safe destructive confirmation.
+- For list items or cards that open details, prefer a semantic button/link when practical. If a non-button container must be interactive, provide `role`, keyboard activation, visible focus, accessible names, and do not break text selection or nested links.
 - Make dialogs, popovers, menus, command palettes, and drawers manage focus, Escape, outside click, scroll lock, and return focus.
 - Treat keyboard and touch as first-class: visible focus, logical tab order, hit targets large enough for touch, and no hover-only affordances.
+- For layered canvas/HUD screens, keep passive overlay regions `pointer-events: none` and restore `pointer-events: auto` only on controls. Do not let decorative layers intercept gameplay, map, editor, or camera input.
 
 ## Visual Rules
 
@@ -105,6 +166,7 @@ For a greenfield page or app, choose the simplest stack already implied by the w
 - Use palettes with real contrast, purposeful accents, and semantic roles. Avoid one-note themes made only from one hue family.
 - Prefer icons for tool actions when a familiar symbol exists. Use the project's icon library, often Lucide, instead of hand-drawn inline SVG.
 - Use familiar controls: segmented controls for modes, toggles or checkboxes for booleans, sliders or numeric inputs for numbers, tabs for views, menus for option sets.
+- For HUDs, dashboards, previews, counters, meters, and keycaps, use fixed or bounded dimensions, tabular numerals, stable SVG/canvas viewBoxes, and wrapping rules that tolerate localization and long labels.
 - Keep cards to real repeated items, modals, and framed tools. Do not put cards inside cards or turn every page section into a floating card.
 - Keep card radii modest unless the existing design system says otherwise.
 - Use motion for meaningful state change, spatial orientation, and high-impact reveals. Avoid scattered animation that distracts from the workflow.
@@ -116,9 +178,11 @@ For a greenfield page or app, choose the simplest stack already implied by the w
 Before calling the work done, confirm:
 
 - The first viewport contains a product, brand, workflow, or domain signal specific enough that it could not belong to any generic app.
+- For canvas, 3D, media, map, game, or editor screens, the primary visual layer remains visible and correctly framed; HUD overlays do not hide critical content at desktop or mobile sizes.
 - Primary task completion is clear, with no more than one dominant primary action per view unless the workflow truly requires branching.
 - Design tokens and local primitives are used instead of hardcoded one-off styling when a system exists.
 - For interactive or data-driven surfaces, critical states are designed: loading, empty, error, disabled, selected, focused, active, hover, mobile, and long-content cases.
+- For generated, external, cached, or realtime data, the UI truthfully distinguishes fresh, stale, partial, unavailable, retrying, and read-only states instead of presenting one vague spinner or silent failure.
 - Accessibility basics pass: semantic elements, labels, contrast, focus-visible, keyboard operation, reduced motion, and screen-reader names for icon-only controls.
 - The UI tolerates realistic content: long names, localized text, many/few items, missing images, slow network, and narrow screens.
 - Visual assets, fonts, animation, shadows, and effects support the concept without excessive payload, jank, or readability loss.
@@ -127,9 +191,27 @@ Before calling the work done, confirm:
 
 **Generic AI aesthetic**
 
-Bad: Purple-blue gradients, glass cards, floating blobs, same rounded cards, generic Inter/Roboto/system typography, stock-like copy, and no domain signal.
+Bad: Purple-blue gradients, glass cards, floating blobs, same rounded cards, generic Inter/Roboto/system typography, stock-like copy, predictable layouts, and no domain signal.
 
 Better: Extract the product context first, then pick a specific visual concept and implement it through layout, typography, assets, interaction states, and copy density.
+
+**Theme as decoration**
+
+Bad: Naming an aesthetic but changing only colors while leaving default layout, type, motion, and component shapes untouched.
+
+Better: Lock the theme across palette, typography, spacing rhythm, imagery, texture, motion, and control details.
+
+**Uncontrolled maximalism**
+
+Bad: Adding many effects, patterns, overlaps, custom cursors, and animations that compete with the task.
+
+Better: Choose one or two high-impact expressive moves and keep interaction, readability, and performance intact.
+
+**Over-broad refinement**
+
+Bad: Rebuilding the whole page when the user only asked for better typography, color, motion, or mobile polish.
+
+Better: Isolate the requested design dimension, adjust it deeply, and leave unrelated structure alone.
 
 **Decorative dashboard**
 
@@ -142,6 +224,12 @@ Better: Prioritize navigation, filtering, scanning, comparison, status, dense co
 Bad: A landing page that describes the tool instead of providing the tool.
 
 Better: Put the usable app, game, editor, or workflow in the first viewport. Add explanatory content only when it helps the actual task.
+
+**HUD pasted over a scene**
+
+Bad: Floating panels, status bars, and controls are positioned after the canvas without reserving safe space, so they hide the subject, capture input accidentally, or break at shorter viewports.
+
+Better: Design the canvas/media framing and DOM HUD together. Reserve safe zones, route pointer events deliberately, test pause/settings/error states, and adjust camera or visual composition when overlays are present.
 
 **Unstable responsive design**
 
@@ -160,6 +248,18 @@ Better: Extend existing tokens or compose existing primitives. If an exception i
 Bad: Designing only the happy path with static mock data.
 
 Better: Implement or at least account for loading, empty, error, disabled, focused, long-content, and mobile states.
+
+**Invisible data trust**
+
+Bad: Showing external, AI-generated, cached, or realtime data as if it were always complete and fresh.
+
+Better: Expose source, timestamp, stale/cache status, partial-failure warnings, retry affordances, and evidence/detail paths where they affect user decisions.
+
+**One-shot card grid**
+
+Bad: Turning every data-heavy screen into uniform cards with no scan path, no filters, no sorting, no detail rhythm, and no mobile reflow plan.
+
+Better: Design the repeated workflow: scan, filter, compare, open details, recover from empty/error states, and return without losing context.
 
 **Unverified polish**
 
@@ -199,6 +299,7 @@ For visual QA:
 - Confirm images, icons, fonts, gradients, canvas/WebGL, and videos render as intended.
 - Confirm controls have hover, focus, selected, disabled, and loading behavior when relevant.
 - Confirm text does not overlap, clip, overflow its parent, or change control dimensions unexpectedly.
+- Stress with realistic data: long titles, multilingual strings, many items, zero items, missing images, stale cached data, partial source failures, and slow or failed network responses.
 - Scan the CSS for accidental one-note palette, excessive purple/blue gradients, beige/brown monotony, dark slate monotony, or decorative blobs.
 - For 3D/canvas/game surfaces, verify the canvas is nonblank, framed correctly, and interactive or animated.
 
