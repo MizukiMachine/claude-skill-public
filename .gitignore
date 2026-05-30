@@ -1,2 +1,8 @@
 __pycache__/
 *.pyc
+
+# Symlinks into the shared external skill store (~/.agents/skills/).
+# Tracked there, not here — committing the links would dangle elsewhere.
+/find-skills
+/music
+/sound-effects
