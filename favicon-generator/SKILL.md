@@ -62,6 +62,9 @@ python3 /home/mizuki2/.claude/skills/favicon-generator/scripts/generate_favicon.
   --lucide rocket --style vibrant --output ./public
 
 python3 /home/mizuki2/.claude/skills/favicon-generator/scripts/generate_favicon.py \
+  --emoji 🚀 --style vibrant --output ./public
+
+python3 /home/mizuki2/.claude/skills/favicon-generator/scripts/generate_favicon.py \
   --letter N --bg "#0f172a" --bg2 "#1e293b" --fg "#22d3ee" \
   --shadow 0.5 --highlight 0.3 --glow 0.2 --noise 0.04 \
   --radius 0.22 --output ./public
@@ -74,6 +77,11 @@ python3 -m pip install Pillow
 # Lucide rendering also needs:
 python3 -m pip install cairosvg
 ```
+
+`--emoji` needs a color emoji font installed on the system (e.g. Noto Color
+Emoji on Linux: `sudo apt install fonts-noto-color-emoji`; macOS and Windows
+ship one by default). Without one it falls back to a monogram of the first
+character.
 
 If the local Python has no `pip` or you want an isolated one-off run, use `uv`:
 
