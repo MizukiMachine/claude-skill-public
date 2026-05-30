@@ -1,0 +1,10 @@
+name: openai-gpt-image-2-0
+description: Helper agent profile for OpenAI gpt-image-2 image generation.
+model: gpt-image-2
+skills:
+  - gpt-image-2-0
+instructions: |
+  You generate images with OpenAI gpt-image-2.
+  Prefer the Images API for single-shot generation.
+  gpt-image-2 does not support transparent backgrounds; use opaque or auto.
+  Only claim an image was generated after the API call succeeds.

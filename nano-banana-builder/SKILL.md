@@ -1,0 +1,275 @@
+---
+name: nano-banana-builder
+description: "Build full-stack web app features on top of Google Gemini's Nano Banana & Nano Banana Pro image models: image generators, conversational editors, avatar makers, style-transfer tools, galleries, and multi-image composition flows. Use when integrating gemini-2.5-flash-image or gemini-3-pro-image-preview into a Next.js/React app via the Vercel AI SDK, with server actions, API routes, storage, rate limiting, and production deployment patterns. For direct Gemini/Imagen image API or CLI usage without an app, use gemini-image instead."
+metadata:
+  short-description: "Build Gemini image apps (Nano Banana)."
+---
+
+# Nano Banana Builder
+
+Build production-ready web applications powered by Google's Nano Banana image generation APIs—creating everything from simple text-to-image generators to sophisticated iterative editors with multi-turn conversation.
+
+For direct Gemini/Imagen image generation and editing at the API or CLI layer (no app), use the `gemini-image` skill instead. This skill is about building app features on top of the models.
+
+---
+
+## CRITICAL: Exact Model Names
+
+**Use ONLY these exact model strings. Do not invent, guess, or add date suffixes.**
+
+| Model String (use exactly) | Alias | Use Case |
+|---------------------------|-------|----------|
+| `gemini-2.5-flash-image` | Nano Banana | Fast iterations, drafts, high volume |
+| `gemini-3.1-flash-image-preview` | — | Best all-around flash: widest aspect ratios, most reference images, balanced cost |
+| `gemini-3-pro-image-preview` | Nano Banana Pro | Quality output, text rendering, 2K/4K |
+
+This skill's examples default to `gemini-2.5-flash-image` (speed) and `gemini-3-pro-image-preview` (quality); swap in `gemini-3.1-flash-image-preview` when you want the balanced flash tier. See the `gemini-image` skill's `references/gemini-image-models.md` for the full model matrix.
+
+**Common mistakes to avoid:**
+- ❌ `gemini-2.5-flash-preview-05-20` — wrong, date suffixes are for text models
+- ❌ `gemini-2.5-pro-image` — wrong, 2.5 Pro doesn't do image generation
+- ❌ `gemini-3-flash-image` — wrong, the flash image model is `gemini-3.1-flash-image-preview`
+- ❌ `gemini-pro-vision` — wrong, that's for image *input*, not generation
+
+**Use the exact strings above — do not invent variants or add date suffixes.**
+
+---
+
+## Philosophy: Conversational Image Generation
+
+Nano Banana isn't just another image API—it's **conversational by design**. The core insight is that image generation works best as a dialogue, not a one-shot prompt.
+
+**Think of it as working with an AI art director**:
+- **Iterative refinement** → Build up images through conversation, not perfection in one prompt
+- **Context awareness** → The model "remembers" previous generations and edits
+- **Natural language editing** → Describe changes conversationally, not with parameters
+
+### Before Building, Ask
+
+- **What's the primary use case?** Text-to-image generation? Image editing? Multi-image composition? Style transfer?
+- **Which model fits the need?** Nano Banana (speed/iterations) or Nano Banana Pro (quality/complex prompts)?
+- **What's the user journey?** Single generation? Iterative refinement? Gallery browsing?
+- **What are production constraints?** Rate limits? Storage? Cost per image? User volume?
+
+### Core Principles
+
+1. **Conversation over configuration**: Leverage Nano Banana's iterative editing rather than complex parameter UIs
+2. **Model selection matters**: Use `gemini-2.5-flash-image` for speed/iterations, `gemini-3-pro-image-preview` for quality/complexity
+3. **State as conversation history**: Track generations as chat messages to enable multi-turn editing
+4. **Rate limit awareness**: Image generation has strict quotas—implement queuing and caching
+5. **Storage strategy**: Store generated images (Vercel Blob/S3), not just inline base64
+
+### Model Selection Framework
+
+Choose based on use case:
+
+| Use Case | Model | Why |
+|----------|-------|-----|
+| Rapid iterations, drafts | `gemini-2.5-flash-image` | Fast (2-5s), lower cost per image |
+| Balanced default, most aspect ratios / references | `gemini-3.1-flash-image-preview` | Best all-around flash tier |
+| Final output, quality | `gemini-3-pro-image-preview` | Superior quality, thinking, text rendering |
+| Text-heavy images | `gemini-3-pro-image-preview` | Best typography, 2K/4K resolution |
+| Multi-turn editing | Any | All support conversational editing |
+| High volume | `gemini-2.5-flash-image` | Lower cost, faster throughput |
+
+---
+
+## Quick Start
+
+### Basic Server Action
+
+```typescript
+// app/actions/generate.ts
+'use server'
+
+import { google } from '@ai-sdk/google'
+import { generateText } from 'ai'
+
+export async function generateImage(prompt: string) {
+  const result = await generateText({
+    model: google('gemini-2.5-flash-image'),
+    prompt,
+    providerOptions: {
+      google: {
+        responseModalities: ['IMAGE'],
+        imageConfig: { aspectRatio: '16:9' }
+      }
+    }
+  })
+
+  return result.files[0] // { base64, uint8Array, mediaType }
+}
+```
+
+### Client Component with useChat
+
+```typescript
+// app/components/ImageGenerator.tsx
+'use client'
+
+import { useChat } from '@ai-sdk/react'
+
+export function ImageGenerator() {
+  const { append, messages, isLoading } = useChat({
+    api: '/api/generate'
+  })
+
+  return (
+    <div>
+      {messages.map(m => (
+        <div key={m.id}>
+          {m.parts?.map((part, i) =>
+            part.type === 'image' && (
+              <img key={i} src={part.url} alt="Generated" />
+            )
+          )}
+        </div>
+      ))}
+
+      <button
+        disabled={isLoading}
+        onClick={() => append({
+          role: 'user',
+          content: 'A futuristic cityscape at dusk'
+        })}
+      >
+        Generate
+      </button>
+    </div>
+  )
+}
+```
+
+---
+
+## Advanced Implementation
+
+For complete implementations including:
+- **Server Actions** with model selection, storage, and error handling
+- **API Routes** with streaming responses
+- **Client Components** with iterative editing and galleries
+- **Advanced Patterns** like multi-image composition and batch generation
+
+See **references/advanced-patterns.md**
+
+---
+
+## Configuration & Operations
+
+For detailed configuration and operational concerns:
+- **Provider Options** (responseModalities, imageConfig, thinkingConfig)
+- **Storage Strategy** (Vercel Blob, S3/R2 implementations)
+- **Rate Limiting** (Upstash Redis patterns, quota management)
+- **Cost Optimization** strategies
+
+See **references/configuration.md**
+
+---
+
+## Anti-Patterns to Avoid
+
+❌ **Inventing model names or adding date suffixes**:
+Why wrong: Image generation models have specific names; date suffixes like `-preview-05-20` are for text models only
+Better: Use exactly `gemini-2.5-flash-image`, `gemini-3.1-flash-image-preview`, or `gemini-3-pro-image-preview` — no other variations
+
+❌ **Using Gemini 2.5 Pro for images**:
+Why wrong: Gemini 2.5 Pro doesn't generate images directly
+Better: Use one of the image models above
+
+❌ **Storing only base64 in database**:
+Why wrong: Blobs database, expensive storage, slow retrieval
+Better: Store in object storage (Vercel Blob/S3), save URL only
+
+❌ **No rate limit handling**:
+Why wrong: Will hit 429 errors in production, poor UX
+Better: Implement rate limiting with user-friendly error messages
+
+❌ **Ignoring multi-turn context**:
+Why wrong: Wastes Nano Banana's conversational editing strength
+Better: Track chat history for iterative refinement
+
+❌ **Hardcoding API keys client-side**:
+Why wrong: Exposes credentials, security risk
+Better: Use server actions / API routes with environment variables
+
+❌ **Using wrong aspect ratio**:
+Why wrong: 21:9 on 1:1 request wastes tokens, unexpected crop
+Better: Match aspect ratio to intended use case
+
+❌ **No loading states**:
+Why wrong: Image generation takes 5-30s, users think it's broken
+Better: Show progress indicators and estimated wait time
+
+❌ **Generating on every keystroke**:
+Why wrong: Wastes quota, slow response
+Better: Debounce prompts, require explicit action
+
+---
+
+## Variation Guidance
+
+**IMPORTANT**: Every app should feel uniquely designed for its specific purpose.
+
+**Vary across dimensions**:
+- **UI Style**: Minimal, brutalist, playful, professional, dark, light
+- **Color Scheme**: Warm, cool, monochrome, vibrant, muted
+- **Layout**: Single page, multi-step wizard, sidebar, grid, list
+- **Interaction**: Click-to-generate, drag-and-drop, real-time typing, batch
+
+**Avoid overused patterns**:
+- ❌ Default Tailwind purple gradients
+- ❌ Generic "AI startup" aesthetic
+- ❌ Same component libraries for every project
+- ❌ Inter/Roboto fonts without thought
+
+**Context should drive design**:
+- **Meme generator** → Bold, fun, casual
+- **Product mockup tool** → Clean, professional, grid-based
+- **Art exploration** → Gallery-first, visual-heavy
+- **Brand asset creator** → Polished, template-guided
+
+---
+
+## Environment Setup
+
+```bash
+# .env.local
+GEMINI_API_KEY=your_api_key_here
+
+# For Vercel Blob storage
+BLOB_READ_WRITE_TOKEN=your_vercel_token
+
+# For S3 (optional)
+S3_BUCKET=your-bucket
+S3_ENDPOINT=https://your-endpoint.r2.cloudflarestorage.com
+S3_ACCESS_KEY_ID=your_key
+S3_SECRET_ACCESS_KEY=your_secret
+
+# For Upstash rate limiting (optional)
+UPSTASH_REDIS_REST_URL=your_url
+UPSTASH_REDIS_REST_TOKEN=your_token
+```
+
+```bash
+# Install dependencies
+npm install @ai-sdk/google ai @ai-sdk/react @vercel/blob
+
+# Or, to call Gemini directly with Google's official JS SDK instead of the AI SDK
+npm install @google/genai
+```
+
+---
+
+## Remember
+
+**Nano Banana enables conversational image generation that feels like working with a creative partner, not a tool.**
+
+The best apps:
+- Leverage multi-turn editing for refinement
+- Choose models intentionally (speed vs quality)
+- Handle rate limits gracefully
+- Store images efficiently
+- Provide great loading states
+- Feel uniquely designed for their purpose
+
+You're building more than an image generator—you're creating a creative experience. Design it thoughtfully.
