@@ -61,11 +61,11 @@ Use this section order by default:
 
 ## 構成
 
-- ...
-
-```text
-Browser -> Backend -> ...
-```
+- `src/components/` — UIコンポーネント
+- `src/hooks/` — カスタムフック
+- `src/lib/` — ビジネスロジック・外部サービス連携
+- `src/types/` — 型定義
+- `public/` — 静的アセット
 
 ## 関連ドキュメント
 
@@ -92,7 +92,7 @@ Do not hard-code `サイト` unless the project is actually a website.
 - Keep the README short enough to scan in one pass
 - Use concrete product language from the project rather than generic marketing copy
 - Use backticks for screen names, routes, directories, env vars, and commands
-- Use one compact architecture diagram only when it clarifies the structure
+- Use a compact directory tree in the `構成` section to show code organization
 - Link to separate docs instead of embedding setup, command, and deployment details
 - Keep all claims grounded in the codebase or existing docs
 
