@@ -3,7 +3,7 @@ name: gmerge
 description: >
   ブランチをdevelopに--no-ffマージする。developがなければ作成。
   main/masterへのマージはブロック。
-  トリガー: "マージして", "developにマージ", "git merge", "ブランチをマージ".
+  トリガー: "gm", "マージして", "developにマージ", "git merge", "ブランチをマージ".
 allowed-tools: Bash, Read, Grep, Glob
 ---
 
