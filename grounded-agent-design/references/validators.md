@@ -33,8 +33,15 @@ that isn't in the facts"); the *cue words* live in a `Lexicon` passed in. This:
 
 Expect morphologically rich languages (e.g. Japanese) to need *phrase* cues and
 sometimes small regex fragments rather than plain word membership. That is fine —
-put the richer patterns in the lexicon, keep the strategy generic. `lexicons.ts`
-ships English and Japanese starting sets; tune them against your own outputs.
+put the richer patterns in the lexicon, keep the strategy generic.
+
+The cue words ship as **YAML** so they can be edited without touching code:
+`assets/control-layer/lexicons/en.yaml` and `ja.yaml` are the single source of
+truth; `loadLexicon("en"|"ja"|"<path>")` reads them into a `Lexicon`, and
+`lexicons.ts` re-exports `englishLexicon` / `japaneseLexicon`. Add a language by
+dropping in `lexicons/<lang>.yaml`. The reader is a small dependency-free one for
+the constrained `key:` / `- value` shape — swap in a real YAML library if you
+outgrow it. Tune the lists against your own failure transcripts.
 
 ## The catalog
 

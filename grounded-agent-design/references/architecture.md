@@ -18,18 +18,17 @@ its relationship to a separate latency/orchestration runtime.
 The censor can only enforce grounding if each actor's context was *constructed*
 from what that actor may know. Asking the model to "pretend you don't know X"
 fails because X is in the context and leaks under pressure. The robust design is a
-**per-viewer projection** of a single authoritative state:
+**per-viewer projection** of a single authoritative state, which doubles as the
+source of the plan's `allowedFacts`: build the boundary first, and the fact
+whitelist falls out of it. When auditing an app that "leaks", grep the **context
+builder**, not the prompt text — the fix is usually that secret state reaches a
+context it should never enter.
 
-- one source-of-truth state on the server;
-- a redaction/projection function per viewer that strips anything that viewer may
-  not see (other actors' secret roles, private results, hidden targets);
-- generation, and any UI for that viewer, runs only on the projected slice.
-
-This is the same idea as fog-of-war in an authoritative multiplayer server, and
-it doubles as the source of the plan's `allowedFacts`. Build the boundary first;
-the plan's fact whitelist falls out of it. When auditing an app that "leaks", grep
-the **context builder**, not the prompt text — the fix is usually that secret
-state reaches a context it should never enter.
+This is the design-time half of the skill, covered in full —
+actor/scope mapping, the sensitivity lattice, the access matrix, output
+contracts, prompt-injection defense, redaction-by-view, and the RAG/game
+patterns — in [boundary-design.md](boundary-design.md). The rest of this file
+assumes the boundary exists and focuses on where the run-time loop plugs into it.
 
 ## Where the loop plugs in
 
