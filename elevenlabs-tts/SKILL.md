@@ -7,138 +7,138 @@ metadata:
 
 # ElevenLabs TTS
 
-Use this skill when implementing or debugging ElevenLabs text-to-speech in production code. It emphasizes architecture decisions first, then API usage.
+このスキルは、ElevenLabsのテキスト読み上げ（TTS）をプロダクションコードで実装またはデバッグする際に使用します。APIの使い方より先に、アーキテクチャの判断を優先します。
 
-## Philosophy: Speech Is a Product Surface
+## 哲学: 音声はプロダクトの表面である
 
-TTS is not just an API call; it is a UX contract across identity, latency, intelligibility, and reliability.
+TTSは単なるAPIコールではなく、アイデンティティ・レイテンシ・明瞭さ・信頼性にまたがるUXの契約です。
 
-**Before implementing, ask**:
-- Is this interaction realtime, near-realtime, or offline pre-generation?
-- What matters most here: naturalness, speed, cost, or deterministic reproducibility?
-- Where is the trust boundary, and how are API credentials protected?
-- What fallback should happen if voice generation fails or times out?
+**実装前に問うべきこと**:
+- このインタラクションはリアルタイム・準リアルタイム・オフライン事前生成のどれか？
+- ここで最も重要なのは自然さ・速度・コスト・決定論的な再現性のどれか？
+- トラストバウンダリはどこにあり、APIクレデンシャルはどう保護されているか？
+- 音声生成が失敗またはタイムアウトした場合、どのフォールバックを行うべきか？
 
-**Core principles**:
-1. Delivery-first design: Choose pipeline and endpoint from latency/quality targets, not preference.
-2. Secrets never in clients: API keys belong server-side; clients get short-lived scoped tokens when needed.
-3. Deterministic contracts: Standardize request and response shapes so retries and caching are safe.
-4. Graceful degradation: Always define timeout, retry, and fallback behavior before shipping.
+**コア原則**:
+1. デリバリーファーストな設計: パイプラインとendpointは好みではなく、レイテンシ/品質目標から選ぶ。
+2. クライアントにシークレットを置かない: APIキーはサーバーサイドに置き、必要な場合のみ短命でスコープを絞ったトークンをクライアントに渡す。
+3. 決定論的な契約: リクエストとレスポンスの形式を標準化し、リトライとキャッシュを安全に行えるようにする。
+4. グレースフルデグラデーション: リリース前に必ずタイムアウト・リトライ・フォールバックの挙動を定義する。
 
-## Activation Cues
+## 起動の目安
 
-Use this skill when requests involve:
-- ElevenLabs API quickstart/authentication.
-- Text-to-speech generation in Node.js, Python, browser, or mobile wrappers.
-- Choosing `voice_id`, `model_id`, `output_format`, and latency strategies.
-- Moving from local demos to production-safe architecture.
-- Reducing clipping, unnatural cadence, or slow response time.
+以下の要求が含まれる場合にこのスキルを使用します:
+- ElevenLabs APIのクイックスタート/認証。
+- Node.js・Python・ブラウザ・モバイルラッパーでのテキスト読み上げ生成。
+- `voice_id`・`model_id`・`output_format`とレイテンシ戦略の選択。
+- ローカルデモからプロダクション安全なアーキテクチャへの移行。
+- クリッピング・不自然なリズム・遅いレスポンスタイムの改善。
 
-## Decision Framework
+## 意思決定フレームワーク
 
-### 1. Choose Generation Mode
+### 1. 生成モードを選ぶ
 
-- Batch generation: Prefer for narration, static prompts, cutscenes, and reusable assets.
-- Streaming generation: Prefer for conversational UX where time-to-first-audio is critical.
-- Hybrid: Pre-generate common lines; stream only dynamic lines.
+- バッチ生成: ナレーション・静的なprompt・カットシーン・再利用可能なアセットに推奨。
+- ストリーミング生成: time-to-first-audioが重要な会話型UXに推奨。
+- ハイブリッド: 共通のセリフは事前生成し、動的なセリフのみストリーミングする。
 
-### 2. Choose Quality/Latency Strategy
+### 2. 品質/レイテンシ戦略を選ぶ
 
-- Priority = responsiveness: use lower-latency path and smaller payloads.
-- Priority = quality: use higher-quality models and post-process/caching.
-- Priority = repeatability: pin model/version and reuse cached assets by content hash.
+- 優先 = 応答性: 低レイテンシのパスと小さなペイロードを使用する。
+- 優先 = 品質: 高品質なモデルと後処理/キャッシュを使用する。
+- 優先 = 再現性: モデル/バージョンを固定し、コンテンツハッシュによってキャッシュされたアセットを再利用する。
 
-### 3. Choose Integration Boundary
+### 3. 統合境界を選ぶ
 
-- Server-generated audio (recommended default): backend calls ElevenLabs, returns audio URL/bytes.
-- Tokenized client access: backend mints short-lived token for constrained client-side calls.
-- Offline pipeline: content build step generates files into static/public assets.
+- サーバー生成音声（推奨デフォルト）: バックエンドがElevenLabsを呼び出し、音声URL/バイトを返す。
+- トークン化されたクライアントアクセス: バックエンドが制約付きクライアントサイド呼び出し用の短命トークンを発行する。
+- オフラインパイプライン: コンテンツのビルドステップでstatic/publicアセットにファイルを生成する。
 
-## Implementation Workflow
+## 実装ワークフロー
 
-### 1. Define an explicit contract
+### 1. 明示的な契約を定義する
 
-Use a stable input model, for example:
+安定した入力モデルを使用する（例）:
 - `text`
 - `voiceId`
 - `modelId`
 - `outputFormat`
-- Optional tuning fields (only what product needs)
+- オプションのチューニングフィールド（プロダクトが必要とするものだけ）
 
-Return a stable output model, for example:
-- `audioUrl` or base64/blob reference
+安定した出力モデルを返す（例）:
+- `audioUrl` またはbase64/blob参照
 - `mimeType`
-- `durationMs` (if known)
+- `durationMs`（既知の場合）
 - `cacheHit`
 
-### 2. Build secure API access
+### 2. セキュアなAPIアクセスを構築する
 
-- Store key in environment variable (`ELEVENLABS_API_KEY`).
-- Never hardcode or ship keys in frontend bundles.
-- For direct-client patterns, mint short-lived, minimally scoped tokens from backend.
+- キーは環境変数（`ELEVENLABS_API_KEY`）に保存する。
+- フロントエンドのバンドルにキーをハードコードしたり含めたりしない。
+- ダイレクトクライアントパターンでは、バックエンドから短命でスコープを最小化したトークンを発行する。
 
-### 3. Implement retries and fallback
+### 3. リトライとフォールバックを実装する
 
-- Retry transient failures with short bounded backoff.
-- Set request timeout; fail fast enough for UX context.
-- Fallback options include returning cached previous audio.
-- Fallback options include degrading to a backup voice/model.
-- Fallback options include showing text-only UX when audio is unavailable.
+- 一時的な失敗は短い有界バックオフでリトライする。
+- リクエストタイムアウトを設定し、UXのコンテキストに見合った速さで失敗させる。
+- フォールバック選択肢: キャッシュされた前回の音声を返す。
+- フォールバック選択肢: バックアップのvoice/modelにデグレードする。
+- フォールバック選択肢: 音声が利用できない場合はテキストのみのUXを表示する。
 
-### 4. Add caching intentionally
+### 4. キャッシュを意図的に追加する
 
-- Cache key: hash of normalized text + voice + model + output format.
-- Use immutable audio URLs where possible.
-- Bust cache only when voice/model or normalization rules change.
+- キャッシュキー: 正規化されたtext + voice + model + output formatのハッシュ。
+- 可能な限りイミュータブルな音声URLを使用する。
+- voice/modelまたは正規化ルールが変わった場合のみキャッシュをバストする。
 
-### 5. Validate with perceptual checks
+### 5. 知覚的なチェックで検証する
 
-- Verify pronunciation of names/domain terms.
-- Check clipping, pacing, and sentence boundary pauses.
-- Validate mobile/network behavior for slow links.
+- 固有名詞やドメイン用語の発音を確認する。
+- クリッピング・ペーシング・文境界のポーズをチェックする。
+- 低速回線でのモバイル/ネットワーク動作を検証する。
 
-## Anti-Patterns To Avoid
+## 避けるべきアンチパターン
 
-❌ **API key in frontend code**
-Why bad: key leakage and account abuse risk.
-Better: route all privileged calls through backend or token broker.
+❌ **フロントエンドコードにAPIキーを置く**
+問題: キーの漏洩とアカウント不正利用のリスク。
+改善: 特権的な呼び出しはすべてバックエンドまたはトークンブローカー経由にする。
 
-❌ **One-size-fits-all voice settings**
-Why bad: unnatural output across contexts (alerts vs narration vs dialogue).
-Better: maintain per-use-case presets.
+❌ **すべてに同じvoice設定を使う**
+問題: コンテキストによって不自然な出力になる（アラートvsナレーションvsダイアログ）。
+改善: ユースケースごとのプリセットを管理する。
 
-❌ **No timeout or fallback path**
-Why bad: blocked UX and brittle flows.
-Better: strict timeout + deterministic fallback behavior.
+❌ **タイムアウトやフォールバックパスを設けない**
+問題: UXのブロックと脆弱なフロー。
+改善: 厳格なタイムアウト + 決定論的なフォールバック挙動を設ける。
 
-❌ **Re-generating identical text repeatedly**
-Why bad: wasted cost and latency.
-Better: content-hash caching and reuse.
+❌ **同じテキストを繰り返し再生成する**
+問題: コストとレイテンシの無駄。
+改善: コンテンツハッシュによるキャッシュと再利用。
 
-❌ **Conflating latency and quality tuning**
-Why bad: random changes without measurable gains.
-Better: test one variable at a time with explicit success metrics.
+❌ **レイテンシチューニングと品質チューニングを混同する**
+問題: 計測可能な改善なしにランダムな変更を加える。
+改善: 明示的な成功指標を持ち、一度に一つの変数をテストする。
 
-## Variation Guidance
+## バリエーションのガイダンス
 
-**IMPORTANT**: Implementations should vary by product context.
+**重要**: 実装はプロダクトのコンテキストによって変えること。
 
-- Vary voice persona by role: narrator, assistant, NPC, system alert.
-- Vary output format by channel: web streaming, downloadable assets, mobile playback constraints.
-- Vary fallback policies by feature criticality.
-- Vary chunking strategy for long-form text vs short conversational lines.
+- ロールによってvoiceペルソナを変える: ナレーター・アシスタント・NPC・システムアラート。
+- チャンネルによってoutput formatを変える: Webストリーミング・ダウンロード可能なアセット・モバイル再生の制約。
+- 機能の重要度によってフォールバックポリシーを変える。
+- 長文テキストと短い会話セリフでチャンキング戦略を変える。
 
-Avoid converging on a single default voice/model for every task.
+すべてのタスクで単一のデフォルトvoice/modelに収束することを避ける。
 
-## References
+## 参照資料
 
-- Installation and authentication: `references/installation.md`
-- API patterns and endpoint selection: `references/api-patterns.md`
+- インストールと認証: `references/installation.md`
+- APIパターンとendpoint選択: `references/api-patterns.md`
 
-For JavaScript/Node, use the `@elevenlabs/elevenlabs-js` package only (matching the sibling `sound-effects` and `music` skills).
+JavaScript/Nodeでは、`@elevenlabs/elevenlabs-js` パッケージのみを使用すること（兄弟スキルの `sound-effects` および `music` に合わせる）。
 
-## Remember
+## まとめ
 
-Design the speech pipeline around UX and operational constraints first. The API call is the easy part; production behavior is the real task.
+音声パイプラインはUXと運用上の制約を中心に設計すること。APIコールは簡単な部分であり、プロダクション動作こそが本当の課題です。
 
-Use these principles to unlock better decisions, adapt to context, and ship robust voice experiences.
+これらの原則を活用してより良い意思決定を行い、コンテキストに適応し、堅牢な音声体験を出荷してください。

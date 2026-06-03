@@ -7,76 +7,76 @@ metadata:
 
 # Nano Banana Builder
 
-Build production-ready web applications powered by Google's Nano Banana image generation APIs—creating everything from simple text-to-image generators to sophisticated iterative editors with multi-turn conversation.
+Google の Nano Banana 画像生成 API を活用した、本番運用可能な Web アプリケーションを構築します。シンプルなテキスト→画像ジェネレーターから、マルチターン会話を用いた高度なイテラティブエディターまで、あらゆる用途に対応します。
 
-For direct Gemini/Imagen image generation and editing at the API or CLI layer (no app), use the `gemini-image` skill instead. This skill is about building app features on top of the models.
+API・CLI レイヤーで Gemini/Imagen の画像生成・編集を直接行う場合（アプリ不要）は、`gemini-image` スキルを使用してください。このスキルはモデルの上にアプリ機能を構築することを目的としています。
 
 ---
 
-## CRITICAL: Exact Model Names
+## 重要: 正確なモデル名
 
-**Use ONLY these exact model strings. Do not invent, guess, or add date suffixes.**
+**以下の正確なモデル文字列のみを使用してください。推測・造語・日付サフィックスの付加は厳禁です。**
 
-| Model String (use exactly) | Alias | Use Case |
+| モデル文字列（そのまま使用） | エイリアス | ユースケース |
 |---------------------------|-------|----------|
-| `gemini-2.5-flash-image` | Nano Banana | Fast iterations, drafts, high volume |
-| `gemini-3.1-flash-image-preview` | — | Best all-around flash: widest aspect ratios, most reference images, balanced cost |
-| `gemini-3-pro-image-preview` | Nano Banana Pro | Quality output, text rendering, 2K/4K |
+| `gemini-2.5-flash-image` | Nano Banana | 高速イテレーション・ドラフト・大量生成 |
+| `gemini-3.1-flash-image-preview` | — | 最もバランスの取れた flash：最広アスペクト比・最多参照画像・コスト均衡 |
+| `gemini-3-pro-image-preview` | Nano Banana Pro | 高品質出力・テキスト描画・2K/4K |
 
-This skill's examples default to `gemini-2.5-flash-image` (speed) and `gemini-3-pro-image-preview` (quality); swap in `gemini-3.1-flash-image-preview` when you want the balanced flash tier. See the `gemini-image` skill's `references/gemini-image-models.md` for the full model matrix.
+このスキルのサンプルは `gemini-2.5-flash-image`（速度優先）と `gemini-3-pro-image-preview`（品質優先）をデフォルトとしています。バランス型 flash ティアが必要な場合は `gemini-3.1-flash-image-preview` に差し替えてください。モデル全体のマトリクスは `gemini-image` スキルの `references/gemini-image-models.md` を参照してください。
 
-**Common mistakes to avoid:**
-- ❌ `gemini-2.5-flash-preview-05-20` — wrong, date suffixes are for text models
-- ❌ `gemini-2.5-pro-image` — wrong, 2.5 Pro doesn't do image generation
-- ❌ `gemini-3-flash-image` — wrong, the flash image model is `gemini-3.1-flash-image-preview`
-- ❌ `gemini-pro-vision` — wrong, that's for image *input*, not generation
+**よくある間違い:**
+- ❌ `gemini-2.5-flash-preview-05-20` — 不正。日付サフィックスはテキストモデル用
+- ❌ `gemini-2.5-pro-image` — 不正。2.5 Pro は画像生成非対応
+- ❌ `gemini-3-flash-image` — 不正。flash 画像モデルは `gemini-3.1-flash-image-preview`
+- ❌ `gemini-pro-vision` — 不正。これは画像*入力*用であり生成用ではない
 
-**Use the exact strings above — do not invent variants or add date suffixes.**
+**上記の正確な文字列を使用してください。バリアントの造語や日付サフィックスの付加は禁止です。**
 
 ---
 
-## Philosophy: Conversational Image Generation
+## 設計思想: 会話型画像生成
 
-Nano Banana isn't just another image API—it's **conversational by design**. The core insight is that image generation works best as a dialogue, not a one-shot prompt.
+Nano Banana は単なる画像 API ではなく、**会話型として設計されています**。画像生成は一発プロンプトではなく対話として行うのが最も効果的であるという本質的な洞察に基づいています。
 
-**Think of it as working with an AI art director**:
-- **Iterative refinement** → Build up images through conversation, not perfection in one prompt
-- **Context awareness** → The model "remembers" previous generations and edits
-- **Natural language editing** → Describe changes conversationally, not with parameters
+**AI アートディレクターと協働するイメージで考えましょう**:
+- **イテラティブな改良** → 一発の完璧なプロンプトではなく、会話を通じて画像を積み上げる
+- **コンテキスト認識** → モデルは過去の生成・編集を「記憶」している
+- **自然言語による編集** → パラメーター指定ではなく、会話的に変更を記述する
 
-### Before Building, Ask
+### 構築前に確認すること
 
-- **What's the primary use case?** Text-to-image generation? Image editing? Multi-image composition? Style transfer?
-- **Which model fits the need?** Nano Banana (speed/iterations) or Nano Banana Pro (quality/complex prompts)?
-- **What's the user journey?** Single generation? Iterative refinement? Gallery browsing?
-- **What are production constraints?** Rate limits? Storage? Cost per image? User volume?
+- **主なユースケースは何か?** テキスト→画像生成? 画像編集? 複数画像のコンポジション? スタイル転送?
+- **どのモデルが適切か?** Nano Banana（速度・イテレーション）か Nano Banana Pro（品質・複雑なプロンプト）か?
+- **ユーザーの利用フローは?** 単発生成? イテラティブな改良? ギャラリー閲覧?
+- **本番環境の制約は?** レート制限? ストレージ? 1 画像あたりのコスト? ユーザー数?
 
-### Core Principles
+### コア原則
 
-1. **Conversation over configuration**: Leverage Nano Banana's iterative editing rather than complex parameter UIs
-2. **Model selection matters**: Use `gemini-2.5-flash-image` for speed/iterations, `gemini-3-pro-image-preview` for quality/complexity
-3. **State as conversation history**: Track generations as chat messages to enable multi-turn editing
-4. **Rate limit awareness**: Image generation has strict quotas—implement queuing and caching
-5. **Storage strategy**: Store generated images (Vercel Blob/S3), not just inline base64
+1. **設定より会話**: 複雑なパラメーター UI よりも Nano Banana のイテラティブ編集を活かす
+2. **モデル選択が重要**: 速度・イテレーションには `gemini-2.5-flash-image`、品質・複雑さには `gemini-3-pro-image-preview`
+3. **状態は会話履歴として管理**: 生成物をチャットメッセージとして追跡し、マルチターン編集を可能にする
+4. **レート制限への意識**: 画像生成には厳格なクォータがある——キューイングとキャッシングを実装する
+5. **ストレージ戦略**: インライン base64 ではなく生成画像を保存する（Vercel Blob/S3）
 
-### Model Selection Framework
+### モデル選択フレームワーク
 
-Choose based on use case:
+ユースケースに基づいて選択してください:
 
-| Use Case | Model | Why |
+| ユースケース | モデル | 理由 |
 |----------|-------|-----|
-| Rapid iterations, drafts | `gemini-2.5-flash-image` | Fast (2-5s), lower cost per image |
-| Balanced default, most aspect ratios / references | `gemini-3.1-flash-image-preview` | Best all-around flash tier |
-| Final output, quality | `gemini-3-pro-image-preview` | Superior quality, thinking, text rendering |
-| Text-heavy images | `gemini-3-pro-image-preview` | Best typography, 2K/4K resolution |
-| Multi-turn editing | Any | All support conversational editing |
-| High volume | `gemini-2.5-flash-image` | Lower cost, faster throughput |
+| 高速イテレーション・ドラフト | `gemini-2.5-flash-image` | 高速（2〜5 秒）、低コスト |
+| バランス重視・多アスペクト比/参照画像 | `gemini-3.1-flash-image-preview` | 最もバランスの取れた flash ティア |
+| 最終出力・高品質 | `gemini-3-pro-image-preview` | 優れた品質・thinking・テキスト描画 |
+| テキスト多用画像 | `gemini-3-pro-image-preview` | 最高の文字組版・2K/4K 解像度 |
+| マルチターン編集 | いずれも可 | 全モデルが会話型編集に対応 |
+| 大量処理 | `gemini-2.5-flash-image` | 低コスト・高スループット |
 
 ---
 
-## Quick Start
+## クイックスタート
 
-### Basic Server Action
+### 基本的な Server Action
 
 ```typescript
 // app/actions/generate.ts
@@ -101,7 +101,7 @@ export async function generateImage(prompt: string) {
 }
 ```
 
-### Client Component with useChat
+### useChat を使用した Client Component
 
 ```typescript
 // app/components/ImageGenerator.tsx
@@ -142,134 +142,134 @@ export function ImageGenerator() {
 
 ---
 
-## Advanced Implementation
+## 高度な実装
 
-For complete implementations including:
-- **Server Actions** with model selection, storage, and error handling
-- **API Routes** with streaming responses
-- **Client Components** with iterative editing and galleries
-- **Advanced Patterns** like multi-image composition and batch generation
+以下を含む完全な実装例:
+- **Server Actions**: モデル選択・ストレージ・エラーハンドリング付き
+- **API Routes**: ストリーミングレスポンス
+- **Client Components**: イテラティブ編集とギャラリー
+- **高度なパターン**: 複数画像のコンポジションやバッチ生成
 
-See **references/advanced-patterns.md**
+**references/advanced-patterns.md** を参照してください。
 
 ---
 
-## Configuration & Operations
+## 設定と運用
 
-For detailed configuration and operational concerns:
+詳細な設定・運用に関する事項:
 - **Provider Options** (responseModalities, imageConfig, thinkingConfig)
-- **Storage Strategy** (Vercel Blob, S3/R2 implementations)
-- **Rate Limiting** (Upstash Redis patterns, quota management)
-- **Cost Optimization** strategies
+- **ストレージ戦略** (Vercel Blob、S3/R2 実装)
+- **レート制限** (Upstash Redis パターン、クォータ管理)
+- **コスト最適化**戦略
 
-See **references/configuration.md**
-
----
-
-## Anti-Patterns to Avoid
-
-❌ **Inventing model names or adding date suffixes**:
-Why wrong: Image generation models have specific names; date suffixes like `-preview-05-20` are for text models only
-Better: Use exactly `gemini-2.5-flash-image`, `gemini-3.1-flash-image-preview`, or `gemini-3-pro-image-preview` — no other variations
-
-❌ **Using Gemini 2.5 Pro for images**:
-Why wrong: Gemini 2.5 Pro doesn't generate images directly
-Better: Use one of the image models above
-
-❌ **Storing only base64 in database**:
-Why wrong: Blobs database, expensive storage, slow retrieval
-Better: Store in object storage (Vercel Blob/S3), save URL only
-
-❌ **No rate limit handling**:
-Why wrong: Will hit 429 errors in production, poor UX
-Better: Implement rate limiting with user-friendly error messages
-
-❌ **Ignoring multi-turn context**:
-Why wrong: Wastes Nano Banana's conversational editing strength
-Better: Track chat history for iterative refinement
-
-❌ **Hardcoding API keys client-side**:
-Why wrong: Exposes credentials, security risk
-Better: Use server actions / API routes with environment variables
-
-❌ **Using wrong aspect ratio**:
-Why wrong: 21:9 on 1:1 request wastes tokens, unexpected crop
-Better: Match aspect ratio to intended use case
-
-❌ **No loading states**:
-Why wrong: Image generation takes 5-30s, users think it's broken
-Better: Show progress indicators and estimated wait time
-
-❌ **Generating on every keystroke**:
-Why wrong: Wastes quota, slow response
-Better: Debounce prompts, require explicit action
+**references/configuration.md** を参照してください。
 
 ---
 
-## Variation Guidance
+## 避けるべきアンチパターン
 
-**IMPORTANT**: Every app should feel uniquely designed for its specific purpose.
+❌ **モデル名の造語や日付サフィックスの付加**:
+問題点: 画像生成モデルには固有の名前がある。`-preview-05-20` のような日付サフィックスはテキストモデル専用
+改善: `gemini-2.5-flash-image`、`gemini-3.1-flash-image-preview`、または `gemini-3-pro-image-preview` を正確に使用する。他のバリアントは不可
 
-**Vary across dimensions**:
-- **UI Style**: Minimal, brutalist, playful, professional, dark, light
-- **Color Scheme**: Warm, cool, monochrome, vibrant, muted
-- **Layout**: Single page, multi-step wizard, sidebar, grid, list
-- **Interaction**: Click-to-generate, drag-and-drop, real-time typing, batch
+❌ **画像生成に Gemini 2.5 Pro を使用**:
+問題点: Gemini 2.5 Pro は画像を直接生成しない
+改善: 上記の画像モデルのいずれかを使用する
 
-**Avoid overused patterns**:
-- ❌ Default Tailwind purple gradients
-- ❌ Generic "AI startup" aesthetic
-- ❌ Same component libraries for every project
-- ❌ Inter/Roboto fonts without thought
+❌ **base64 のみをデータベースに保存**:
+問題点: DB の肥大化・高コストストレージ・遅い取得
+改善: オブジェクトストレージ（Vercel Blob/S3）に保存し、URL のみを保持する
 
-**Context should drive design**:
-- **Meme generator** → Bold, fun, casual
-- **Product mockup tool** → Clean, professional, grid-based
-- **Art exploration** → Gallery-first, visual-heavy
-- **Brand asset creator** → Polished, template-guided
+❌ **レート制限ハンドリングなし**:
+問題点: 本番環境で 429 エラーが発生し、UX が悪化する
+改善: ユーザーフレンドリーなエラーメッセージ付きのレート制限を実装する
+
+❌ **マルチターンコンテキストの無視**:
+問題点: Nano Banana の会話型編集という強みを活かせない
+改善: イテラティブな改良のためにチャット履歴を追跡する
+
+❌ **クライアント側への API キーのハードコード**:
+問題点: クレデンシャルの露出・セキュリティリスク
+改善: 環境変数を使用した server actions / API routes を利用する
+
+❌ **誤ったアスペクト比の使用**:
+問題点: 1:1 リクエストに 21:9 を指定するとトークン浪費・予期しないトリミングが発生
+改善: 意図するユースケースに合ったアスペクト比を選択する
+
+❌ **ローディング状態なし**:
+問題点: 画像生成には 5〜30 秒かかり、ユーザーが壊れていると思う
+改善: 進捗インジケーターと推定待機時間を表示する
+
+❌ **キーストローク毎に生成**:
+問題点: クォータの無駄遣い・遅いレスポンス
+改善: プロンプトをデバウンスし、明示的なアクションを要求する
 
 ---
 
-## Environment Setup
+## バリエーションガイダンス
+
+**重要**: すべてのアプリはその目的に合わせて独自にデザインされた感覚を持つべきです。
+
+**以下の観点でバリエーションを持たせてください**:
+- **UI スタイル**: ミニマル・ブルータリスト・遊び心・プロフェッショナル・ダーク・ライト
+- **カラースキーム**: ウォーム・クール・モノクローム・鮮やか・落ち着いた
+- **レイアウト**: 単一ページ・マルチステップウィザード・サイドバー・グリッド・リスト
+- **インタラクション**: クリックで生成・ドラッグ&ドロップ・リアルタイム入力・バッチ処理
+
+**使い古されたパターンを避けてください**:
+- ❌ デフォルトの Tailwind 紫グラデーション
+- ❌ 汎用的な「AI スタートアップ」的な見た目
+- ❌ すべてのプロジェクトで同じコンポーネントライブラリ
+- ❌ 意図なく Inter/Roboto フォントを使用
+
+**コンテキストがデザインを導くべきです**:
+- **ミームジェネレーター** → 太く・楽しく・カジュアルに
+- **プロダクトモックアップツール** → クリーン・プロフェッショナル・グリッドベース
+- **アート探索ツール** → ギャラリー優先・ビジュアル重視
+- **ブランドアセット作成ツール** → 洗練された・テンプレート誘導型
+
+---
+
+## 環境セットアップ
 
 ```bash
 # .env.local
 GEMINI_API_KEY=your_api_key_here
 
-# For Vercel Blob storage
+# Vercel Blob ストレージ用
 BLOB_READ_WRITE_TOKEN=your_vercel_token
 
-# For S3 (optional)
+# S3 用（任意）
 S3_BUCKET=your-bucket
 S3_ENDPOINT=https://your-endpoint.r2.cloudflarestorage.com
 S3_ACCESS_KEY_ID=your_key
 S3_SECRET_ACCESS_KEY=your_secret
 
-# For Upstash rate limiting (optional)
+# Upstash レート制限用（任意）
 UPSTASH_REDIS_REST_URL=your_url
 UPSTASH_REDIS_REST_TOKEN=your_token
 ```
 
 ```bash
-# Install dependencies
+# 依存関係のインストール
 npm install @ai-sdk/google ai @ai-sdk/react @vercel/blob
 
-# Or, to call Gemini directly with Google's official JS SDK instead of the AI SDK
+# AI SDK の代わりに Google 公式 JS SDK で Gemini を直接呼び出す場合
 npm install @google/genai
 ```
 
 ---
 
-## Remember
+## まとめ
 
-**Nano Banana enables conversational image generation that feels like working with a creative partner, not a tool.**
+**Nano Banana は、ツールではなくクリエイティブなパートナーと協働するような会話型画像生成を実現します。**
 
-The best apps:
-- Leverage multi-turn editing for refinement
-- Choose models intentionally (speed vs quality)
-- Handle rate limits gracefully
-- Store images efficiently
-- Provide great loading states
-- Feel uniquely designed for their purpose
+優れたアプリの条件:
+- マルチターン編集を改良に活かす
+- モデルを意図的に選択する（速度 vs 品質）
+- レート制限をグレースフルに処理する
+- 画像を効率的に保存する
+- 優れたローディング状態を提供する
+- 目的に合わせた独自のデザインを持つ
 
-You're building more than an image generator—you're creating a creative experience. Design it thoughtfully.
+あなたが構築するのは単なる画像ジェネレーターではなく、クリエイティブな体験です。思慮深くデザインしてください。

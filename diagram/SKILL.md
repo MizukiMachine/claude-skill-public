@@ -8,36 +8,36 @@ metadata:
 compatibility: Requires mermaid-cli (mmdc) for PNG rendering.
 ---
 
-# Architecture Diagram Generator
+# アーキテクチャ図ジェネレーター
 
-Generate accurate Mermaid architecture diagrams from repository analysis. Base diagrams on actual files, manifests, routes, models, schemas, dependencies, config, and runtime entry points.
+リポジトリ解析から正確な Mermaid アーキテクチャ図を生成します。実際のファイル、マニフェスト、ルート、モデル、スキーマ、依存関係、設定、およびランタイムエントリーポイントをもとに図を作成します。
 
-## Workflow
+## ワークフロー
 
-### Step 1: Gather Knowledge From The Repository
+### Step 1: リポジトリから情報を収集する
 
-Read the project directly. Start with fast structure discovery, then inspect the files that define behavior.
+プロジェクトを直接読み込みます。まず高速な構造探索を行い、次に動作を定義するファイルを調査します。
 
-| Information Needed | Files to Check |
+| 必要な情報 | 確認するファイル |
 |---|---|
-| Tech stack | `package.json`, `Cargo.toml`, `go.mod`, `pyproject.toml`, `pom.xml`, `build.gradle` |
-| Framework config | `tsconfig.json`, `next.config.js`, `vite.config.*`, `django/settings.py`, `config/*.yml` |
-| Infrastructure | `Dockerfile`, `docker-compose.yml`, `k8s/*.yaml`, `.github/workflows/*.yml` |
-| API definitions | `openapi.yaml`, `swagger.json`, route/controller files |
-| Data models | `schema.prisma`, migrations, `models/*`, `entities/*`, SQL schema files |
-| Entry points | `main.*`, `index.*`, `app.*`, `server.*`, CLI command files |
-| Dependencies | Import graphs, package manifests, module boundaries, build config |
+| 技術スタック | `package.json`, `Cargo.toml`, `go.mod`, `pyproject.toml`, `pom.xml`, `build.gradle` |
+| フレームワーク設定 | `tsconfig.json`, `next.config.js`, `vite.config.*`, `django/settings.py`, `config/*.yml` |
+| インフラ | `Dockerfile`, `docker-compose.yml`, `k8s/*.yaml`, `.github/workflows/*.yml` |
+| API 定義 | `openapi.yaml`, `swagger.json`, ルート/コントローラーファイル |
+| データモデル | `schema.prisma`, マイグレーション, `models/*`, `entities/*`, SQL スキーマファイル |
+| エントリーポイント | `main.*`, `index.*`, `app.*`, `server.*`, CLI コマンドファイル |
+| 依存関係 | インポートグラフ、パッケージマニフェスト、モジュール境界、ビルド設定 |
 
-Cross-check:
+クロスチェック:
 
-1. Compare directory structure with import/dependency relationships.
-2. Match routes, commands, jobs, or UI actions to handlers.
-3. Verify data flows against models, repositories, queues, APIs, and storage.
-4. Mark any uncertain relationship as inferred instead of presenting it as fact.
+1. ディレクトリ構造とインポート/依存関係を照合する。
+2. ルート、コマンド、ジョブ、または UI アクションをハンドラーに対応づける。
+3. データフローをモデル、リポジトリ、キュー、API、ストレージと照合して検証する。
+4. 不確かな関係は事実として提示せず、推定として明示する。
 
-### Step 2: Select Diagram Types
+### Step 2: 図の種類を選択する
 
-After choosing diagrams, explain the selection criteria to the user.
+図を選択したら、選定基準をユーザーに説明します。
 
 #### Step 2-1: プロジェクトタイプを判定
 
@@ -58,7 +58,7 @@ After choosing diagrams, explain the selection criteria to the user.
 | Medium | 複数機能領域、明確な層や境界 | 4-5 |
 | Large | 多数のサービス、複雑なデータ/依存関係 | 6-10 |
 
-Use file count, directory boundaries, routes, models, command count, and dependency complexity to estimate size.
+ファイル数、ディレクトリ境界、ルート、モデル、コマンド数、依存関係の複雑さを使ってサイズを見積もります。
 
 #### Step 2-3: 図の種類を選択
 
@@ -92,39 +92,39 @@ Use file count, directory boundaries, routes, models, command count, and depende
 | [図名] | [理由] |
 ```
 
-## Diagram Types
+## 図の種類
 
-1. **C4 System Context** - System boundary and external actors
-2. **C4 Container** - Applications and data stores
-3. **Layered Architecture** - Presentation/Application/Domain/Infrastructure layers
-4. **Component** - Internal component structure
-5. **Data Flow** - Input to Process to Output flow
-6. **Sequence** - Time-ordered interactions
-7. **ER** - Database entity relationships
-8. **State** - State transitions
-9. **Deployment** - Infrastructure configuration
-10. **Dependency** - Module dependency direction
+1. **C4 System Context** - システム境界と外部アクター
+2. **C4 Container** - アプリケーションとデータストア
+3. **Layered Architecture** - プレゼンテーション/アプリケーション/ドメイン/インフラ層
+4. **Component** - 内部コンポーネント構造
+5. **Data Flow** - 入力から処理、出力へのフロー
+6. **Sequence** - 時系列のインタラクション
+7. **ER** - データベースのエンティティ関係
+8. **State** - 状態遷移
+9. **Deployment** - インフラ構成
+10. **Dependency** - モジュール依存の方向
 
-## Mermaid Rules
+## Mermaid ルール
 
-Create `.mmd` files with:
+`.mmd` ファイルを以下の方針で作成します:
 
-- Bilingual labels when helpful: Japanese / English
-- Pastel color scheme
-- Clear hierarchy using subgraphs for logical grouping
-- Actual names from code: modules, files, routes, functions, classes, services, tables
-- No emoji in Mermaid files
-- Text-based bracket tags instead of emoji
+- 必要に応じてバイリンガルラベルを使用: 日本語 / 英語
+- パステルカラースキーム
+- サブグラフを使った明確な階層で論理的なグルーピング
+- コードに登場する実際の名前: モジュール、ファイル、ルート、関数、クラス、サービス、テーブル
+- Mermaid ファイル内に絵文字を使用しない
+- 絵文字の代わりにテキストベースのブラケットタグを使用
 
-| Good | Bad |
+| 良い例 | 悪い例 |
 |---|---|
-| `[CLI] contrail` | emoji + `contrail` |
-| `[API] GitHub` | emoji + `GitHub` |
-| `[User] Developer` | emoji + `Developer` |
-| `[DB] PostgreSQL` | emoji + `PostgreSQL` |
-| `[Agent] CodeGen` | emoji + `CodeGen` |
+| `[CLI] contrail` | 絵文字 + `contrail` |
+| `[API] GitHub` | 絵文字 + `GitHub` |
+| `[User] Developer` | 絵文字 + `Developer` |
+| `[DB] PostgreSQL` | 絵文字 + `PostgreSQL` |
+| `[Agent] CodeGen` | 絵文字 + `CodeGen` |
 
-Template:
+テンプレート:
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {
@@ -140,31 +140,31 @@ flowchart TB
     style Group fill:#AED6F1,stroke:#5DADE2,color:#333
 ```
 
-## Render PNG Images
+## PNG 画像のレンダリング
 
-Execute the render script:
+レンダースクリプトを実行します:
 
 ```bash
 python scripts/render_diagrams.py <output_dir> --scale 4
 ```
 
-Output: `.mmd` files plus high-resolution `.png` images. If `mmdc` is unavailable, keep the Mermaid files and report that PNG rendering was skipped.
+出力: `.mmd` ファイルと高解像度 `.png` 画像。`mmdc` が利用できない場合は Mermaid ファイルを保持し、PNG レンダリングをスキップした旨を報告します。
 
-## Accuracy Checklist
+## 正確性チェックリスト
 
-- [ ] Read manifests and config files.
-- [ ] Identify entry points.
-- [ ] Identify module boundaries.
-- [ ] Verify API routes, commands, jobs, or UI actions.
-- [ ] Verify data models before creating ER diagrams.
-- [ ] Verify infrastructure files before creating deployment diagrams.
-- [ ] Mark inferred relationships clearly.
+- [ ] マニフェストと設定ファイルを読む。
+- [ ] エントリーポイントを特定する。
+- [ ] モジュール境界を特定する。
+- [ ] API ルート、コマンド、ジョブ、または UI アクションを検証する。
+- [ ] ER 図を作成する前にデータモデルを検証する。
+- [ ] デプロイメント図を作成する前にインフラファイルを検証する。
+- [ ] 推定した関係を明確にマークする。
 
-## Color Guidelines
+## カラーガイドライン
 
-Use soft pastel colors and readable text. Avoid highly saturated primary colors.
+柔らかいパステルカラーと読みやすいテキストを使用します。彩度の高い原色は避けます。
 
-| Layer | Fill Color | Stroke Color | Tags |
+| レイヤー | 塗りつぶし色 | 枠線色 | タグ |
 |---|---|---|---|
 | Entry/Client | `#5D6D7E` | `#4A4D60` | `[User]`, `[CLI]` |
 | Presentation | `#F5B7B1` | `#D98880` | `[UI]`, `[Controller]` |
@@ -174,7 +174,7 @@ Use soft pastel colors and readable text. Avoid highly saturated primary colors.
 | Data Access | `#A3E4D7` | `#48C9B0` | `[DB]`, `[Repo]` |
 | Infrastructure | `#AED6F1` | `#5DADE2` | `[API]`, `[Cloud]` |
 
-## Resources
+## リソース
 
-- `scripts/render_diagrams.py` - Batch render `.mmd` to PNG
-- `references/mermaid-patterns.md` - Template patterns for each diagram type
+- `scripts/render_diagrams.py` - `.mmd` を PNG に一括レンダリング
+- `references/mermaid-patterns.md` - 各図の種類のテンプレートパターン

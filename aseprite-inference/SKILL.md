@@ -7,120 +7,120 @@ metadata:
 
 # Aseprite Inference
 
-Understand `.ase`/`.aseprite` files as *structured timelines of layered pixel (or tilemap) cels*. This skill helps you **infer useful metadata** (animation timing, per-frame bounds, layer hierarchy, tags, slices, tilesets, palettes) and produce **engine-ready JSON** without guessing.
+`.ase`/`.aseprite` ファイルを*レイヤー化されたピクセル（またはタイルマップ）celの構造化タイムライン*として理解する。このスキルは**有用なメタデータ**（アニメーションタイミング、フレームごとのbounds、レイヤー階層、タグ、スライス、タイルセット、パレット）を**推測**し、当て推量なしに**エンジン向けJSON**を生成する助けとなる。
 
-## Philosophy: Inference Over Assumption
+## 哲学: 仮定より推論を優先する
 
-An Aseprite file is “truth”; your code is the hypothesis. Prefer **reading and verifying** over hard-coding expectations.
+Asepriteファイルが「真実」であり、コードはその仮説にすぎない。期待値をハードコーディングするより、**読み込んで検証する**ことを優先する。
 
-**Before inferring, ask:**
-- Am I after **authoring intent** (tags/slices/user data) or **render intent** (visible pixels/bounds/ordering)?
-- Do I need **pixels** (decompress cel images), or is **structure-only** (layers/timing/tags) enough?
-- Is the sprite **RGBA / Grayscale / Indexed / Tilemap** and does that change transparency/bounds logic?
+**推論の前に問うべきこと:**
+- 求めているのは**制作意図**（タグ/スライス/ユーザーデータ）か、**レンダリング意図**（可視ピクセル/bounds/順序）か?
+- **ピクセル**（celイメージの展開）が必要か、それとも**構造のみ**（レイヤー/タイミング/タグ）で十分か?
+- スプライトが **RGBA / Grayscale / Indexed / Tilemap** のどれかによって、透明度/boundsのロジックが変わるか?
 
-**Core principles**
-1. **Be chunk-driven:** unknown chunks are fine—skip by `chunk_size`, don’t crash.
-2. **Treat timing as per-frame:** `header.speed` is deprecated; each frame has its own duration (with compatibility fallback).
-3. **Separate decode modes:** “fast metadata pass” first; pixel/tile decode only when needed.
-4. **Make inference explicit:** output what you know *and* what you assumed (e.g., indexed transparency).
+**基本原則**
+1. **chunk駆動で動く:** 未知のchunkは問題ない — `chunk_size` でスキップし、クラッシュしない。
+2. **タイミングはフレームごとに扱う:** `header.speed` は非推奨; 各フレームは独自のdurationを持つ（互換フォールバックあり）。
+3. **デコードモードを分離する:** まず「高速メタデータパス」を実行し、ピクセル/タイルのデコードは必要なときだけ行う。
+4. **推論を明示する:** 分かっていること*と*仮定したこと（例: indexed透明度の扱い）を両方出力する。
 
-## Quick Start (Recommended)
+## クイックスタート（推奨）
 
-Use the bundled inspector to turn a file into JSON you can reason about:
+付属のインスペクタを使ってファイルをJSONに変換し、内容を把握する:
 
 ```bash
 python3 scripts/aseprite_inspect.py path/to/sprite.aseprite --json
 ```
 
-If you need pixel-derived inference (e.g., tight bounds), opt in:
+ピクセルに基づく推論（例: tight bounds）が必要な場合は、オプトインする:
 
 ```bash
 python3 scripts/aseprite_inspect.py path/to/sprite.aseprite --json --decode-cels
 ```
 
-## What You Can Infer Reliably
+## 信頼できる推論の対象
 
-- **Animation structure:** frame count + per-frame durations + total timeline.
-- **Layer model:** hierarchy (child levels), blend modes, opacities, background/reference flags, optional UUIDs.
-- **Cel placement:** per-frame per-layer cels, linked cels, z-index adjustments, opacity.
-- **Tags:** named animation ranges and playback direction/repeat behavior.
-- **Slices:** frame-keyed rectangles; optional 9-slice centers and pivots (excellent for hitboxes/anchors).
-- **Tilesets/tilemaps:** tile dimensions, tile count, tilemap masks (ID + flips).
-- **Palettes:** indexed-color palette changes; transparency index from main header.
-- **User data:** attached text/color/properties to layers/cels/tags/tilesets (when present).
+- **アニメーション構造:** フレーム数 + フレームごとのduration + タイムライン全体。
+- **レイヤーモデル:** 階層（子レベル）、ブレンドモード、opacity、background/referenceフラグ、任意のUUID。
+- **cel配置:** フレームごと・レイヤーごとのcel、リンクされたcel、z-indexの調整、opacity。
+- **タグ:** 名前付きアニメーション範囲と再生方向/リピート動作。
+- **スライス:** フレームキー付き矩形; 任意の9-sliceセンターとpivot（ヒットボックス/アンカーに最適）。
+- **タイルセット/タイルマップ:** タイルの寸法、タイル数、タイルマップマスク（ID + フリップ）。
+- **パレット:** インデックスカラーパレットの変化; メインヘッダーからの透明度インデックス。
+- **ユーザーデータ:** レイヤー/cel/タグ/タイルセットに付属するテキスト/色/プロパティ（存在する場合）。
 
-When you **decode cel pixels**, you can additionally infer:
-- **Tight bounds** per cel/frame (non-transparent extents).
-- **Sparsity/empty frames** detection.
-- **Heuristic sprite-sheet packing hints** (frame bounds sizes/variability).
+**celピクセルをデコードする**と、追加で以下を推論できる:
+- cel/フレームごとの**tight bounds**（非透明領域の範囲）。
+- **スパース/空フレーム**の検出。
+- **ヒューリスティックなスプライトシートパッキングヒント**（フレームboundsのサイズ/変動）。
 
-## Common Workflows
+## 一般的なワークフロー
 
-### 1) Build engine metadata (JSON)
-- Inspect (structure-only), then add decode if you need tight bounds.
-- Prefer emitting: `frames[]`, `layers[]`, `tags[]`, `slices[]`, and a normalized `frameMs[]`.
-- If you need deterministic render ordering, incorporate **z-index rules** (cel header) + layer ordering.
-- For character grounding, emit authoring anchors (slice/pivot/user-data when present), but validate final foot placement against exported PNG alpha bounds (for example via `gamedev-assets`) before locking runtime offsets.
+### 1) エンジンメタデータのビルド（JSON）
+- まず（構造のみで）インスペクトし、tight boundsが必要なときだけデコードを追加する。
+- 出力の優先項目: `frames[]`、`layers[]`、`tags[]`、`slices[]`、正規化された `frameMs[]`。
+- 決定論的なレンダリング順序が必要な場合は、**z-indexルール**（celヘッダー）+ レイヤー順序を組み込む。
+- キャラクターのグラウンディングには、制作アンカー（スライス/pivot/ユーザーデータがある場合）を出力する。ただし、ランタイムオフセットを確定する前に、エクスポートされたPNGのalphaにおける最終的な足元の位置を（例えば `gamedev-assets` 経由で）検証すること。
 
-### 2) Debug “why is this invisible?”
-- Verify layer visibility flags + opacity.
-- Check if a cel is **linked** to another frame.
-- For indexed sprites: verify transparent index + background layer semantics.
+### 2) 「なぜ見えないのか?」のデバッグ
+- レイヤーの可視性フラグ + opacityを確認する。
+- celが別のフレームに**リンク**されていないか確認する。
+- インデックスカラースプライトの場合: 透明インデックス + backgroundレイヤーのセマンティクスを確認する。
 
-### 3) Convert slices to hitboxes/anchors
-- Use slice keys per frame to generate runtime hitboxes.
-- Use pivot when present; otherwise infer pivot (e.g., slice center) as a fallback.
+### 3) スライスをヒットボックス/アンカーに変換する
+- フレームごとのスライスキーを使ってランタイムヒットボックスを生成する。
+- pivotがある場合はそれを使用し、ない場合はpivotを推論（例: スライスの中心）してフォールバックする。
 
-## Anti-Patterns to Avoid
+## 避けるべきアンチパターン
 
-❌ **Anti-pattern: Assuming “speed” is authoritative**  
-Why bad: it’s deprecated; frame duration is the real timeline.  
-Better: apply compatibility fallback only when a frame duration is zero.
+❌ **アンチパターン: “speed” が権威あるものと仮定する**  
+問題: 非推奨のため; フレームdurationが実際のタイムラインである。  
+改善: フレームdurationがゼロのときだけ互換フォールバックを適用する。
 
-❌ **Anti-pattern: Assuming palette always exists / always 256 entries**  
-Better: parse palette chunks when present; indexed sprites may still need transparency index handling.
+❌ **アンチパターン: パレットが常に存在する / 常に256エントリーと仮定する**  
+改善: 存在する場合にパレットchunkをパースする; インデックスカラースプライトでも透明インデックスの処理が必要な場合がある。
 
-❌ **Anti-pattern: Hard-failing on unknown chunks**  
-Better: skip by chunk size and keep going; store unknown chunk summaries for debugging.
+❌ **アンチパターン: 未知のchunkでハードフェイルする**  
+改善: chunk sizeでスキップして処理を続ける; デバッグ用に未知chunkのサマリーを保存する。
 
-❌ **Anti-pattern: Decompressing everything by default**  
-Better: decode only what you need; add safety limits for large sprites.
+❌ **アンチパターン: デフォルトですべてを展開する**  
+改善: 必要なものだけデコードする; 大きなスプライトには安全上限を設ける。
 
-❌ **Anti-pattern: Treating indexed pixels as RGBA**  
-Why bad: indexed cel pixels are palette indices; transparency is usually by transparent index (header).  
-Better: keep “indexed” as its own path; only map to RGBA if you’ve actually parsed a palette (and record missing palette cases).
+❌ **アンチパターン: インデックスピクセルをRGBAとして扱う**  
+問題: インデックスcelピクセルはパレットインデックスであり、透明度は通常透明インデックス（ヘッダー）によるもの。  
+改善: “indexed” を独自のパスとして維持し、実際にパレットをパースした場合のみRGBAにマッピングする（パレット欠落ケースも記録する）。
 
-❌ **Anti-pattern: Ignoring linked cels**  
-Why bad: you’ll “lose” frames or infer empty bounds incorrectly.  
-Better: do a post-pass that resolves links when you need pixel/bounds inference.
+❌ **アンチパターン: リンクされたcelを無視する**  
+問題: フレームが「失われる」か、空のboundsを誤って推論することになる。  
+改善: ピクセル/bounds推論が必要な場合は、リンクを解決するポストパスを実施する。
 
-❌ **Anti-pattern: Assuming a layer’s UI grouping equals render grouping**  
-Why bad: group compositing behavior depends on header flags and blend/opacity validity rules.  
-Better: treat groups as structural by default; only implement group compositing if you’re building a renderer/exporter.
+❌ **アンチパターン: レイヤーのUIグルーピングがレンダリンググルーピングと同じと仮定する**  
+問題: グループのコンポジット動作はヘッダーフラグとblend/opacityの有効性ルールに依存する。  
+改善: デフォルトではグループを構造的なものとして扱い、レンダラー/エクスポーターを構築する場合のみグループコンポジットを実装する。
 
-❌ **Anti-pattern: Conflating authoring intent with render intent**  
-Why bad: tags/slices/user data describe intent; pixels describe appearance. These can disagree.  
-Better: output both kinds of facts, and don’t “correct” one with the other unless explicitly requested.
+❌ **アンチパターン: 制作意図とレンダリング意図を混同する**  
+問題: タグ/スライス/ユーザーデータは意図を表し、ピクセルは外観を表す。これらは食い違うことがある。  
+改善: 両方の種類の事実を出力し、明示的に要求されない限り一方で他方を「修正」しない。
 
-## Variation Guidance (Don’t Converge)
+## バリエーションガイダンス（収束しないこと）
 
-- For game engines, vary output schema by need: minimal timing+tags vs full per-layer/per-cel metadata.
-- For debugging, prefer “chunk dump” style outputs; for runtime, prefer compact normalized JSON.
-- For tilemaps, vary between “tile usage summaries” and “full per-cell tile streams” based on target.
+- ゲームエンジン向けには、必要に応じてoutput schemaを変える: 最小限のタイミング+タグ vs 完全なレイヤー/celごとのメタデータ。
+- デバッグには「chunk dump」スタイルの出力を優先し、ランタイムにはコンパクトで正規化されたJSONを優先する。
+- タイルマップには、ターゲットに合わせて「タイル使用サマリー」と「完全なセルごとのタイルストリーム」を使い分ける。
 
-## References & Scripts
+## 参考資料とスクリプト
 
-- Script: `scripts/aseprite_inspect.py` (binary parser + JSON; optional cel/tile decode)
-- Reference: `references/aseprite-format-cheatsheet.md` (chunk map + gotchas)
-- Reference: `references/inference-recipes.md` (how to compute bounds/timing/order safely)
+- スクリプト: `scripts/aseprite_inspect.py` (バイナリパーサー + JSON; 任意のcel/タイルデコード)
+- リファレンス: `references/aseprite-format-cheatsheet.md` (chunkマップ + 注意点)
+- リファレンス: `references/inference-recipes.md` (bounds/タイミング/順序の安全な計算方法)
 
-## Remember
+## 覚えておくこと
 
-This domain rewards *precision*.
-- Prefer outputs that are **explicit about assumptions** (e.g., indexed transparency handling, bounds derived from pixels vs dimensions).
-- This domain supports production-grade Aseprite tooling: chunk-driven parsing + strict bounds checks + optional decode passes.
+このドメインは*精度*が重要。
+- **仮定を明示した**出力を優先する（例: インデックス透明度の扱い、ピクセルvs寸法から導いたbounds）。
+- このドメインはプロダクショングレードのAsepriteツールをサポートする: chunk駆動パーシング + 厳格なboundsチェック + 任意のデコードパス。
 
-## Expectations
+## 期待されること
 
-- Aim for parsers that are **robust to new chunk types** and **safe under malformed input**.
-- Prefer “tell the truth” JSON over clever inference that can’t be justified from file data.
+- **新しいchunkタイプに対してロバスト**で、**不正な入力に対して安全**なパーサーを目指す。
+- ファイルデータから正当化できない巧妙な推論より、「ありのままのJSON」を優先する。

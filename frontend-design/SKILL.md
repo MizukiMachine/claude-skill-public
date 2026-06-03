@@ -5,49 +5,49 @@ description: "本番向けフロントエンドUIを、コードベースに沿�
 
 # Frontend Design
 
-## Purpose
+## 目的
 
-Use this skill to produce working frontend code that feels intentionally designed for its product, audience, and workflow. The goal is not decoration or a design essay; it is a usable interface with a clear visual point of view, stable responsive behavior, accessible controls, and verified rendering.
+このスキルは、プロダクト・対象ユーザー・ワークフローに合わせて意図的に設計されたフロントエンドコードを生成するために使用する。目標はデコレーションやデザイン論ではなく、明確な視点を持ち、安定したレスポンシブ動作、アクセシブルなコントロール、検証済みのレンダリングを備えた実用的なインターフェースを構築することである。
 
-## Operating Model
+## 動作モデル
 
-Great frontend design comes from context, hierarchy, concept, and implementation integrity.
+優れたフロントエンドデザインはコンテキスト・階層・コンセプト・実装の整合性から生まれる。
 
-Prioritize:
+優先順位:
 
-1. User workflow and product purpose
-2. Existing framework, design system, and code conventions
-3. Clear visual hierarchy and information density suited to the domain
-4. Responsive stability, accessibility, and interaction states
-5. A distinctive aesthetic concept, typography, and theme that support the task
-6. Browser verification with real screenshots or smoke tests
+1. ユーザーのワークフローとプロダクトの目的
+2. 既存のフレームワーク・デザインシステム・コーディング規約
+3. ドメインに合った明確な視覚的階層と情報密度
+4. レスポンシブの安定性・アクセシビリティ・インタラクション状態
+5. タスクを支える独自のデザインコンセプト・タイポグラフィ・テーマ
+6. 実際のスクリーンショットまたはスモークテストによるブラウザ検証
 
-Before acting, answer:
+実装前に以下を確認する:
 
-- What is the user trying to accomplish on this screen?
-- Is this an operational tool, marketing surface, portfolio, game, creative app, or content site?
-- What framework, UI library, routing model, assets, fonts, icons, and design tokens already exist?
-- Which one visual idea, typographic identity, or themed interaction should make this interface feel specific to the product?
-- Does the screen include a canvas, 3D scene, video, map, or other primary visual layer, and what safe areas must the UI preserve around it?
-- Is the UI driven by external, generated, cached, realtime, or user-provided data, and what provenance, freshness, partial-failure, or stale-state signals must be visible?
-- What states must be designed: loading, empty, error, disabled, hover, active, selected, focused, mobile?
+- このスクリーンでユーザーは何を達成しようとしているか？
+- これはオペレーションツール・マーケティング面・ポートフォリオ・ゲーム・クリエイティブアプリ・コンテンツサイトのどれか？
+- 既存のフレームワーク・UIライブラリ・ルーティングモデル・アセット・フォント・アイコン・デザイントークンは何か？
+- このインターフェースをプロダクト固有のものにするための、一つの視覚的アイデア・タイポグラフィのアイデンティティ・テーマ付きインタラクションは何か？
+- スクリーンにcanvas・3Dシーン・動画・マップ、その他のプライマリビジュアルレイヤーが含まれるか？UIが確保すべきセーフエリアはあるか？
+- UIは外部・生成・キャッシュ・リアルタイム・ユーザー提供データのいずれで動いているか？出典・鮮度・部分障害・古い状態のシグナルをどこに表示する必要があるか？
+- 設計すべき状態は何か: loading・empty・error・disabled・hover・active・selected・focused・mobile？
 
-Ask at most one to three questions only when missing constraints would materially change the result.
+制約が欠落していて結果が大きく変わる場合にのみ、最大1〜3個の質問をする。
 
-## Design Contracts
+## デザインコントラクト
 
-- Treat the local design system as the source of truth. If Storybook, Figma notes, `DESIGN.md`, component docs, shadcn config, CSS variables, or theme tokens exist, inspect them before inventing new styles.
-- If no design system exists, define a compact token set first: color roles, type scale, spacing, radius, elevation, motion, and interaction states. Implement through CSS variables, Tailwind theme values, or the project's equivalent.
-- Keep scope bounded to the requested surface. Do not replace the framework, router, styling system, or UI library unless the existing stack cannot reasonably support the task.
-- For canvas, 3D, game, map, video, or editor surfaces, treat the visual layer and DOM UI as one composition. Define safe zones, z-index layers, pointer-event ownership, focus behavior, and resize rules before styling overlays.
-- For data-driven products, make data trust part of the design contract. Decide how to show source, freshness, cache/stale state, partial availability, validation warnings, and retry paths before styling the happy path.
-- Design toward WCAG 2.2 AA where feasible: semantic structure, labels, keyboard flow, visible focus, contrast, target size, error identification, and reduced-motion behavior.
-- Translate inspiration into local principles. Do not copy a proprietary brand, product UI, or external asset set unless the user owns it or explicitly provided it for reuse.
-- When the user asks for a targeted refinement such as typography, motion, density, palette, or spacing, isolate that dimension and preserve unrelated structure unless there is a direct conflict.
+- ローカルのデザインシステムを信頼できる唯一の情報源として扱う。Storybook・Figmaのメモ・`DESIGN.md`・コンポーネントドキュメント・shadcn config・CSS変数・テーマトークンが存在する場合は、新しいスタイルを作る前に必ず確認する。
+- デザインシステムが存在しない場合は、まずコンパクトなトークンセットを定義する: カラーロール・タイプスケール・スペーシング・radius・elevation・motion・インタラクション状態。CSS変数・Tailwindテーマ値・プロジェクトの相当物を通じて実装する。
+- スコープを要求された画面に限定する。既存のスタックでタスクを合理的にサポートできない場合を除き、フレームワーク・ルーター・スタイリングシステム・UIライブラリを置き換えない。
+- canvas・3D・ゲーム・マップ・動画・エディター画面では、ビジュアルレイヤーとDOM UIを一体のコンポジションとして扱う。オーバーレイのスタイリング前に、セーフゾーン・z-indexレイヤー・pointer-eventの所有権・フォーカス動作・リサイズルールを定義する。
+- データドリブンなプロダクトでは、データの信頼性をデザインコントラクトの一部にする。ハッピーパスのスタイリング前に、ソース・鮮度・cache/stale状態・部分的な可用性・バリデーション警告・リトライパスの表示方法を決める。
+- 実現可能な範囲でWCAG 2.2 AAを目指す: セマンティック構造・ラベル・キーボードフロー・フォーカスの可視化・コントラスト・ターゲットサイズ・エラー識別・reduced-motion対応。
+- インスピレーションをローカルの原則に変換する。ユーザーが所有しているか、再利用のために明示的に提供していない限り、プロプライエタリなブランド・プロダクトUI・外部アセットセットをコピーしない。
+- ユーザーがタイポグラフィ・モーション・密度・パレット・スペーシングなど特定の改善を求めた場合は、その次元を分離し、直接的な競合がない限り無関係な構造を維持する。
 
-## Discovery First
+## まず調査する
 
-For an existing project, inspect before designing or editing:
+既存プロジェクトでは、設計・編集の前に調査する:
 
 ```bash
 rg --files | rg '(^|/)(DESIGN\.md|AGENTS\.md|README\.md|package.json|src|app|pages|components|styles|public|assets|static|tailwind|vite|next|astro|nuxt|svelte|storybook|\.storybook)'
@@ -56,232 +56,232 @@ rg -n "Button|Card|Dialog|Modal|Tabs|Toggle|Select|Slider|Tooltip|Navbar|Sidebar
 rg -n "canvas|WebGLRenderer|three|phaser|pixi|requestAnimationFrame|setAnimationLoop|pointer-events|aria-label|data-role" src app pages components styles 2>/dev/null
 ```
 
-If these searches produce too much output, narrow them to the target route, component, or style folder before reading more.
+これらの検索結果が多すぎる場合は、さらに読み進める前に対象のルート・コンポーネント・スタイルフォルダに絞り込む。
 
-Extract:
+抽出すべき情報:
 
-- Framework and route structure
-- Existing component primitives and UI libraries
-- Design docs, Storybook stories, Figma handoff notes, screenshots, and acceptance criteria
-- Color tokens, CSS variables, Tailwind config, font loading, spacing scale, radius, elevation, and motion patterns
-- Icon library and any brand/logo assets
-- Existing page layout patterns and responsive breakpoints
-- Primary visual layer constraints: canvas/media bounds, HUD safe areas, overlay stack, pointer-event routing, and resize behavior
-- Data shape and volatility: generated vs curated content, external sources, timestamps, pagination, filtering, sorting, stale/cache states, partial failures, and long or multilingual text
-- Existing loading, empty, error, disabled, selected, focus, and validation patterns
-- Available scripts for lint, typecheck, test, build, and dev preview
+- フレームワークとルート構造
+- 既存のコンポーネントプリミティブとUIライブラリ
+- デザインドキュメント・Storybookストーリー・Figmaハンドオフメモ・スクリーンショット・受け入れ基準
+- カラートークン・CSS変数・Tailwind config・フォント読み込み・スペーシングスケール・radius・elevation・motionパターン
+- アイコンライブラリとブランド/ロゴアセット
+- 既存のページレイアウトパターンとレスポンシブブレークポイント
+- プライマリビジュアルレイヤーの制約: canvas/メディアの境界・HUDセーフエリア・オーバーレイスタック・pointer-eventのルーティング・リサイズ動作
+- データの形状と変動性: 生成コンテンツ対キュレーションコンテンツ・外部ソース・タイムスタンプ・ページネーション・フィルタリング・ソート・stale/cacheの状態・部分的な失敗・長文や多言語テキスト
+- 既存のloading・empty・error・disabled・selected・focus・バリデーションパターン
+- lint・typecheck・test・build・devプレビューの利用可能なスクリプト
 
-For a greenfield page or app, choose the simplest stack already implied by the workspace. Build the actual usable experience as the first screen unless the user specifically asks for a marketing landing page.
+グリーンフィールドのページやアプリでは、ワークスペースが示す最もシンプルなスタックを選ぶ。ユーザーがマーケティングランディングページを特定的に求めない限り、実際に使えるエクスペリエンスを最初の画面として構築する。
 
-## Workflow
+## ワークフロー
 
-1. Define the screen job and design direction in a short phrase. Include surface type, audience, density, palette, typography, imagery, motion, and one memorable product-specific move.
-2. Align or create the token contract. Decide color roles, type scale, spacing, radius, elevation, focus ring, disabled treatment, and motion rules before styling many components.
-3. Map the interaction surface: navigation, primary and secondary actions, controls, data states, feedback states, keyboard paths, touch ergonomics, and responsive behavior.
-4. For canvas, 3D, media, map, game, or editor screens, reserve the primary visual layer first. Place HUD, rails, toolbars, modals, and status bars in stable safe zones and decide which layer owns pointer and keyboard input.
-5. For data-heavy screens, design the scan loop, detail loop, and trust loop. Decide what users can compare at a glance, what opens deeper detail, and where source/freshness/error context appears.
-6. Implement in the project's native style. Reuse local components, CSS variables, Tailwind utilities, icon libraries, accessibility primitives, and framework patterns before adding new abstractions.
-7. Use appropriate visual assets. Product, venue, person, object, game, and website experiences need real or generated visual signals, not abstract placeholders. If raster assets are required and absent, use an image-generation workflow when available.
-8. Add polished states: hover, focus-visible, active, disabled, loading, empty, error, selected, drag/resize if relevant.
-9. Keep layout stable with explicit constraints such as aspect ratio, min/max sizes, grid tracks, container queries where useful, and fixed control dimensions.
-10. Verify visually at desktop and mobile sizes, then revise anything that overlaps, clips, wraps badly, shifts unexpectedly, or renders blank.
+1. 画面のジョブとデザイン方向を短いフレーズで定義する。画面タイプ・対象ユーザー・密度・パレット・タイポグラフィ・画像・モーション・プロダクト固有の印象的な一手を含める。
+2. トークンコントラクトを整合させるか作成する。多くのコンポーネントをスタイリングする前に、カラーロール・タイプスケール・スペーシング・radius・elevation・フォーカスリング・disabled処理・motionルールを決める。
+3. インタラクション画面をマッピングする: ナビゲーション・プライマリ/セカンダリアクション・コントロール・データ状態・フィードバック状態・キーボードパス・タッチエルゴノミクス・レスポンシブ動作。
+4. canvas・3D・メディア・マップ・ゲーム・エディター画面では、まずプライマリビジュアルレイヤーを確保する。HUD・レール・ツールバー・モーダル・ステータスバーを安定したセーフゾーンに配置し、どのレイヤーがpointerとキーボード入力を所有するかを決める。
+5. データ量の多い画面では、スキャンループ・詳細ループ・信頼ループを設計する。ユーザーが一目で比較できること・より詳しい情報を開くもの・ソース/鮮度/エラーのコンテキストが表示される場所を決める。
+6. プロジェクト固有のスタイルで実装する。新しい抽象化を追加する前に、ローカルコンポーネント・CSS変数・Tailwindユーティリティ・アイコンライブラリ・アクセシビリティプリミティブ・フレームワークパターンを再利用する。
+7. 適切なビジュアルアセットを使用する。プロダクト・場所・人物・オブジェクト・ゲーム・Webサイトのエクスペリエンスには、抽象的なプレースホルダーではなく実際または生成されたビジュアルシグナルが必要。ラスターアセットが必要で存在しない場合は、利用可能であれば画像生成ワークフローを使用する。
+8. 洗練された状態を追加する: hover・focus-visible・active・disabled・loading・empty・error・selected・drag/resize（関連する場合）。
+9. アスペクト比・min/maxサイズ・グリッドトラック・必要に応じたcontainer queries・固定されたコントロールサイズなど、明示的な制約でレイアウトを安定させる。
+10. デスクトップとモバイルサイズで視覚的に確認し、重なり・クリッピング・折り返しの問題・予期しないシフト・ブランクレンダリングを修正する。
 
-## Direction By Surface
+## 画面タイプ別の方向性
 
-| Surface | Design Bias |
+| 画面タイプ | デザインの傾向 |
 |---------|-------------|
-| SaaS, CRM, admin, finance, operations | Quiet, dense, scan-friendly, restrained color, strong tables/forms, predictable navigation |
-| Data, feed, search, analytics, or AI-generated content workspace | Dense scanning, provenance and freshness signals, strong filters/sort/search, detail drilldowns, graceful stale/partial data states |
-| Creative tool or editor | Full working canvas, compact controls, icon buttons with tooltips, stable toolbars, no explanatory marketing copy |
-| Canvas, 3D, map, or media app | Primary visual layer first, DOM controls in safe zones, pointer-event contract, responsive framing, readable overlays |
-| Consumer app | More expressive brand moments, warm feedback, clear task progression, mobile ergonomics |
-| Landing or product page | First viewport must clearly show the brand/product/place/person; hint at the next section; avoid generic split hero cards |
-| Portfolio, editorial, culture | Strong typography, art direction, image rhythm, intentional whitespace |
-| Game or playful experience | Immediate playable surface, readable HUD, custom assets, responsive input, pause/game-over/settings states |
+| SaaS・CRM・管理画面・金融・オペレーション | 静かで密度が高く、スキャンしやすい。色数を抑え、テーブル/フォームを強調し、ナビゲーションを予測可能にする |
+| データ・フィード・検索・分析・AIコンテンツワークスペース | 高密度スキャン・出典と鮮度のシグナル・強力なフィルタ/ソート/検索・詳細ドリルダウン・gracefulなstale/部分的データ状態 |
+| クリエイティブツールまたはエディター | 完全に動作するcanvas・コンパクトなコントロール・ツールチップ付きアイコンボタン・安定したツールバー・説明的なマーケティングコピーなし |
+| Canvas・3D・マップ・メディアアプリ | プライマリビジュアルレイヤーを最優先・DOMコントロールはセーフゾーン内・pointer-eventコントラクト・レスポンシブフレーミング・読みやすいオーバーレイ |
+| コンシューマーアプリ | より表現力のあるブランドの瞬間・温かみのあるフィードバック・明確なタスクの進行・モバイルエルゴノミクス |
+| ランディングページまたはプロダクトページ | 最初のビューポートでブランド/プロダクト/場所/人物を明確に表示。次のセクションをほのめかし、汎用的なスプリットヒーローカードを避ける |
+| ポートフォリオ・編集・カルチャー | 強いタイポグラフィ・アートディレクション・画像のリズム・意図的な空白 |
+| ゲームまたはプレイフルな体験 | 即座に遊べる画面・読みやすいHUD・カスタムアセット・レスポンシブ入力・pause/ゲームオーバー/設定状態 |
 
-## Data-Dense Workspaces
+## データ密度の高いワークスペース
 
-For dashboards, feeds, search results, generated-content lists, analytics, and research tools, design the workspace around repeated decisions rather than a static presentation.
+ダッシュボード・フィード・検索結果・生成コンテンツリスト・分析・調査ツールでは、静的なプレゼンテーションではなく繰り返しの意思決定を中心にワークスペースを設計する。
 
-- Put search, counts, filters, sort, view modes, pagination, and refresh/status controls in predictable tool regions. Keep their dimensions stable and make horizontal overflow local to the control group when needed.
-- Use a scannable primary list or grid, then provide side panels, drawers, modals, or split panes for deeper context. Do not force every detail into repeated cards.
-- Surface trust metadata close to the decision it affects: source, timestamp, status, confidence, validation warning, cache/stale marker, or retry affordance.
-- Treat generated or external text as hostile to layout. Normalize display text where appropriate, cap repeated summaries, preserve full text in details or titles, and use `overflow-wrap: anywhere` for user/source-provided strings.
-- Reflow deliberately: sidebars can become inline panels, right rails can move below content, toolbars can wrap into rows, and pagination/filter strips can scroll locally. Avoid whole-page horizontal scrolling.
+- 検索・カウント・フィルター・ソート・ビューモード・ページネーション・更新/ステータスコントロールを予測可能なツール領域に配置する。それらの寸法を安定させ、必要に応じて水平オーバーフローをコントロールグループ内に限定する。
+- スキャン可能なプライマリリストまたはグリッドを使用し、より深いコンテキストのためにサイドパネル・ドロワー・モーダル・スプリットペインを提供する。すべての詳細を繰り返しのカードに詰め込まない。
+- 信頼性のメタデータを、それが影響する意思決定の近くに表示する: ソース・タイムスタンプ・ステータス・信頼度・バリデーション警告・cache/staleマーカー・リトライアフォーダンス。
+- 生成または外部テキストをレイアウトに対して敵対的なものとして扱う。表示テキストを必要に応じて正規化し、繰り返しのサマリーを制限し、詳細またはタイトルで全文を保持し、ユーザー/ソース提供の文字列には `overflow-wrap: anywhere` を使用する。
+- 意図的にリフローする: サイドバーはインラインパネルになれる、右レールはコンテンツ下に移動できる、ツールバーは行に折り返せる、ページネーション/フィルターストリップはローカルでスクロールできる。ページ全体の水平スクロールは避ける。
 
-## Aesthetic Direction
+## 審美的な方向性
 
-Choose a specific visual concept instead of a generic "modern" look. The concept can be quiet or loud, but it must be deliberate and appropriate to the surface.
+汎用的な「モダン」な見た目の代わりに、具体的なビジュアルコンセプトを選ぶ。コンセプトは静かでも派手でも良いが、意図的で画面に適したものでなければならない。
 
-Use strong directions when the product can support them:
+プロダクトが対応できる場合は強い方向性を使用する:
 
-- **Brutally minimal**: sparse structure, precise spacing, strong type contrast, few effects
-- **Editorial or magazine-like**: expressive display type, image rhythm, asymmetric pacing
-- **Industrial or technical**: exposed grids, utility color, monospaced accents, dense controls
-- **Luxury or refined**: restrained palette, high-quality imagery, subtle motion, careful proportion
-- **Playful or toy-like**: saturated accents, tactile controls, bouncy feedback, custom assets
-- **Retro-futuristic, solarpunk, cyberpunk, art deco, Memphis, or brutalist**: use only when it fits the product or the user asks for it
+- **徹底的にミニマル**: 疎な構造・精密なスペーシング・強いタイプコントラスト・少ないエフェクト
+- **エディトリアルまたはマガジン風**: 表現力のあるディスプレイタイプ・画像のリズム・非対称なペーシング
+- **インダストリアルまたはテクニカル**: グリッドを前面に出す・ユーティリティカラー・モノスペースアクセント・密なコントロール
+- **ラグジュアリーまたは洗練**: 抑制されたパレット・高品質な画像・繊細なモーション・丁寧なプロポーション
+- **プレイフルまたはトイ風**: 彩度の高いアクセント・触感的なコントロール・弾力のあるフィードバック・カスタムアセット
+- **レトロフューチャリスト・ソーラーパンク・サイバーパンク・アールデコ・メンフィス・ブルータリスト**: プロダクトに合う場合またはユーザーが求めた場合のみ使用
 
-Theme-locking rule: when the user names an aesthetic, lock color, typography, layout rhythm, texture, motion, and component detailing to that theme. Match implementation complexity to the concept: maximal directions need richer layers and motion; refined minimal directions need stricter spacing, contrast, and restraint.
+テーマロックのルール: ユーザーが審美性を指定した場合、カラー・タイポグラフィ・レイアウトリズム・テクスチャ・モーション・コンポーネントの詳細をそのテーマにロックする。実装の複雑さをコンセプトに合わせる: マキシマルな方向性はより豊かなレイヤーとモーションが必要で、洗練されたミニマルな方向性はより厳格なスペーシング・コントラスト・抑制が必要。
 
-## Typography And Theme
+## タイポグラフィとテーマ
 
-- Treat typography as a core design system, not an afterthought. Choose display, body, numeric, and code styles deliberately.
-- Reuse existing fonts when the project already has a brand or performance budget. For greenfield work, avoid defaulting to Inter, Roboto, Arial, or system fonts unless the product calls for utilitarian neutrality.
-- Pair fonts for contrast when useful: serif with geometric sans, display with restrained body, or mono accents with a readable UI face.
-- Use strong weight and scale contrast for heroes, editorial surfaces, and brand moments; use compact, stable type scales for dashboards, editors, and operational tools.
-- Load fonts through the project's established mechanism. Avoid adding remote font dependencies when offline use, privacy, or performance constraints make that a poor tradeoff.
-- Build the theme with variables or tokens. Color, radius, shadow, type scale, focus, disabled state, and motion should be reusable rather than scattered one-offs.
-- Pull palette inspiration from the domain, product materials, imagery, or named aesthetic. Use dominant roles plus sharp accents; avoid timid evenly distributed palettes.
+- タイポグラフィを後付けではなく、コアなデザインシステムとして扱う。ディスプレイ・ボディ・数字・コードのスタイルを意図的に選ぶ。
+- プロジェクトに既にブランドまたはパフォーマンス予算がある場合は既存フォントを再利用する。グリーンフィールドの場合、プロダクトがユーティリタリアンな中立性を求めない限り、Inter・Roboto・Arial・システムフォントをデフォルトで使わない。
+- 必要に応じてフォントをペアリングしてコントラストを出す: セリフとジオメトリックサンス・ディスプレイと抑制されたボディ・モノアクセントと読みやすいUIフェイス。
+- ヒーロー・エディトリアル画面・ブランドの瞬間には強いウェイトとスケールコントラストを使用し、ダッシュボード・エディター・オペレーションツールにはコンパクトで安定したタイプスケールを使用する。
+- プロジェクトの確立されたメカニズムを通じてフォントを読み込む。オフライン使用・プライバシー・パフォーマンスの制約によってトレードオフが悪化する場合は、リモートフォントの依存関係を追加しない。
+- 変数またはトークンでテーマを構築する。カラー・radius・シャドウ・タイプスケール・フォーカス・disabled状態・motionは、散在する一回限りのものではなく再利用可能であるべき。
+- パレットのインスピレーションをドメイン・プロダクト素材・画像・指定された審美性から引き出す。支配的なロールに鋭いアクセントを使用し、臆病な均等分布のパレットを避ける。
 
-## Targeted Refinement
+## 絞り込み型の改善
 
-When the user asks to improve one dimension, keep the edit narrowly focused:
+ユーザーが一つの次元の改善を求めた場合、編集範囲を狭く保つ:
 
-| Request | Preserve | Change |
+| リクエスト | 維持するもの | 変更するもの |
 |---------|----------|--------|
-| Better typography | Layout, palette, components | Font choice, scale, weight, line-height, measure, hierarchy |
-| Better color/theme | Layout, type hierarchy, workflow | Tokens, semantic roles, contrast, accents, surfaces |
-| Better motion | Layout, palette, information architecture | Timing, easing, entrance, hover/focus, state transitions |
-| More premium/playful/minimal/etc. | Core workflow and accessibility | Aesthetic tokens, imagery, texture, rhythm, detailing |
-| Fix responsive polish | Visual identity and behavior | Constraints, wrapping, breakpoints, overflow, touch targets |
+| タイポグラフィを改善 | レイアウト・パレット・コンポーネント | フォント選択・スケール・ウェイト・line-height・measure・階層 |
+| カラー/テーマを改善 | レイアウト・タイプ階層・ワークフロー | トークン・セマンティックロール・コントラスト・アクセント・サーフェス |
+| モーションを改善 | レイアウト・パレット・情報アーキテクチャ | タイミング・イージング・エントランス・hover/focus・状態遷移 |
+| よりプレミアム/プレイフル/ミニマルなど | コアワークフローとアクセシビリティ | 審美的トークン・画像・テクスチャ・リズム・詳細 |
+| レスポンシブポリッシュを修正 | ビジュアルアイデンティティと動作 | 制約・折り返し・ブレークポイント・オーバーフロー・タッチターゲット |
 
-## Interaction Rules
+## インタラクションルール
 
-- Make the common path obvious. Each screen should make the next action clear without competing primary buttons.
-- Use progressive disclosure for secondary actions, filters, advanced settings, and destructive controls.
-- Give each async region a loading, empty, error, retry, and success or saved state when relevant.
-- Prefer URL state for shareable filters, search, sort, tabs, and pagination. Use local state for transient UI such as open menus and temporary selections.
-- Build forms with persistent labels, useful helper text, inline validation, submit feedback, and safe destructive confirmation.
-- For list items or cards that open details, prefer a semantic button/link when practical. If a non-button container must be interactive, provide `role`, keyboard activation, visible focus, accessible names, and do not break text selection or nested links.
-- Make dialogs, popovers, menus, command palettes, and drawers manage focus, Escape, outside click, scroll lock, and return focus.
-- Treat keyboard and touch as first-class: visible focus, logical tab order, hit targets large enough for touch, and no hover-only affordances.
-- For layered canvas/HUD screens, keep passive overlay regions `pointer-events: none` and restore `pointer-events: auto` only on controls. Do not let decorative layers intercept gameplay, map, editor, or camera input.
+- 共通パスを明確にする。各画面は競合するプライマリボタンなしで次のアクションを明確にすべき。
+- セカンダリアクション・フィルター・詳細設定・破壊的コントロールにはプログレッシブディスクロージャーを使用する。
+- 各非同期リージョンに関連する場合はloading・empty・error・retry・successまたはsaved状態を与える。
+- 共有可能なフィルター・検索・ソート・タブ・ページネーションにはURL状態を優先する。オープンメニューや一時的な選択などの一時的なUIにはローカル状態を使用する。
+- 永続ラベル・有用なヘルパーテキスト・インラインバリデーション・送信フィードバック・安全な破壊的確認を含むフォームを構築する。
+- 詳細を開くリストアイテムやカードには、実用的な場合はセマンティックなbutton/linkを優先する。ボタン以外のコンテナをインタラクティブにする必要がある場合は、`role`・キーボードアクティベーション・フォーカスの可視化・アクセシブルな名前を提供し、テキスト選択やネストされたリンクを壊さない。
+- ダイアログ・ポップオーバー・メニュー・コマンドパレット・ドロワーはフォーカス・Escape・外部クリック・スクロールロック・フォーカスの返却を管理させる。
+- キーボードとタッチをファーストクラスとして扱う: フォーカスの可視化・論理的なタブ順序・タッチに十分な大きさのヒットターゲット・ホバー専用アフォーダンスなし。
+- レイヤードされたcanvas/HUD画面では、パッシブなオーバーレイ領域を `pointer-events: none` に保ち、コントロール上でのみ `pointer-events: auto` に戻す。デコレーティブなレイヤーがゲームプレイ・マップ・エディター・カメラ入力を遮断しないようにする。
 
-## Visual Rules
+## ビジュアルルール
 
-- Match the aesthetic to the domain. Do not make operational software look like a marketing hero unless the user asked for that.
-- Commit to a clear aesthetic direction, then execute it with restraint or intensity as the domain requires. Minimal designs need precision; maximal designs need orchestration.
-- Use distinctive typography when appropriate, but respect existing font loading and performance. Avoid converging on the same popular choices across unrelated projects.
-- Use palettes with real contrast, purposeful accents, and semantic roles. Avoid one-note themes made only from one hue family.
-- Prefer icons for tool actions when a familiar symbol exists. Use the project's icon library, often Lucide, instead of hand-drawn inline SVG.
-- Use familiar controls: segmented controls for modes, toggles or checkboxes for booleans, sliders or numeric inputs for numbers, tabs for views, menus for option sets.
-- For HUDs, dashboards, previews, counters, meters, and keycaps, use fixed or bounded dimensions, tabular numerals, stable SVG/canvas viewBoxes, and wrapping rules that tolerate localization and long labels.
-- Keep cards to real repeated items, modals, and framed tools. Do not put cards inside cards or turn every page section into a floating card.
-- Keep card radii modest unless the existing design system says otherwise.
-- Use motion for meaningful state change, spatial orientation, and high-impact reveals. Avoid scattered animation that distracts from the workflow.
-- Do not add visible in-app text that explains the app's features, keyboard shortcuts, or visual styling unless the product surface genuinely needs onboarding.
-- Ensure text fits its container at mobile and desktop sizes. Do not use viewport-width font scaling or negative letter spacing to force drama.
+- 審美性をドメインに合わせる。ユーザーが求めない限り、オペレーションソフトウェアをマーケティングヒーローのように見せない。
+- 明確な審美的方向性にコミットし、ドメインが求めるように抑制または強度で実行する。ミニマルデザインには精度が必要で、マキシマルデザインにはオーケストレーションが必要。
+- 適切な場合は独特のタイポグラフィを使用するが、既存のフォント読み込みとパフォーマンスを尊重する。無関係なプロジェクト間で同じ人気の選択に収束することを避ける。
+- 実際のコントラスト・目的のあるアクセント・セマンティックロールを持つパレットを使用する。一つの色相ファミリーだけで構成された単調なテーマを避ける。
+- 使い慣れたシンボルがある場合はツールアクションにアイコンを優先する。手描きのインラインSVGではなく、プロジェクトのアイコンライブラリ（多くの場合Lucide）を使用する。
+- 使い慣れたコントロールを使用する: モードにはセグメンテッドコントロール・ブール値にはトグルまたはチェックボックス・数値にはスライダーまたは数値入力・ビューにはタブ・オプションセットにはメニュー。
+- HUD・ダッシュボード・プレビュー・カウンター・メーター・キーキャップには、固定またはバウンドされた寸法・表形式の数字・安定したSVG/canvas viewBox・ローカリゼーションと長いラベルを許容する折り返しルールを使用する。
+- カードは本当に繰り返されるアイテム・モーダル・フレームされたツールに限定する。カードの中にカードを入れたり、すべてのページセクションをフローティングカードにしたりしない。
+- 既存のデザインシステムが別途指定しない限り、カードのradiusを控えめに保つ。
+- 意味のある状態変化・空間的な方向付け・インパクトの高いリビールにモーションを使用する。ワークフローから注意を逸らす散在したアニメーションを避ける。
+- プロダクト画面がオンボーディングを本当に必要としない限り、アプリの機能・キーボードショートカット・ビジュアルスタイリングを説明するアプリ内テキストを追加しない。
+- モバイルとデスクトップサイズでテキストがコンテナに収まることを確認する。ドラマを演出するためにビューポート幅フォントスケーリングやネガティブレタースペーシングを使用しない。
 
-## Quality Gates
+## 品質ゲート
 
-Before calling the work done, confirm:
+作業完了と宣言する前に確認する:
 
-- The first viewport contains a product, brand, workflow, or domain signal specific enough that it could not belong to any generic app.
-- For canvas, 3D, media, map, game, or editor screens, the primary visual layer remains visible and correctly framed; HUD overlays do not hide critical content at desktop or mobile sizes.
-- Primary task completion is clear, with no more than one dominant primary action per view unless the workflow truly requires branching.
-- Design tokens and local primitives are used instead of hardcoded one-off styling when a system exists.
-- For interactive or data-driven surfaces, critical states are designed: loading, empty, error, disabled, selected, focused, active, hover, mobile, and long-content cases.
-- For generated, external, cached, or realtime data, the UI truthfully distinguishes fresh, stale, partial, unavailable, retrying, and read-only states instead of presenting one vague spinner or silent failure.
-- Accessibility basics pass: semantic elements, labels, contrast, focus-visible, keyboard operation, reduced motion, and screen-reader names for icon-only controls.
-- The UI tolerates realistic content: long names, localized text, many/few items, missing images, slow network, and narrow screens.
-- Visual assets, fonts, animation, shadows, and effects support the concept without excessive payload, jank, or readability loss.
+- 最初のビューポートに、汎用アプリには属さない十分に具体的なプロダクト・ブランド・ワークフロー・ドメインシグナルが含まれている。
+- canvas・3D・メディア・マップ・ゲーム・エディター画面では、プライマリビジュアルレイヤーが正しくフレームされて表示されており、HUDオーバーレイがデスクトップまたはモバイルサイズで重要なコンテンツを隠していない。
+- プライマリタスクの完了が明確で、ワークフローが真にブランチを必要としない限り、ビューごとのドミナントプライマリアクションは最大一つ。
+- システムが存在する場合、ハードコードされた一回限りのスタイリングではなくデザイントークンとローカルプリミティブが使用されている。
+- インタラクティブまたはデータドリブンな画面では、重要な状態が設計されている: loading・empty・error・disabled・selected・focused・active・hover・mobile・長コンテンツケース。
+- 生成・外部・キャッシュ・リアルタイムデータに対して、一つの曖昧なスピナーや無言の失敗を表示する代わりに、UIがfresh・stale・partial・unavailable・retrying・read-only状態を正直に区別している。
+- アクセシビリティの基本がパスしている: セマンティック要素・ラベル・コントラスト・focus-visible・キーボード操作・reduced motion・アイコンのみのコントロールへのスクリーンリーダー名。
+- UIがリアルなコンテンツに耐える: 長い名前・ローカライズされたテキスト・多数/少数のアイテム・欠損画像・低速ネットワーク・狭い画面。
+- ビジュアルアセット・フォント・アニメーション・シャドウ・エフェクトが、過度なペイロード・ジャンク・可読性の損失なしにコンセプトをサポートしている。
 
-## Anti-Patterns
+## アンチパターン
 
-**Generic AI aesthetic**
+**汎用AIの審美性**
 
-Bad: Purple-blue gradients, glass cards, floating blobs, same rounded cards, generic Inter/Roboto/system typography, stock-like copy, predictable layouts, and no domain signal.
+悪い例: 紫青グラデーション・ガラスカード・フローティングブロブ・同じ丸みのあるカード・汎用的なInter/Roboto/システムタイポグラフィ・ストック風のコピー・予測可能なレイアウト・ドメインシグナルなし。
 
-Better: Extract the product context first, then pick a specific visual concept and implement it through layout, typography, assets, interaction states, and copy density.
+良い例: まずプロダクトのコンテキストを抽出し、具体的なビジュアルコンセプトを選び、レイアウト・タイポグラフィ・アセット・インタラクション状態・コピー密度を通じて実装する。
 
-**Theme as decoration**
+**デコレーションとしてのテーマ**
 
-Bad: Naming an aesthetic but changing only colors while leaving default layout, type, motion, and component shapes untouched.
+悪い例: 審美性に名前を付けるが、デフォルトのレイアウト・タイプ・モーション・コンポーネント形状はそのままに、色だけを変える。
 
-Better: Lock the theme across palette, typography, spacing rhythm, imagery, texture, motion, and control details.
+良い例: パレット・タイポグラフィ・スペーシングリズム・画像・テクスチャ・モーション・コントロールの詳細全体にテーマをロックする。
 
-**Uncontrolled maximalism**
+**コントロールされていないマキシマリズム**
 
-Bad: Adding many effects, patterns, overlaps, custom cursors, and animations that compete with the task.
+悪い例: タスクと競合する多くのエフェクト・パターン・重なり・カスタムカーソル・アニメーションを追加する。
 
-Better: Choose one or two high-impact expressive moves and keep interaction, readability, and performance intact.
+良い例: 一つか二つの高インパクトな表現的な動きを選び、インタラクション・可読性・パフォーマンスを維持する。
 
-**Over-broad refinement**
+**過度に広い改善範囲**
 
-Bad: Rebuilding the whole page when the user only asked for better typography, color, motion, or mobile polish.
+悪い例: ユーザーがタイポグラフィ・カラー・モーション・モバイルポリッシュの改善だけを求めているのに、ページ全体を再構築する。
 
-Better: Isolate the requested design dimension, adjust it deeply, and leave unrelated structure alone.
+良い例: 要求されたデザイン次元を分離し、深く調整し、無関係な構造はそのままにする。
 
-**Decorative dashboard**
+**デコレーティブダッシュボード**
 
-Bad: An operations screen with oversized hero text, ornamental cards, sparse fake metrics, and weak tables or forms.
+悪い例: 過大なヒーローテキスト・装飾的なカード・疎な偽のメトリクス・弱いテーブルやフォームを持つオペレーション画面。
 
-Better: Prioritize navigation, filtering, scanning, comparison, status, dense controls, and fast repeated actions.
+良い例: ナビゲーション・フィルタリング・スキャン・比較・ステータス・密なコントロール・高速な繰り返しアクションを優先する。
 
-**Marketing page when asked for an app**
+**アプリを求められているのにマーケティングページを作る**
 
-Bad: A landing page that describes the tool instead of providing the tool.
+悪い例: ツールを提供する代わりにツールを説明するランディングページ。
 
-Better: Put the usable app, game, editor, or workflow in the first viewport. Add explanatory content only when it helps the actual task.
+良い例: 最初のビューポートに使えるアプリ・ゲーム・エディター・ワークフローを配置する。説明コンテンツは実際のタスクに役立つ場合のみ追加する。
 
-**HUD pasted over a scene**
+**シーンの上に貼り付けられたHUD**
 
-Bad: Floating panels, status bars, and controls are positioned after the canvas without reserving safe space, so they hide the subject, capture input accidentally, or break at shorter viewports.
+悪い例: セーフスペースを確保せずにcanvasの後にフローティングパネル・ステータスバー・コントロールを配置し、被写体を隠したり、誤って入力を捕捉したり、狭いビューポートで壊れたりする。
 
-Better: Design the canvas/media framing and DOM HUD together. Reserve safe zones, route pointer events deliberately, test pause/settings/error states, and adjust camera or visual composition when overlays are present.
+良い例: canvas/メディアのフレーミングとDOM HUDを一緒に設計する。セーフゾーンを確保し、pointer eventsを意図的にルーティングし、pause/設定/エラー状態をテストし、オーバーレイが存在する場合はカメラまたはビジュアルコンポジションを調整する。
 
-**Unstable responsive design**
+**不安定なレスポンシブデザイン**
 
-Bad: Text clipping, buttons growing on hover, controls changing size, mobile overlap, or layout depending on ideal content length.
+悪い例: テキストのクリッピング・ホバー時に拡大するボタン・サイズが変わるコントロール・モバイルの重なり・理想的なコンテンツ長に依存するレイアウト。
 
-Better: Use stable dimensions, responsive constraints, wrapping rules, and screenshot checks at realistic viewport sizes.
+良い例: 安定した寸法・レスポンシブ制約・折り返しルール・現実的なビューポートサイズでのスクリーンショットチェックを使用する。
 
-**Token drift**
+**トークンドリフト**
 
-Bad: Adding hardcoded colors, spacing, radii, shadows, or custom controls in a project with established tokens and primitives.
+悪い例: 確立されたトークンとプリミティブを持つプロジェクトでハードコードされた色・スペーシング・radii・シャドウ・カスタムコントロールを追加する。
 
-Better: Extend existing tokens or compose existing primitives. If an exception is necessary, keep it local and explain why.
+良い例: 既存のトークンを拡張するか、既存のプリミティブを合成する。例外が必要な場合はローカルに保ち、理由を説明する。
 
-**Incomplete state surface**
+**不完全な状態サーフェス**
 
-Bad: Designing only the happy path with static mock data.
+悪い例: 静的なモックデータでハッピーパスだけを設計する。
 
-Better: Implement or at least account for loading, empty, error, disabled, focused, long-content, and mobile states.
+良い例: loading・empty・error・disabled・focused・長コンテンツ・モバイル状態を実装するか、少なくとも考慮する。
 
-**Invisible data trust**
+**見えないデータの信頼性**
 
-Bad: Showing external, AI-generated, cached, or realtime data as if it were always complete and fresh.
+悪い例: 外部・AI生成・キャッシュ・リアルタイムデータを常に完全で最新であるかのように表示する。
 
-Better: Expose source, timestamp, stale/cache status, partial-failure warnings, retry affordances, and evidence/detail paths where they affect user decisions.
+良い例: ユーザーの意思決定に影響する箇所でソース・タイムスタンプ・stale/cache状態・部分的な失敗の警告・リトライアフォーダンス・証拠/詳細へのパスを公開する。
 
-**One-shot card grid**
+**一発のカードグリッド**
 
-Bad: Turning every data-heavy screen into uniform cards with no scan path, no filters, no sorting, no detail rhythm, and no mobile reflow plan.
+悪い例: データ量の多いすべての画面を、スキャンパス・フィルター・ソート・詳細リズム・モバイルリフロープランのない均一なカードに変換する。
 
-Better: Design the repeated workflow: scan, filter, compare, open details, recover from empty/error states, and return without losing context.
+良い例: 繰り返しのワークフローを設計する: スキャン・フィルター・比較・詳細を開く・empty/error状態から回復する・コンテキストを失わずに戻る。
 
-**Unverified polish**
+**未検証のポリッシュ**
 
-Bad: Shipping CSS changes without opening the page.
+悪い例: ページを開かずにCSSの変更を出荷する。
 
-Better: Run the app, inspect desktop and mobile screenshots, test interactions, and revise visible defects.
+良い例: アプリを実行し、デスクトップとモバイルのスクリーンショットを確認し、インタラクションをテストし、目に見える欠陥を修正する。
 
-## Review Mode
+## レビューモード
 
-When the user asks to review an existing frontend, lead with findings rather than praise. Prioritize:
+ユーザーが既存のフロントエンドのレビューを求めた場合は、称賛よりも発見した問題を先に述べる。優先順位:
 
-1. Broken behavior, inaccessible controls, unreadable contrast, layout overlap, and mobile failures
-2. Mismatches with existing design system, token, accessibility, or framework conventions
-3. Information hierarchy, action hierarchy, and workflow friction
-4. Generic visual choices that weaken the product signal
-5. Missing states, assets, content stress handling, or verification
+1. 壊れた動作・アクセスできないコントロール・読めないコントラスト・レイアウトの重なり・モバイルの失敗
+2. 既存のデザインシステム・トークン・アクセシビリティ・フレームワーク規約との不一致
+3. 情報の階層・アクションの階層・ワークフローの摩擦
+4. プロダクトシグナルを弱める汎用的なビジュアルの選択
+5. 欠落した状態・アセット・コンテンツのストレス処理・検証
 
-Classify issues as blocking, major, or minor when useful. Reference files and line numbers when reviewing code. If screenshots are available, mention the viewport and visible issue.
+有用な場合は問題をblocking・major・minorに分類する。コードをレビューする際はファイルと行番号を参照する。スクリーンショットが利用可能な場合は、ビューポートと表示されている問題を述べる。
 
-## Verification
+## 検証
 
-Use the repo's scripts first:
+まずリポジトリのスクリプトを使用する:
 
 ```bash
 npm run lint
@@ -290,24 +290,24 @@ npm run build
 npm test
 ```
 
-Run only the commands that exist for the project. If the app needs a dev server, start it and provide the local URL. If static HTML is enough, point to the file.
+プロジェクトに存在するコマンドのみ実行する。アプリにdevサーバーが必要な場合は起動してローカルURLを提供する。静的HTMLで十分な場合はファイルを指す。
 
-For visual QA:
+ビジュアルQAのために:
 
-- Check at least one desktop and one mobile viewport.
-- Inspect browser console errors, page errors, failed requests, and obvious layout overflow when browser automation is available.
-- Confirm images, icons, fonts, gradients, canvas/WebGL, and videos render as intended.
-- Confirm controls have hover, focus, selected, disabled, and loading behavior when relevant.
-- Confirm text does not overlap, clip, overflow its parent, or change control dimensions unexpectedly.
-- Stress with realistic data: long titles, multilingual strings, many items, zero items, missing images, stale cached data, partial source failures, and slow or failed network responses.
-- Scan the CSS for accidental one-note palette, excessive purple/blue gradients, beige/brown monotony, dark slate monotony, or decorative blobs.
-- For 3D/canvas/game surfaces, verify the canvas is nonblank, framed correctly, and interactive or animated.
+- 少なくとも一つのデスクトップと一つのモバイルビューポートを確認する。
+- ブラウザ自動化が利用可能な場合は、ブラウザコンソールエラー・ページエラー・失敗したリクエスト・明らかなレイアウトオーバーフローを確認する。
+- 画像・アイコン・フォント・グラデーション・canvas/WebGL・動画が意図通りにレンダリングされているか確認する。
+- 関連する場合、コントロールにhover・focus・selected・disabled・loadingの動作があるか確認する。
+- テキストが重なったり、クリッピングされたり、親要素をオーバーフローしたり、コントロールの寸法を予期せず変えたりしていないか確認する。
+- 現実的なデータでストレステストする: 長いタイトル・多言語文字列・多数/ゼロのアイテム・欠損画像・古いキャッシュデータ・部分的なソース障害・低速または失敗したネットワーク応答。
+- CSSをスキャンして、偶発的な単調なパレット・過度な紫/青グラデーション・ベージュ/ブラウンの単調さ・ダークスレートの単調さ・デコレーティブブロブを確認する。
+- 3D/canvas/ゲーム画面では、canvasが空白でなく、正しくフレームされ、インタラクティブまたはアニメーションしているか確認する。
 
-## Deliverables
+## 成果物
 
-Return:
+返すもの:
 
-- The implemented or reviewed files
-- The design direction chosen and why it fits
-- The verification commands and visual checks performed
-- Any remaining risks, such as unrun tests, missing assets, or browser checks that were not possible
+- 実装またはレビューしたファイル
+- 選択したデザイン方向とその理由
+- 実行した検証コマンドとビジュアルチェック
+- 未実行のテスト・欠落したアセット・実行できなかったブラウザチェックなど残存するリスク

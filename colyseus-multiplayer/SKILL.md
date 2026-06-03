@@ -5,268 +5,267 @@ description: "Colyseusでサーバ権威型のリアルタイムマルチプレ�
 
 # Colyseus Multiplayer
 
-Design and implement real-time multiplayer games with Colyseus without coupling the networking model to a specific renderer.
+特定のレンダラーにネットワークモデルを結合させることなく、Colyseusでリアルタイムマルチプレイヤーゲームを設計・実装する。
 
-## Colyseus Version
+## Colyseusのバージョン
 
-This skill targets the current Colyseus generation (**0.17**). The examples use the modern API surface:
+このスキルは現行のColyseus世代（**0.17**）を対象としている。サンプルコードはモダンなAPIを使用する：
 
-- Client SDK package `@colyseus/sdk` with `Callbacks.get(room)` for state-sync callbacks.
-- Room lifecycle `onDrop(client, code)` for abnormal disconnects, `onReconnect(client)` on resume, and `onLeave(client, code)` with a numeric close code (no longer a boolean `consented` flag).
-- `allowReconnection(client, seconds)` to hold a seat during the reconnect window.
-- `defineServer()` / `defineRoom()` consolidating the older `new Server()` constructor.
+- クライアントSDKパッケージ `@colyseus/sdk` と、状態同期コールバック用の `Callbacks.get(room)`。
+- ルームライフサイクル：異常切断には `onDrop(client, code)`、再開時には `onReconnect(client)`、切断時には数値クローズコードを受け取る `onLeave(client, code)`（boolean の `consented` フラグは廃止）。
+- 再接続ウィンドウ中にシートを確保する `allowReconnection(client, seconds)`。
+- 旧来の `new Server()` コンストラクタを統合した `defineServer()` / `defineRoom()`。
 
-If a project pins an older version, expect the legacy shapes instead: the `colyseus.js` package, `getStateCallbacks(room)`, `onLeave(client, consented: boolean)`, and `Room<State, Metadata>` generics. Detect the installed version from the project before copying example code verbatim.
+プロジェクトが古いバージョンを固定している場合は、代わりにレガシーな形式を使用すること：`colyseus.js` パッケージ、`getStateCallbacks(room)`、`onLeave(client, consented: boolean)`、および `Room<State, Metadata>` ジェネリクス。サンプルコードをそのまま流用する前に、プロジェクトのインストール済みバージョンを確認すること。
 
-## Philosophy: Authority First, Rendering Second
+## 哲学：権威が先、レンダリングが後
 
-Colyseus works best when the server owns truth and the client expresses intent. The room is not a transport wrapper around a local game loop; it is the game loop for anything that must be fair, consistent, and recoverable after reconnects.
+Colyseusは、サーバーが真実を所有しクライアントが意図を表明するときに最もよく機能する。ルームはローカルのゲームループをラップするトランスポート層ではなく、公平性・一貫性・再接続からの復元が必要なものすべてにおけるゲームループそのものである。
 
-Use this mental model as the default framework and mindset for multiplayer decisions. The guiding question is not "how do I mirror my frontend over websockets?" but "why does this fact deserve to be authoritative, and what is the simplest server-owned model that clients can understand and render?"
+このメンタルモデルをマルチプレイヤー設計のデフォルトの枠組みとして使うこと。問うべき質問は「どうすればフロントエンドをWebSocketでミラーリングできるか？」ではなく「なぜこの事実は権威を持つべきなのか、そしてクライアントが理解・描画できる最もシンプルなサーバー所有のモデルは何か？」である。
 
-**Before building, ask:**
-- What state must be authoritative, and what is purely cosmetic?
-- What belongs in a room boundary: one match, one lobby, one shard, or one encounter?
-- Which client messages are player intent, and which facts should only ever come from the server?
-- How should late joins, reconnects, spectators, and disconnects behave?
-- What latency strategy fits this game: simple interpolation, client prediction, or prediction plus reconciliation?
+**構築前に問うこと：**
+- どの状態が権威的でなければならず、何が純粋に見た目の問題か？
+- ルーム境界に何を含めるか：1マッチ、1ロビー、1シャード、それとも1エンカウンターか？
+- どのクライアントメッセージがプレイヤーの意図であり、どの事実はサーバーからのみ来るべきか？
+- 遅延参加・再接続・観戦者・切断はどう振る舞うべきか？
+- このゲームに合うレイテンシー戦略は何か：単純な補間、クライアント予測、または予測＋照合か？
 
-**Core principles**:
-1. Server owns truth: movement, combat, timers, win conditions, inventory, and room membership should not depend on client trust.
-2. Shared state stays minimal: synchronize durable game facts, not the entire scene graph or renderer state.
-3. Separate channels deliberately: schema state is for durable world state, messages are for intent and transient events, local code handles cosmetics.
-4. Recovery is part of the feature: reconnect handling, validation, throttling, and auth are not optional extras.
-5. Renderer choice is downstream: Phaser, Three.js, PixiJS, React, and custom canvases should adapt to the same room model rather than reshaping it.
+**コア原則**：
+1. サーバーが真実を所有する：移動、戦闘、タイマー、勝利条件、インベントリ、ルームメンバーシップはクライアントの信頼に依存してはならない。
+2. 共有状態は最小限に保つ：シーングラフ全体やレンダラーの状態ではなく、持続的なゲーム事実を同期する。
+3. チャンネルを意図的に分離する：schema stateは持続的なワールドの状態、messagesは意図と一時的なイベント、ローカルコードは見た目を担当する。
+4. 復元性は機能の一部である：再接続ハンドリング、バリデーション、スロットリング、authはオプションの追加機能ではない。
+5. レンダラーの選択は下流の関心事である：Phaser、Three.js、PixiJS、React、カスタムcanvasはルームモデルを作り変えるのではなく、同じルームモデルに適応すべきである。
 
-This approach keeps the networking framework understandable even as the renderer, genre, and production constraints change.
+このアプローチにより、レンダラー・ジャンル・本番制約が変わってもネットワーキングフレームワークを理解可能な状態に保てる。
 
-## Reference Files
+## リファレンスファイル
 
-Read these before doing substantial work in the matching area:
+対象エリアで実質的な作業を行う前に以下を読むこと：
 
-| When working on... | Read first |
+| 作業内容 | 先に読む |
 |--------------------|------------|
-| Room design, schema modeling, message boundaries, lifecycle hooks, or matchmaker usage | `references/architecture.md` |
-| TypeScript client wiring, `Callbacks`, join methods, messages, reconnection, or prediction | `references/client.md` |
-| Code review, design review, or "what should we stop doing?" questions | `references/anti-patterns.md` |
-| Production topology, Vercel frontend plus separate backend, env vars, auth transport, or rollout planning | `references/deployment.md` |
-| Picking or extending a renderer integration | `references/frameworks/README.md` |
-| Phaser scene integration, sprite/entity mapping, interpolation, or listener cleanup | `references/frameworks/phaser.md` |
+| ルーム設計、schemaモデリング、メッセージ境界、ライフサイクルフック、matchmaker利用 | `references/architecture.md` |
+| TypeScriptクライアント配線、`Callbacks`、joinメソッド、messages、再接続、予測 | `references/client.md` |
+| コードレビュー、設計レビュー、「やめるべきことは何か」という質問 | `references/anti-patterns.md` |
+| 本番トポロジー、Vercelフロントエンド＋独立バックエンド、env vars、auth transport、ロールアウト計画 | `references/deployment.md` |
+| レンダラー統合の選択または拡張 | `references/frameworks/README.md` |
+| Phaserシーン統合、スプライト/エンティティマッピング、補間、リスナーのクリーンアップ | `references/frameworks/phaser.md` |
 
-If the client is not Phaser-based, skip the Phaser reference and keep the renderer adapter thin. The core Colyseus model should survive a renderer swap.
+クライアントがPhaserベースでない場合はPhaserリファレンスをスキップし、レンダラーアダプターを薄く保つこと。Colyseusのコアモデルはレンダラー交換に耐えられるべきである。
 
-## When to use this skill
+## このスキルを使う場面
 
-- Designing a new multiplayer game with Colyseus
-- Adding netplay to an existing Phaser, Three.js, PixiJS, React, or custom web game
-- Deciding what should be schema state versus what should be a message
-- Debugging desyncs, reconnects, join failures, or late-join behavior
-- Planning matchmaking, room topology, or deployment
-- Reviewing multiplayer code for authority mistakes, renderer coupling, or scaling risk
+- Colyseusで新しいマルチプレイヤーゲームを設計するとき
+- 既存のPhaser、Three.js、PixiJS、React、またはカスタムWebゲームにネットプレイを追加するとき
+- schema stateとmessageのどちらにすべきかを判断するとき
+- desync・再接続・参加失敗・遅延参加の挙動をデバッグするとき
+- マッチメイキング・ルームトポロジー・デプロイを計画するとき
+- マルチプレイヤーコードの権威ミス・レンダラー結合・スケーリングリスクをレビューするとき
 
-## Quick Decision Guide
+## クイック判断ガイド
 
-| Question | Answer | Where to look |
+| 質問 | 答え | 参照先 |
 |----------|--------|---------------|
-| Where should this fact live? | Usually room schema state if reconnects or late joins need it | `references/architecture.md` |
-| How should the client react to state changes? | `Callbacks` with `listen`, `onAdd`, and `onRemove` | `references/client.md` |
-| How should players trigger actions? | `room.send(type, payload)` for intent, validated server-side | `references/client.md` |
-| How do we recover from disconnects? | `onDrop()` plus `allowReconnection()` and client reconnect flow | `references/architecture.md` and `references/client.md` |
-| How do we avoid bad multiplayer habits? | Use the anti-pattern checklist during design and review | `references/anti-patterns.md` |
-| How do we host this with a Vercel frontend? | Separate static frontend and always-on realtime backend | `references/deployment.md` |
-| How do we wire Phaser specifically? | Use a thin adapter and scene-safe listener lifecycle | `references/frameworks/phaser.md` |
+| この事実はどこに置くべきか？ | 再接続や遅延参加が必要なら通常はroom schema state | `references/architecture.md` |
+| クライアントは状態変化にどう反応すべきか？ | `listen`・`onAdd`・`onRemove` を使った `Callbacks` | `references/client.md` |
+| プレイヤーのアクションはどうトリガーすべきか？ | 意図のために `room.send(type, payload)`、サーバーサイドでバリデーション | `references/client.md` |
+| 切断からの復元はどうするか？ | `onDrop()` ＋ `allowReconnection()` ＋クライアント再接続フロー | `references/architecture.md` および `references/client.md` |
+| マルチプレイヤーの悪習を避けるには？ | 設計・レビュー時にアンチパターンチェックリストを使用 | `references/anti-patterns.md` |
+| Vercelフロントエンドでどうホストするか？ | 静的フロントエンドと常時稼働のリアルタイムバックエンドを分離する | `references/deployment.md` |
+| Phaserの具体的な配線は？ | 薄いアダプターとシーンセーフなリスナーライフサイクルを使用 | `references/frameworks/phaser.md` |
 
-## Working Model
+## 動作モデル
 
-- `Room` is the authoritative boundary for a multiplayer session.
-- `Schema` state is the shared world model that clients subscribe to.
-- `room.send()` and `onMessage()` represent client intent and server-side command handling.
-- `broadcast()` is for transient events that should not live in durable room state.
-- `setSimulationInterval()` is the fixed server-side update loop for simulation.
-- `onDrop()`, `allowReconnection()`, and `onReconnect()` define recovery behavior.
-- `matchMaker` is the server-side orchestration layer for room creation, search, seat reservation, and stats.
-- `onAuth()` and `client.auth.token` define the trust boundary.
+- `Room` はマルチプレイヤーセッションの権威的な境界である。
+- `Schema` stateは、クライアントがサブスクライブする共有ワールドモデルである。
+- `room.send()` と `onMessage()` はクライアントの意図とサーバーサイドのコマンドハンドリングを表す。
+- `broadcast()` は持続的なroom stateに置くべきでない一時的なイベントのためのものである。
+- `setSimulationInterval()` はシミュレーション用のサーバーサイド固定更新ループである。
+- `onDrop()`・`allowReconnection()`・`onReconnect()` が復元の振る舞いを定義する。
+- `matchMaker` はルーム作成・検索・シート予約・統計のためのサーバーサイドオーケストレーション層である。
+- `onAuth()` と `client.auth.token` が信頼境界を定義する。
 
-## Design Workflow
+## 設計ワークフロー
 
-### 1. Define the room boundary early
+### 1. ルーム境界を早期に定義する
 
-- Choose whether a room represents a lobby, a match, a raid instance, a social hangout, or a shard.
-- Decide whether players join by `joinOrCreate`, `join`, `joinById`, or a server-reserved seat.
-- Design around player flows: create, invite, reconnect, spectate, leave, rematch.
+- ルームがロビー・マッチ・レイドインスタンス・ソーシャルハングアウト・シャードのどれを表すかを選ぶ。
+- プレイヤーが `joinOrCreate`・`join`・`joinById`・サーバー予約シートのどれで参加するかを決める。
+- プレイヤーフローを中心に設計する：作成、招待、再接続、観戦、退出、再マッチ。
 
-### 2. Separate state, intent, and cosmetics
+### 2. 状態・意図・見た目を分離する
 
-- Put durable world facts in schema state: entity positions that matter, health, cooldowns, timers, ownership, score, round phase.
-- Put player requests in messages: move, aim, cast, ready, interact, select loadout.
-- Put purely visual behavior on the client: camera shake, interpolation, particles, audio, screen flashes, local anticipation.
+- 持続的なワールドの事実をschema stateに入れる：重要なエンティティ位置、体力、クールダウン、タイマー、所有権、スコア、ラウンドフェーズ。
+- プレイヤーのリクエストをmessagesに入れる：移動、照準、スキル使用、準備完了、インタラクト、ロードアウト選択。
+- 純粋にビジュアルな振る舞いはクライアントに置く：カメラシェイク、補間、パーティクル、音声、画面フラッシュ、ローカル先行入力。
 
-### 3. Model schema by identity, not by presentation
+### 3. Schemaは表示ではなくアイデンティティでモデリングする
 
-- Prefer stable entity IDs and keyed collections over arrays that shift frequently.
-- Keep schema shape close to game rules, not close to scene node hierarchy.
-- Store canonical values. Derived display values should usually be computed client-side.
-- Use schema fields for facts that must survive reconnects or be visible to late joiners.
+- 頻繁にシフトする配列よりも、安定したエンティティIDとキー付きコレクションを優先する。
+- Schemaの形状はシーンノード階層ではなくゲームルールに近づける。
+- 正規値を保存する。派生した表示値は通常クライアントサイドで計算すべきである。
+- 再接続を生き残るか遅延参加者に見える必要がある事実にはschemaフィールドを使う。
 
-### 4. Simulate on the server
+### 4. サーバー上でシミュレートする
 
-- Run the authoritative simulation from the room, usually at a fixed tick.
-- Validate every incoming message before applying it.
-- Correct clients when their local prediction diverges.
-- Throttle abusive message rates and reject impossible actions.
+- 通常は固定tickで、ルームから権威的なシミュレーションを実行する。
+- 受信メッセージをすべて適用前にバリデーションする。
+- クライアントのローカル予測がずれた場合に修正する。
+- 悪意あるメッセージレートをスロットリングし、不可能なアクションを拒否する。
 
-### 5. Plan failure paths before polish
+### 5. ポリッシュより前に失敗パスを計画する
 
-- Decide when a dropped player remains in-state as disconnected versus being removed immediately.
-- Decide whether the match pauses, substitutes AI, or continues.
-- Decide how long seat reservations and reconnect windows last.
-- Decide which errors are user-visible versus operational.
+- ドロップしたプレイヤーが切断状態としてin-stateに残るか即座に削除されるかを決める。
+- マッチが一時停止・AI代替・継続のどれをするかを決める。
+- シート予約と再接続ウィンドウの持続時間を決める。
+- どのエラーをユーザーに見せ、どれを運用上のものとするかを決める。
 
-### 6. Deploy it like a backend, not like a static site
+### 6. 静的サイトではなくバックエンドとしてデプロイする
 
-- Treat Colyseus as an always-on realtime service.
-- Host the web client wherever you like, including Vercel, but host the Colyseus server on infrastructure meant for long-lived websocket connections.
-- Keep production config explicit: URL, TLS, auth token strategy, region choice, observability, graceful shutdown.
+- Colyseusを常時稼働のリアルタイムサービスとして扱う。
+- Webクライアントは好きなところ（Vercelを含む）にホストしてよいが、Colyseusサーバーは長期的なWebSocket接続に適したインフラにホストする。
+- 本番設定を明示的に保つ：URL、TLS、auth tokenストラテジー、リージョン選択、オブザーバビリティ、グレースフルシャットダウン。
 
-### 7. Add a runtime-debug surface early
+### 7. ランタイムデバッグサーフェスを早期に追加する
 
-- Add a small `/health` route before production rollout.
-- Use it to report:
-  - service liveness
-  - protocol version
-  - build label
-  - whether critical runtime envs are actually visible to the process
-- Distinguish clearly between:
-  - dashboard env state
-  - deployed git revision
-  - active process runtime state
-- If platform behavior is ambiguous, add explicit health/debug fields and targeted log lines rather than inferring from UI or deployment dashboards.
+- 本番ロールアウト前に小さな `/health` ルートを追加する。
+- 以下を報告するために使う：
+  - サービスの生存状態
+  - プロトコルバージョン
+  - ビルドラベル
+  - 重要なランタイムenvがプロセスから実際に見えているか
+- 以下を明確に区別する：
+  - dashboardのenv状態
+  - デプロイ済みのgitリビジョン
+  - アクティブなプロセスのランタイム状態
+- プラットフォームの振る舞いが曖昧な場合は、UIやデプロイダッシュボードから推測するのではなく、明示的なhealth/debugフィールドと対象を絞ったログ行を追加する。
 
-### 8. Treat analytics and replay as authoritative backend concerns
+### 8. analyticsとreplayを権威的なバックエンドの関心事として扱う
 
-- Emit analytics from accepted server intents and authoritative outcomes, not from browser telemetry.
-- Separate summary analytics from replay storage.
-- For exact replay, prefer:
-  - input/event logs
-  - periodic authoritative snapshots
-  over position sampling alone.
-- Add observable confirmation for sink activation, e.g.:
-  - analytics sink enabled
-  - first match/session write attempt
-- Force final checkpoints once at match end; never bypass throttles every simulation tick.
+- analyticsはブラウザテレメトリーからではなく、受け付けられたサーバー意図と権威的な結果から発行する。
+- サマリーanalyticsとreplayストレージを分離する。
+- 正確なreplayには、位置サンプリングだけでなく以下を優先する：
+  - 入力/イベントログ
+  - 定期的な権威スナップショット
+- sinkのアクティベーションに対する観察可能な確認を追加する。例：
+  - analytics sinkの有効化
+  - 最初のマッチ/セッション書き込み試行
+- マッチ終了時に1回だけ最終チェックポイントを強制する。シミュレーションtickごとにスロットルをバイパスしないこと。
 
-### 9. Keep asset/body/render contracts explicit
+### 9. アセット/ボディ/レンダーのコントラクトを明示的に保つ
 
-- If the multiplayer server simulates bodies while the client renders sprites, define an explicit anchor contract.
-- Prefer first-class metadata such as `feetLine` or `contactY` for all entities rendered from authoritative state.
-- Keep single-player and multiplayer aligned on:
-  - collision box semantics
-  - contact point semantics
-  - facing/direction semantics
-- If multiplayer uses simplified collision geometry instead of tile bodies, keep that geometry in sync with real level data or expect drift.
+- マルチプレイヤーサーバーがボディをシミュレートしクライアントがスプライトを描画する場合、明示的なアンカーコントラクトを定義する。
+- 権威的な状態からレンダリングされるすべてのエンティティに `feetLine` や `contactY` などのファーストクラスメタデータを優先する。
+- シングルプレイヤーとマルチプレイヤーを以下の点で揃えておく：
+  - コリジョンボックスのセマンティクス
+  - コンタクトポイントのセマンティクス
+  - 向き/方向のセマンティクス
+- マルチプレイヤーがタイルボディの代わりに簡略化したコリジョンジオメトリを使う場合、そのジオメトリを実際のレベルデータと同期させるか、ドリフトを覚悟すること。
 
-## Deployment Playbook
+## デプロイメントプレイブック
 
-Use this shape by default for small web games:
+小規模Webゲームのデフォルトとしてこの構成を使うこと：
 
-- Static frontend on Vercel (or equivalent)
-- Always-on Colyseus backend on Colyseus Cloud or another persistent Node host
-- Persistence/analytics backend separate from the room server when needed
+- Vercel（または同等のサービス）上の静的フロントエンド
+- Colyseus CloudまたはNOdeの常時稼働ホスト上の常時稼働Colyseusバックエンド
+- 必要に応じてルームサーバーとは別の永続化/analyticsバックエンド
 
-**Colyseus Cloud checklist**:
-- GitHub deploy key access or linked GitHub app access is configured.
-- Backend package has a `build` script, even if it is a no-op.
-- Project contains `ecosystem.config.cjs` or equivalent PM2 ecosystem file with a valid `script`.
-- Runtime env is set in Cloud dashboard.
-- Production health endpoint is checked after deploy, not just the dashboard status.
+**Colyseus Cloudチェックリスト**：
+- GitHubデプロイキーアクセスまたはリンクされたGitHub appアクセスが設定済み。
+- バックエンドパッケージに `build` スクリプトがある（no-opでも可）。
+- プロジェクトに `ecosystem.config.cjs` または有効な `script` を持つ同等のPM2 ecosystemファイルが含まれている。
+- RuntimeのenvがCloudダッシュボードで設定済み。
+- デプロイ後はダッシュボードのステータスだけでなく、本番ヘルスエンドポイントを確認する。
 
-**Vercel/static frontend checklist**:
-- If the repo is plain static files, do not add Vite just for hosting unless you actually need a build system.
-- Be explicit about the output directory when the repo shape is ambiguous.
-- Avoid stale ES module mixes by controlling cache headers for raw `/src/*` modules and public runtime config.
+**Vercel/静的フロントエンドチェックリスト**：
+- リポジトリが純粋な静的ファイルであれば、ビルドシステムが実際に必要でない限りホスティングのためだけにViteを追加しないこと。
+- リポジトリの構成が曖昧な場合は出力ディレクトリを明示すること。
+- 生の `/src/*` モジュールと公開ランタイム設定のキャッシュヘッダーを制御することで、古いESモジュール混在を回避する。
 
-**Convex/analytics checklist**:
-- Convex prod functions are actually deployed.
-- The authoritative server and Convex deployment share the same ingest key.
-- Verify first writes at room creation/join, not only at match end.
+**Convex/analyticsチェックリスト**：
+- Convex prod関数が実際にデプロイされている。
+- 権威サーバーとConvexデプロイメントが同じingestキーを共有している。
+- マッチ終了時だけでなく、ルーム作成/参加時に最初の書き込みを確認する。
 
-**General deployment lessons**:
-- If the frontend is a plain static site, do not add a bundler migration just to satisfy hosting defaults unless you actually need one.
-- Keep frontend public runtime config explicit. Do not assume browser code can read private hosting env vars automatically.
-- Expect Cloud deploys to use pushed repository state, not your current local working tree.
-- Distinguish clearly between:
-  - configured env vars
-  - deployed revision
-  - active runtime process state
-- Use health endpoints and first-write logs to verify the active process, not just the deployment dashboard.
+**一般的なデプロイメントの教訓**：
+- フロントエンドが純粋な静的サイトであれば、実際に必要でない限りホスティングのデフォルトを満たすためだけにバンドラー移行を追加しないこと。
+- フロントエンドの公開ランタイム設定を明示的に保つ。ブラウザコードがプライベートなホスティングenv varsを自動的に読めると仮定しないこと。
+- Cloudデプロイはローカルの作業ツリーではなく、プッシュされたリポジトリの状態を使うことを想定する。
+- 以下を明確に区別する：
+  - 設定済みenv vars
+  - デプロイ済みリビジョン
+  - アクティブなランタイムプロセスの状態
+- アクティブなプロセスの確認には、デプロイメントダッシュボードだけでなくヘルスエンドポイントと最初の書き込みログを使う。
 
-## Anti-Patterns to Avoid
+## 避けるべきアンチパターン
 
-Common mistakes in Colyseus work are usually boundary mistakes. Treat the items below as wrong-way signals and common pitfalls worth correcting early.
+Colyseusでの一般的なミスは通常、境界のミスである。以下の項目を間違いのシグナルおよび早期に修正すべきよくある落とし穴として扱うこと。
 
-❌ **Client-authoritative gameplay**: trusting the browser for movement, hit confirmation, score, or item ownership makes cheating and desync easy.
-Better: treat the client as an input device plus renderer; the room validates and decides outcomes.
+❌ **クライアント権威ゲームプレイ**：移動・ヒット確認・スコア・アイテム所有権をブラウザに信頼させると、チートとdesyncが容易になる。
+改善策：クライアントを入力デバイス＋レンダラーとして扱い、ルームがバリデーションと結果決定を行う。
 
-❌ **Dumping the renderer into schema state**: synchronizing sprite flip flags, animation frame indices, camera settings, or object references bloats state and couples networking to one engine.
-Better: synchronize canonical gameplay facts and derive presentation locally.
+❌ **レンダラーをschema stateにダンプする**：スプライトのフリップフラグ・アニメーションフレームインデックス・カメラ設定・オブジェクト参照を同期するとstateが肥大化し、ネットワーキングが特定のエンジンに結合される。
+改善策：正規のゲームプレイ事実を同期し、表示はローカルで導出する。
 
-❌ **Using messages as ad-hoc RPC for everything**: when every state change is a message and nothing is modeled in schema, reconnects and late joins become fragile.
-Better: keep durable truth in schema and use messages for commands and ephemeral events.
+❌ **messagesをすべてにアドホックRPCとして使う**：すべての状態変化がmessageで何もschemaにモデリングされていない場合、再接続と遅延参加が脆弱になる。
+改善策：持続的な真実をschemaに保ち、コマンドと一時的なイベントにはmessagesを使う。
 
-❌ **Treating one room as the whole backend**: giant rooms that hold lobby, matchmaking, global chat, and active combat usually become impossible to reason about.
-Better: choose clear room boundaries and move orchestration to `matchMaker` or surrounding backend code.
+❌ **1つのルームをバックエンド全体として扱う**：ロビー・マッチメイキング・グローバルチャット・アクティブな戦闘を保持する巨大なルームは通常、把握不可能になる。
+改善策：明確なルーム境界を選び、オーケストレーションを `matchMaker` や周辺のバックエンドコードに移す。
 
-❌ **Binding room state directly to engine objects**: storing Phaser sprites, Three.js meshes, or UI components inside network code guarantees leaks and awkward lifecycle bugs.
-Better: keep a thin adapter layer that maps schema entities to renderer objects.
+❌ **room stateをエンジンオブジェクトに直接バインドする**：Phaserスプライト・Three.jsメッシュ・UIコンポーネントをネットワークコード内に格納すると、リークや厄介なライフサイクルバグが保証される。
+改善策：schema entitiesをレンダラーオブジェクトにマッピングする薄いアダプター層を保つ。
 
-❌ **Ignoring reconnects until late**: many multiplayer bugs are really reconnection bugs discovered too late.
-Better: design `onDrop`, `allowReconnection`, and session recovery up front.
+❌ **再接続を後回しにする**：多くのマルチプレイヤーバグは実際には遅すぎて発見される再接続バグである。
+改善策：`onDrop`・`allowReconnection`・セッション復元を最初から設計する。
 
-❌ **Trying to host the authoritative Colyseus server on Vercel Functions**: request-scoped infrastructure is the wrong shape for a stateful websocket game server.
-Better: deploy the frontend on Vercel if you want, and deploy Colyseus on Colyseus Cloud or another always-on Node host.
+❌ **権威的なColyseusサーバーをVercel Functionsにホストしようとする**：リクエストスコープのインフラはステートフルなWebSocketゲームサーバーに適した形ではない。
+改善策：フロントエンドはVcelにデプロイしてよいが、ColyseusはColyseus Cloudまたは別の常時稼働Nodeホストにデプロイする。
 
-❌ **Retrofitting multiplayer directly into single-player scene logic**: trying to make one scene serve both local-authority and server-authority flows usually creates confused ownership and brittle conditionals.
-Better: keep single-player intact and create a dedicated multiplayer scene/adapter that renders authoritative room state.
+❌ **シングルプレイヤーのシーンロジックに直接マルチプレイヤーを後付けする**：1つのシーンをローカル権威とサーバー権威の両フローに対応させようとすると、通常は所有権の混乱と脆いコンディショナルが生まれる。
+改善策：シングルプレイヤーをそのまま保ち、権威的なroom stateを描画する専用のマルチプレイヤーシーン/アダプターを作成する。
 
-❌ **Assuming dashboard env configuration means the runtime sees it**: deployment UIs often show configured values even when the active process is still stale.
-Better: confirm env visibility through `/health` and startup/runtime logs.
+❌ **ダッシュボードのenv設定がランタイムに見えると仮定する**：デプロイUIはアクティブなプロセスがまだ古い場合でも設定済みの値を表示することが多い。
+改善策：`/health` とスタートアップ/ランタイムログでenvの可視性を確認する。
 
-❌ **Relying on local working copy for Cloud deploys**: git-based platforms deploy pushed repo state, not the current editor buffer.
-Better: commit, push, deploy, then verify the running build explicitly.
+❌ **Cloudデプロイにローカルの作業コピーを頼る**：gitベースのプラットフォームは現在のエディタバッファではなく、プッシュされたリポジトリの状態をデプロイする。
+改善策：コミット・プッシュ・デプロイし、その後実行中のビルドを明示的に確認する。
 
-❌ **Using simplified collision rectangles without tracking the real level/asset contract**: this is how you get visible floor that does not collide, or server bodies that float above the ground.
-Better: either derive authoritative geometry from canonical level data or keep the simplified geometry updated alongside level/layout edits.
+❌ **実際のレベル/アセットコントラクトを追跡せずに簡略化したコリジョン矩形を使う**：これにより、コリジョンしない見た目のフロアや、地面の上に浮くサーバーボディが発生する。
+改善策：正規のレベルデータから権威的なジオメトリを導出するか、レベル/レイアウト編集と並行して簡略化ジオメトリを更新し続けること。
 
-❌ **Making pre-match waiting fully inert by default**: dead waiting rooms feel broken and hard to test.
-Better: allow movement and optionally warmup attacks during `waiting` / `countdown`, but gate damage until `playing`.
+❌ **マッチ前の待機をデフォルトで完全に無活動にする**：死んだ待機ルームは壊れているように見え、テストが難しい。
+改善策：`waiting` / `countdown` 中は移動とオプションでウォームアップ攻撃を許可するが、ダメージは `playing` までゲートする。
 
-❌ **Writing replay checkpoints every tick at match end**: forcing the finalization path inside the full results loop will flood persistence and obscure the real bug.
-Better: capture one final forced checkpoint inside match-finalization and guard it explicitly.
+❌ **マッチ終了時にreplayチェックポイントをtickごとに書き込む**：ファイナライゼーションパスをフルのリザルトループ内で強制すると永続化がフラッドし、実際のバグが見えにくくなる。
+改善策：マッチファイナライゼーション内で最終の強制チェックポイントを1回だけキャプチャし、明示的にガードする。
 
-**NEVER** let renderer convenience decide the trust boundary.
-**DO NOT** model your room around one engine's scene graph.
-**DON'T** treat "it worked locally" as proof that reconnects, auth, or deployment are correct.
+**NEVER** レンダラーの利便性に信頼境界を決めさせること。
+**DO NOT** 1つのエンジンのシーングラフを中心にルームをモデリングすること。
+**DON'T** 「ローカルで動いた」を再接続・auth・デプロイが正しい証拠として扱うこと。
 
-## Variation Guidance
+## バリエーションガイダンス
 
-**IMPORTANT**: Good Colyseus solutions should vary by genre, trust model, and renderer.
+**重要**：良いColyseusソリューションはジャンル・信頼モデル・レンダラーによって異なるべきである。
 
-- Room topology should vary: duel rooms, co-op instances, party lobbies, social hubs, or shard-like worlds.
-- Sync strategy should vary: simple server authority, buffered interpolation, or full prediction and reconciliation.
-- Message shapes should vary by game: directional input streams for action games, commands for tactics games, coarse actions for social or async-friendly games.
-- Renderer adapters should vary: Phaser scene registries, Three.js object maps, React state bridges, or ECS integrations.
-- Deployment shape should vary with scale: one process for prototypes, multi-process plus shared presence for production, multi-region only when latency and ops justify it.
-- Waiting-room UX should vary: some games need strict lockout, some benefit from warmup movement/combat, some need social/lobby behavior instead.
-- Analytics depth should vary: lightweight session summaries for early ops, replay-grade event/snapshot capture only when the product actually needs it.
+- ルームトポロジーは様々であるべき：デュエルルーム・協力インスタンス・パーティロビー・ソーシャルハブ・シャード型ワールド。
+- 同期戦略は様々であるべき：シンプルなサーバー権威・バッファード補間・完全な予測と照合。
+- メッセージの形状はゲームによって様々であるべき：アクションゲームの方向入力ストリーム・タクティクスゲームのコマンド・ソーシャルまたは非同期フレンドリーなゲームの粗いアクション。
+- レンダラーアダプターは様々であるべき：Phaserシーンレジストリ・Three.jsオブジェクトマップ・React stateブリッジ・ECS統合。
+- デプロイ形状はスケールに応じて様々であるべき：プロトタイプには1プロセス、本番にはマルチプロセス＋共有プレゼンス、マルチリージョンはレイテンシーと運用コストが正当化する場合のみ。
+- 待機ルームのUXは様々であるべき：厳格なロックアウトが必要なゲームもあれば、ウォームアップの移動/戦闘が有益なゲームや、ソーシャル/ロビーの振る舞いが必要なゲームもある。
+- analyticsの深さは様々であるべき：初期運用には軽量なセッションサマリー、replayグレードのイベント/スナップショットキャプチャはプロダクトが実際に必要とする場合のみ。
 
-Avoid converging on one favorite boilerplate. The right Colyseus architecture depends on fairness needs, scale, simulation complexity, and how expensive corrections feel to the player.
+1つのお気に入りのボイラープレートに収束することを避けること。正しいColyseusアーキテクチャは、公平性の要件・スケール・シミュレーションの複雑さ・プレイヤーにとって修正がどれだけコストがかかるかによって異なる。
 
-## Remember
+## 覚えておくこと
 
-Colyseus is strongest when it owns multiplayer truth cleanly and your renderer stays replaceable.
+Colyseusは、マルチプレイヤーの真実をクリーンに所有し、レンダラーが交換可能な状態を保つときに最も強力である。
 
-Design rooms around rules and player flows, not around frontend scenes. Keep state canonical, messages intentional, and engine code on the edge.
+ルームはフロントエンドのシーンではなく、ルールとプレイヤーフローを中心に設計すること。stateを正規に、messagesを意図的に、エンジンコードはエッジに保つこと。
 
-When the platform gets confusing, stop guessing. Add a health field, add a startup log, add one first-write log, and prove what the runtime actually sees.
+プラットフォームが混乱してきたら、推測をやめること。healthフィールドを追加し、スタートアップログを追加し、最初の書き込みログを1つ追加して、ランタイムが実際に何を見ているかを証明すること。
 
-Claude is capable of extraordinary Colyseus work: it can unlock cleaner room models, empower renderer swaps, enable creative networking tradeoffs, and explore multiple architectures across different frontends when the boundaries are clear. These guidelines illuminate the path; they do not fence it.
+Claudeは並外れたColyseusの作業ができる：境界が明確であれば、よりクリーンなルームモデルを解放し、レンダラー交換を可能にし、創造的なネットワーキングのトレードオフを実現し、異なるフロントエンドで複数のアーキテクチャを探求できる。これらのガイドラインはその道を照らすものであり、囲むものではない。

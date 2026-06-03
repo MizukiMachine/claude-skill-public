@@ -7,100 +7,100 @@ description: "Phaser 3またはPhaser 4の2Dブラウザゲームを構築、デ
 
 ## Purpose
 
-Use this skill to implement, debug, optimize, or migrate Phaser browser games with codebase-aware choices. Produce working game code, asset metadata, focused tests or smoke checks, and a concise summary of the Phaser version and verification performed.
+このスキルを使って、コードベースの状況を把握しながら Phaser ブラウザゲームの実装・デバッグ・最適化・移行を行う。動作するゲームコード、asset メタデータ、集中的なテストやスモークチェック、Phaser バージョンと検証内容の簡潔なサマリーを成果物として提供する。
 
 ## Operating Model
 
-Phaser quality comes from three contracts: exact asset metadata, clear scene ownership, and frame-rate independent simulation.
+Phaser の品質は3つの契約で決まる：正確な asset メタデータ、明確な scene の所有関係、そしてフレームレートに依存しないシミュレーション。
 
-Prioritize:
-1. Correct gameplay and input feel
-2. Measured asset dimensions and stable loader keys
-3. Scene boundaries that keep gameplay, UI, menus, and loading separate
-4. Browser/mobile performance backed by profiling or visual checks
-5. Small, reversible changes that match the existing project style
+優先順位：
+1. 正しいゲームプレイと入力の手触り
+2. 計測済みの asset サイズと安定した loader キー
+3. ゲームプレイ・UI・メニュー・ローディングを分離する scene の境界
+4. プロファイリングや目視確認に裏付けられたブラウザ/モバイルのパフォーマンス
+5. 既存のプロジェクトスタイルに合わせた小さく可逆的な変更
 
-Before acting, answer:
-- Which Phaser major/minor is installed or vendored?
-- What assets are source of truth, and what are their exact dimensions, spacing, margin, frame names, or Tiled properties?
-- Which physics model fits the mechanic: Arcade, Matter, or no physics?
-- Which scene owns each object, and how does state cross scene transitions?
-- Which objects churn every frame or spawn/despawn often enough to need pooling?
+着手前に以下を確認すること：
+- インストール済み、またはベンダー提供の Phaser メジャー/マイナーバージョンはどれか？
+- asset の正となる情報源はどれか？正確なサイズ・spacing・margin・フレーム名・Tiled プロパティは？
+- どの physics モデルがメカニクスに合っているか：Arcade、Matter、それとも physics なし？
+- 各オブジェクトはどの scene が所有しているか、また scene 遷移をまたいでどのように状態が引き継がれるか？
+- 毎フレーム大量に処理される、または生成/破棄の頻度が高くてプーリングが必要なオブジェクトはどれか？
 
 ## Version Contract
 
-Do not assume a Phaser 3 API just because the project is a Phaser game. Inspect the installed or vendored version before using version-specific APIs.
+プロジェクトが Phaser ゲームだからといって、Phaser 3 の API を前提にしてはならない。バージョン固有の API を使用する前に、インストール済みまたはベンダー提供のバージョンを確認すること。
 
-Use local evidence first:
+まずローカルの証拠を優先する：
 
 ```bash
 rg -n "\"phaser\"|from ['\"]phaser['\"]|Phaser\\.VERSION|new Phaser\\.Game" . -g 'package.json' -g '*lock*' -g 'src/**' -g 'public/**' -g 'assets/**'
 ```
 
-This command may return no matches; that is a signal to inspect vendored bundles, HTML script tags, or runtime `Phaser.VERSION`, not a final conclusion.
+このコマンドで一致が得られない場合は、ベンダーバンドル、HTML の script タグ、またはランタイムの `Phaser.VERSION` を確認するサインであり、最終結論ではない。
 
-Then apply these rules:
+次のルールを適用する：
 
-| Project state | Rule |
+| プロジェクトの状態 | ルール |
 |---------------|------|
-| Phaser 4.x | Prefer WebGL-focused patterns. Treat v3 renderer pipelines, masks, FX, tint fill, camera internals, and DynamicTexture timing as migration-sensitive. Read `references/versioning-migration.md`. |
-| Phaser 3.x | Use the matching 3.x docs and examples. Prefer built-in `NineSlice` only for 3.60+ and check WebGL needs. |
-| Unknown version | Find the dependency, vendored file banner, or `Phaser.VERSION` before editing API-sensitive code. |
-| User asks for migration | Inventory removed APIs and custom rendering before changing gameplay logic. |
+| Phaser 4.x | WebGL 中心のパターンを優先する。v3 の renderer pipeline、mask、FX、tint fill、camera 内部、DynamicTexture のタイミングは移行が必要なものとして扱う。`references/versioning-migration.md` を読むこと。 |
+| Phaser 3.x | 対応する 3.x のドキュメントとサンプルを使用する。組み込みの `NineSlice` は 3.60 以降のみを対象とし、WebGL の要件を確認すること。 |
+| バージョン不明 | API に依存するコードを編集する前に、依存関係・ベンダーファイルのバナー・`Phaser.VERSION` を確認すること。 |
+| ユーザーが移行を求めている | ゲームプレイロジックを変更する前に、削除された API とカスタムレンダリングの棚卸しを行うこと。 |
 
-When current API details matter, verify against official Phaser docs for the exact major/minor rather than relying on memory.
+現在の API の詳細が重要な場合は、記憶に頼らず、対象のメジャー/マイナーバージョンの公式 Phaser ドキュメントで確認すること。
 
 ## Before Implementing
 
-Discover the existing project shape before writing code:
+コードを書く前に既存プロジェクトの構成を調査する：
 
 ```bash
 rg --files | rg '(^|/)(package.json|vite.config|src|public|assets|static|maps|tilemaps|textures|sprites)'
 rg -n "class .*Scene|extends Phaser\\.Scene|scene:|this\\.scene\\.|this\\.load\\.|this\\.physics|this\\.anims|tilemap|nineslice|NineSlice|Matter|Arcade" .
 ```
 
-Extract:
-- Entry point and `Phaser.GameConfig`
-- Scene list, scene keys, and transition flow
-- Asset locations, loader keys, spritesheet frame configs, atlas formats, and Tiled map names
-- Input model, camera/scale mode, physics system, and debug toggles
-- Available scripts for typecheck, lint, test, build, or dev preview
+以下を把握する：
+- エントリポイントと `Phaser.GameConfig`
+- scene の一覧・scene キー・遷移フロー
+- asset の場所・loader キー・spritesheet のフレーム設定・atlas フォーマット・Tiled マップ名
+- 入力モデル・カメラ/スケールモード・physics システム・デバッグ切り替え
+- typecheck・lint・test・build・dev preview 用の利用可能なスクリプト
 
-Ask at most one or two questions only when missing rules, controls, art direction, or target platform would materially change the implementation.
+実装に大きく影響するルール・コントロール・アートの方向性・ターゲットプラットフォームが不明な場合のみ、最大1〜2つの質問をすること。
 
 ## Workflow
 
-1. Discover version, architecture, and assets.
-2. Choose or preserve the scene and state model before adding content.
-3. Measure assets and lock loader config before creating animations, tilemaps, or UI.
-4. Implement gameplay with delta-time movement, explicit physics bodies, and stable object lifecycle.
-5. Add debug visibility for fragile systems: collision bodies, tile collision, animation test scenes, FPS, or bounds overlays.
-6. Verify with the repo's scripts and a browser smoke test when a playable surface exists.
+1. バージョン・アーキテクチャ・asset を調査する。
+2. コンテンツを追加する前に scene とステートモデルを選択または維持する。
+3. animation・tilemap・UI を作成する前に asset を計測し loader config を確定する。
+4. delta-time 移動・明示的な physics body・安定したオブジェクトライフサイクルでゲームプレイを実装する。
+5. 壊れやすいシステムにデバッグの可視化を追加する：collision body・タイル衝突・animation テストシーン・FPS・bounds のオーバーレイ。
+6. プレイアブルなサーフェスがある場合は、リポジトリのスクリプトとブラウザのスモークテストで検証する。
 
 ## Reference Files
 
-| Topic | File | Use When |
+| トピック | ファイル | 使用するとき |
 |-------|------|----------|
-| Phaser 3/4 compatibility and migration | `references/versioning-migration.md` | Version-specific APIs, Phaser 3 to 4 migrations, renderer/filter/camera/tint changes |
-| Spritesheets, animation frames, UI slicing | `references/spritesheets-nineslice.md` | Loading spritesheets, measuring frames, texture atlases, nine-slice panels |
-| Tiled tilemaps and collision layers | `references/tilemaps.md` | Loading JSON maps, tilesets, object layers, tile collisions, cameras, parallax |
-| Arcade physics tuning and pooling | `references/arcade-physics.md` | Arcade bodies, colliders, overlaps, groups, collision categories, debug rendering |
-| Performance and profiling | `references/performance.md` | FPS drops, object churn, draw calls, memory leaks, update-loop costs |
+| Phaser 3/4 の互換性と移行 | `references/versioning-migration.md` | バージョン固有の API、Phaser 3 から 4 への移行、renderer/filter/camera/tint の変更 |
+| Spritesheet・animation フレーム・UI スライシング | `references/spritesheets-nineslice.md` | spritesheet の読み込み・フレームの計測・texture atlas・nine-slice パネル |
+| Tiled tilemap と collision レイヤー | `references/tilemaps.md` | JSON マップの読み込み・tileset・object レイヤー・タイル衝突・カメラ・パララックス |
+| Arcade physics のチューニングとプーリング | `references/arcade-physics.md` | Arcade body・collider・overlap・group・collision カテゴリ・デバッグレンダリング |
+| パフォーマンスとプロファイリング | `references/performance.md` | FPS 低下・object churn・draw call・メモリリーク・update ループのコスト |
 
 ## Capabilities And Deliverables
 
-Use the skill to:
-- Add or refactor Phaser scenes, game config, input, cameras, UI overlays, and scene transitions.
-- Load and validate spritesheets, texture atlases, audio, tilemaps, and generated assets.
-- Implement Arcade or Matter physics, collision callbacks, groups, pooling, and debug visualization.
-- Build tilemap-driven levels from Tiled JSON with collision and object layers.
-- Profile and reduce object churn, draw calls, memory leaks, and expensive update work.
-- Migrate Phaser 3 projects toward Phaser 4 while preserving behavior.
+このスキルでできること：
+- Phaser scene・game config・input・カメラ・UI オーバーレイ・scene 遷移の追加またはリファクタリング。
+- spritesheet・texture atlas・audio・tilemap・生成 asset の読み込みと検証。
+- Arcade または Matter physics・collision callback・group・プーリング・デバッグ可視化の実装。
+- Tiled JSON の collision レイヤーと object レイヤーを使った tilemap 駆動のレベル構築。
+- object churn・draw call・メモリリーク・重い update 処理のプロファイリングと削減。
+- 動作を維持しながら Phaser 3 プロジェクトを Phaser 4 に移行。
 
-Deliver:
-- Code edits that match the existing framework, TypeScript style, asset paths, and naming.
-- Any measured asset constants or map property assumptions used by the implementation.
-- Verification output: scripts run, browser URL or screenshot check when applicable, and remaining risk.
+成果物：
+- 既存のフレームワーク・TypeScript スタイル・asset パス・命名規則に合わせたコード編集。
+- 実装で使用した計測済みの asset 定数やマッププロパティの前提条件。
+- 検証結果：実行したスクリプト、ブラウザ URL またはスクリーンショットの確認（該当する場合）、残存するリスク。
 
 ## Core Patterns
 
@@ -127,9 +127,9 @@ const config: Phaser.Types.Core.GameConfig = {
 
 ```ts
 class GameScene extends Phaser.Scene {
-  init(data: unknown) {}      // Receive data from previous scene
-  preload() {}                // Load assets before create
-  create() {}                 // Set up objects, physics, input
+  init(data: unknown) {}      // 前の scene からデータを受け取る
+  preload() {}                // create の前に asset を読み込む
+  create() {}                 // オブジェクト・physics・input をセットアップする
   update(time: number, delta: number) {
     this.player.x += this.speed * (delta / 1000);
   }
@@ -139,8 +139,8 @@ class GameScene extends Phaser.Scene {
 ### Scene Transitions
 
 ```ts
-this.scene.start('GameScene', { level: 1 }); // Stop current, start new
-this.scene.launch('UIScene');                // Run overlay in parallel
+this.scene.start('GameScene', { level: 1 }); // 現在の scene を停止して新しい scene を開始
+this.scene.launch('UIScene');                // オーバーレイを並列実行
 this.scene.pause('GameScene');
 this.scene.stop('UIScene');
 ```
@@ -149,53 +149,53 @@ this.scene.stop('UIScene');
 
 ### Physics System
 
-| System | Use When |
+| システム | 使用するとき |
 |--------|----------|
-| Arcade | Platformers, shooters, top-down action, and most AABB collision games |
-| Matter | Physics puzzles, irregular shapes, sensors, ragdoll-like motion, constraints |
-| None | Menus, visual novels, card games, puzzle UIs, and static interactive screens |
+| Arcade | プラットフォーマー・シューター・トップダウンアクション、およびほとんどの AABB 衝突ゲーム |
+| Matter | 物理パズル・不規則な形状・センサー・ラグドール的な動き・制約 |
+| None | メニュー・ビジュアルノベル・カードゲーム・パズル UI・静的なインタラクティブ画面 |
 
 ### Scene Structure
 
 ```text
 scenes/
-  BootScene.ts      # Preload, loading UI, global asset packs
-  MenuScene.ts      # Title, options, save selection
-  GameScene.ts      # Main simulation and world objects
-  UIScene.ts        # HUD overlay launched in parallel
-  GameOverScene.ts  # Results, restart, progression
+  BootScene.ts      # プリロード、ローディング UI、グローバル asset パック
+  MenuScene.ts      # タイトル、オプション、セーブ選択
+  GameScene.ts      # メインのシミュレーションとワールドオブジェクト
+  UIScene.ts        # 並列起動する HUD オーバーレイ
+  GameOverScene.ts  # 結果、リスタート、進行状況
 ```
 
-Prefer scene data, registries, services, or typed game-state modules over global `window` state.
+グローバルな `window` ステートではなく、scene data・registry・サービス・型付きのゲームステートモジュールを優先すること。
 
 ## Anti-Patterns
 
-| Anti-pattern | Why It Fails | Better |
+| アンチパターン | 失敗する理由 | より良い方法 |
 |--------------|--------------|--------|
-| Guessing Phaser version | Phaser 3 and 4 differ in renderer, filters, camera, tint, and some texture behavior | Inspect dependency or `Phaser.VERSION` first |
-| Guessing spritesheet dimensions | Off-by-one frame math silently corrupts animations | Measure dimensions, spacing, and margin before loader config |
-| Loading assets in `create()` | Objects can reference unloaded textures | Load in `preload()` or a Boot scene |
-| Creating objects in `update()` | Causes GC pauses and frame spikes | Pre-create or pool with groups |
-| Frame counting for movement | Game speed changes with FPS | Use `delta / 1000` or physics velocity |
-| One giant scene | Menus, HUD, gameplay, and transitions become coupled | Split by lifecycle and ownership |
-| Matter for simple AABB collisions | Adds complexity without gameplay value | Use Arcade until irregular shapes or constraints are required |
-| Invisible collision setup | Tile/body issues become guesswork | Add debug graphics or toggles during implementation |
+| Phaser バージョンを推測する | Phaser 3 と 4 では renderer・filter・camera・tint・一部の texture の動作が異なる | 依存関係または `Phaser.VERSION` を先に確認する |
+| spritesheet のサイズを推測する | フレーム計算の1つずれが animation を静かに破壊する | loader config の前にサイズ・spacing・margin を計測する |
+| `create()` で asset を読み込む | オブジェクトが未読み込みのテクスチャを参照してしまう | `preload()` または Boot scene で読み込む |
+| `update()` でオブジェクトを生成する | GC の一時停止とフレームスパイクを引き起こす | group で事前に生成またはプールする |
+| 移動にフレームカウントを使う | FPS によってゲームスピードが変わる | `delta / 1000` または physics velocity を使う |
+| 1つの巨大な scene | メニュー・HUD・ゲームプレイ・遷移が密結合になる | ライフサイクルと所有関係で分割する |
+| 単純な AABB 衝突に Matter を使う | ゲームプレイ上の価値なく複雑さが増す | 不規則な形状や制約が必要になるまで Arcade を使う |
+| 不可視の collision セットアップ | タイル/body の問題が推測に頼ることになる | 実装中にデバッググラフィックスやトグルを追加する |
 
 ## Variation Guidance
 
-Vary choices by project context:
-- Small jam game: keep scenes few, ship simple constants, verify in browser.
-- Larger TypeScript project: add typed asset keys, typed scene data, and focused modules.
-- Mobile target: verify scale mode, touch input, DPR, audio unlock, and low-power FPS.
-- Pixel art: set `pixelArt`, explicit camera rounding, nearest-neighbor CSS, and stable integer scaling.
-- Asset-heavy game: prefer atlases, manifests, preload progress, and pooled objects.
-- Phaser 4 project: use current WebGL/filter/rendering patterns and avoid v3 renderer internals.
+プロジェクトのコンテキストに応じて選択を変える：
+- 小規模なジャムゲーム：scene を少なくし、シンプルな定数を使い、ブラウザで検証する。
+- 大規模な TypeScript プロジェクト：型付き asset キー・型付き scene データ・集中的なモジュールを追加する。
+- モバイルターゲット：スケールモード・タッチ入力・DPR・audio unlock・低電力時の FPS を確認する。
+- ドット絵：`pixelArt` を設定し、明示的なカメラの丸め・nearest-neighbor CSS・安定した整数スケーリングを行う。
+- asset が多いゲーム：atlas・マニフェスト・プリロードの進捗表示・プールされたオブジェクトを優先する。
+- Phaser 4 プロジェクト：現在の WebGL/filter/rendering のパターンを使用し、v3 の renderer 内部は避ける。
 
-Avoid using the same architecture for every game. Let controls, level format, physics complexity, asset volume, and target platform decide the shape.
+すべてのゲームに同じアーキテクチャを使うことは避けること。コントロール・レベルフォーマット・physics の複雑さ・asset の量・ターゲットプラットフォームによって構成を決めること。
 
 ## Verification
 
-Run the strongest checks available without inventing unrelated tooling:
+関係のないツールを作らず、利用可能な最も強力なチェックを実行する：
 
 ```bash
 npm run typecheck
@@ -205,13 +205,13 @@ npm run build
 npm run dev
 ```
 
-For playable changes, open the game and verify:
-- Canvas is nonblank and correctly sized at desktop and mobile widths.
-- Main scene starts, transitions work, and no loader errors appear in the console.
-- Movement uses delta or physics velocity and feels stable at variable frame rates.
-- Collision bodies, tile collision, and object bounds match the visible art.
-- Animations use correct frames without bleeding, offsets, or skipped rows.
-- Object pools reuse inactive objects and do not leak active bodies.
-- FPS and memory remain stable during the busiest expected moment.
+プレイアブルな変更の場合は、ゲームを開いて以下を確認する：
+- Canvas が空白でなく、デスクトップとモバイルの幅で正しくサイズ調整されている。
+- メインの scene が起動し、遷移が機能し、コンソールに loader エラーが出ていない。
+- 移動が delta または physics velocity を使用しており、可変フレームレートで安定した感触がある。
+- Collision body・タイル衝突・オブジェクトの bounds が表示上のアートと一致している。
+- Animation が出血・オフセット・行のスキップなしに正しいフレームを使用している。
+- Object pool が非アクティブなオブジェクトを再利用し、アクティブな body をリークしていない。
+- FPS とメモリが最も負荷の高い想定シーンで安定している。
 
-If a check cannot run, state exactly why and what risk remains.
+チェックが実行できない場合は、その正確な理由と残存するリスクを明記すること。

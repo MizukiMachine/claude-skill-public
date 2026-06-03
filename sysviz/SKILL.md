@@ -8,11 +8,11 @@ metadata:
 compatibility: Requires mermaid-cli (mmdc) for PNG rendering.
 ---
 
-# SysViz - Project Architecture Diagram Generator
+# SysViz - プロジェクトアーキテクチャ図ジェネレーター
 
 diagram スキルの保存先変更版。生成した Mermaid 図を `~/.contrail/sysviz/projects/<project-id>/diagrams/` に保存する。
 
-## Output Location
+## 出力先
 
 MMD ファイルは以下に保存する:
 
@@ -52,32 +52,32 @@ OUTPUT_DIR="/home/mizuki2/.contrail/sysviz/projects/${PROJECT_ID}/diagrams"
 mkdir -p "${OUTPUT_DIR}"
 ```
 
-## Workflow
+## ワークフロー
 
-### Step 1: Gather Knowledge From The Repository
+### Step 1: リポジトリから情報を収集する
 
-Read the project directly. Start with fast structure discovery, then inspect the files that define behavior.
+プロジェクトを直接読み込む。まず高速な構造探索を行い、次に振る舞いを定義するファイルを調査する。
 
-| Information Needed | Files to Check |
+| 必要な情報 | 確認するファイル |
 |---|---|
-| Tech stack | `package.json`, `Cargo.toml`, `go.mod`, `pyproject.toml`, `pom.xml`, `build.gradle` |
-| Framework config | `tsconfig.json`, `next.config.js`, `vite.config.*`, `django/settings.py`, `config/*.yml` |
-| Infrastructure | `Dockerfile`, `docker-compose.yml`, `k8s/*.yaml`, `.github/workflows/*.yml` |
-| API definitions | `openapi.yaml`, `swagger.json`, route/controller files |
-| Data models | `schema.prisma`, migrations, `models/*`, `entities/*`, SQL schema files |
-| Entry points | `main.*`, `index.*`, `app.*`, `server.*`, CLI command files |
-| Dependencies | Import graphs, package manifests, module boundaries, build config |
+| 技術スタック | `package.json`, `Cargo.toml`, `go.mod`, `pyproject.toml`, `pom.xml`, `build.gradle` |
+| フレームワーク設定 | `tsconfig.json`, `next.config.js`, `vite.config.*`, `django/settings.py`, `config/*.yml` |
+| インフラ | `Dockerfile`, `docker-compose.yml`, `k8s/*.yaml`, `.github/workflows/*.yml` |
+| API定義 | `openapi.yaml`, `swagger.json`, route/controllerファイル |
+| データモデル | `schema.prisma`, migrations, `models/*`, `entities/*`, SQLスキーマファイル |
+| エントリポイント | `main.*`, `index.*`, `app.*`, `server.*`, CLIコマンドファイル |
+| 依存関係 | importグラフ、パッケージマニフェスト、モジュール境界、ビルド設定 |
 
-Cross-check:
+クロスチェック:
 
-1. Compare directory structure with import/dependency relationships.
-2. Match routes, commands, jobs, or UI actions to handlers.
-3. Verify data flows against models, repositories, queues, APIs, and storage.
-4. Mark any uncertain relationship as inferred instead of presenting it as fact.
+1. ディレクトリ構造とimport/依存関係を照合する。
+2. ルート・コマンド・ジョブ・UIアクションをハンドラーと対応付ける。
+3. データフローをモデル・リポジトリ・キュー・API・ストレージと照合する。
+4. 不確かな関係は事実として提示せず、推定であることを明示する。
 
-### Step 2: Select Diagram Types
+### Step 2: 図の種類を選択する
 
-After choosing diagrams, explain the selection criteria to the user.
+図を選択したら、選択基準をユーザーに説明する。
 
 #### Step 2-1: プロジェクトタイプを判定
 
@@ -98,7 +98,7 @@ After choosing diagrams, explain the selection criteria to the user.
 | Medium | 複数機能領域、明確な層や境界 | 4-5 |
 | Large | 多数のサービス、複雑なデータ/依存関係 | 6-10 |
 
-Use file count, directory boundaries, routes, models, command count, and dependency complexity to estimate size.
+ファイル数・ディレクトリ境界・ルート・モデル・コマンド数・依存関係の複雑さを元にサイズを推定する。
 
 #### Step 2-3: 図の種類を選択
 
@@ -134,40 +134,40 @@ Use file count, directory boundaries, routes, models, command count, and depende
 **保存先:** `/home/mizuki2/.contrail/sysviz/projects/<project-id>/diagrams/`
 ```
 
-## Diagram Types
+## 図の種類
 
-1. **C4 System Context** - System boundary and external actors
-2. **C4 Container** - Applications and data stores
-3. **Layered Architecture** - Presentation/Application/Domain/Infrastructure layers
-4. **Component** - Internal component structure
-5. **Data Flow** - Input to Process to Output flow
-6. **ER** - Database entity relationships
-7. **State** - State transitions
-8. **Deployment** - Infrastructure configuration
-9. **Dependency** - Module dependency direction
+1. **C4 System Context** - システム境界と外部アクター
+2. **C4 Container** - アプリケーションとデータストア
+3. **Layered Architecture** - プレゼンテーション/アプリケーション/ドメイン/インフラ層
+4. **Component** - 内部コンポーネント構造
+5. **Data Flow** - 入力→処理→出力のフロー
+6. **ER** - データベースのエンティティ関係
+7. **State** - 状態遷移
+8. **Deployment** - インフラ構成
+9. **Dependency** - モジュールの依存方向
 
-## Mermaid Rules
+## Mermaid ルール
 
-Create `.mmd` files with:
+`.mmd` ファイルを以下の規則で作成する:
 
-- **ALL labels MUST be bilingual: Japanese / English** — no exceptions
-- **Default layout: `LR` (left-to-right)** — diagrams are viewed on widescreen monitors; optimize for horizontal width, not vertical depth
-- Pastel color scheme
-- Clear hierarchy using subgraphs for logical grouping
-- Actual names from code: modules, files, routes, functions, classes, services, tables
-- No emoji in Mermaid files
-- Text-based bracket tags instead of emoji
+- **すべてのラベルは日本語/英語の二言語表記必須** — 例外なし
+- **デフォルトレイアウト: `LR` (左から右)** — ワイドスクリーンモニターで閲覧するため、垂直方向ではなく水平方向を最適化する
+- パステルカラースキーム
+- サブグラフを使った明確な階層による論理的グルーピング
+- コードに基づく実際の名前: モジュール・ファイル・ルート・関数・クラス・サービス・テーブル
+- Mermaidファイル内に絵文字を使わない
+- 絵文字の代わりにテキストのブラケットタグを使用
 
 ### Layout Direction Rules (レイアウト方向規則)
 
-Diagrams are primarily viewed on widescreen monitors. Optimize for horizontal layout.
+図は主にワイドスクリーンモニターで閲覧される。水平レイアウトを最適化すること。
 
-| Direction | When to use | Diagram types |
+| 方向 | 使用場面 | 図の種類 |
 |---|---|---|
-| `LR` (default) | General flow, data flow, dependencies, system context | System Context, Component, Data Flow, Dependency, ER |
-| `TB` / `BT` | Only when the diagram represents inherently vertical relationships (inheritance, layering) | Layered Architecture, Class Hierarchy |
+| `LR` (デフォルト) | 一般的なフロー、データフロー、依存関係、システムコンテキスト | System Context, Component, Data Flow, Dependency, ER |
+| `TB` / `BT` | 本質的に垂直な関係（継承、レイヤリング）を表す場合のみ | Layered Architecture, Class Hierarchy |
 
-**Key principle:** If in doubt, use `LR`. A diagram that is slightly too wide is always better than one that is too tall.
+**基本原則:** 迷ったら `LR` を使う。少し横に広がりすぎる図は、縦に長すぎる図より常に優れている。
 
 | Good | Bad |
 |---|---|
@@ -179,7 +179,7 @@ Diagrams are primarily viewed on widescreen monitors. Optimize for horizontal la
 
 ### Bilingual Format Rules (二言語フォーマット規則)
 
-ALL elements in every `.mmd` file — subgraphs, nodes, and edges — MUST include both Japanese and English. No element is exempt.
+すべての `.mmd` ファイルのすべての要素（サブグラフ・ノード・エッジ）に日本語と英語を両方含めること。例外となる要素はない。
 
 #### Subgraph labels (サブグラフ)
 
@@ -193,7 +193,7 @@ subgraph Group["日本語 / English"]
 Node["[TAG] Name<br/>日本語説明 / English description"]
 ```
 
-When the tag itself has a natural Japanese equivalent, include it:
+タグ自体に自然な日本語訳がある場合は含める:
 
 ```
 Node["[TAG / 日本語タグ] Name<br/>日本語説明 / English description"]
@@ -207,7 +207,7 @@ A -->|"日本語 / English"| B
 
 #### Templates (テンプレート)
 
-**Flowchart:**
+**フローチャート:**
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {
@@ -242,28 +242,28 @@ flowchart LR
 
 **重要:** `.mmd` ファイルは対象プロジェクトのディレクトリではなく、必ず `~/.contrail/sysviz/projects/<project-id>/diagrams/` に保存すること。
 
-## Render PNG Images
+## PNG画像のレンダリング
 
 ```bash
 python /home/mizuki2/.claude/skills/diagram/scripts/render_diagrams.py <output_dir> --scale 4
 ```
 
-Output: `.mmd` files plus high-resolution `.png` images. If `mmdc` is unavailable, keep the Mermaid files and report that PNG rendering was skipped.
+出力: `.mmd` ファイルと高解像度の `.png` 画像。`mmdc` が利用できない場合は Mermaid ファイルを保持し、PNG レンダリングをスキップした旨を報告する。
 
-## Accuracy Checklist
+## 精度チェックリスト
 
-- [ ] Read manifests and config files.
-- [ ] Identify entry points.
-- [ ] Identify module boundaries.
-- [ ] Verify API routes, commands, jobs, or UI actions.
-- [ ] Verify data models before creating ER diagrams.
-- [ ] Verify infrastructure files before creating deployment diagrams.
-- [ ] Mark inferred relationships clearly.
-- [ ] **Bilingual check:** Every subgraph, node, and edge contains both Japanese and English. No element is English-only.
+- [ ] マニフェストと設定ファイルを読む。
+- [ ] エントリポイントを特定する。
+- [ ] モジュール境界を特定する。
+- [ ] APIルート・コマンド・ジョブ・UIアクションを検証する。
+- [ ] ER図を作成する前にデータモデルを検証する。
+- [ ] デプロイメント図を作成する前にインフラファイルを検証する。
+- [ ] 推定関係を明確に示す。
+- [ ] **二言語チェック:** すべてのサブグラフ・ノード・エッジに日本語と英語を含める。英語のみの要素があってはならない。
 
-## Color Guidelines
+## カラーガイドライン
 
-Use soft pastel colors and readable text. Avoid highly saturated primary colors.
+柔らかいパステルカラーと読みやすいテキストを使用する。高彩度の原色は避ける。
 
 | Layer | Fill Color | Stroke Color | Tags |
 |---|---|---|---|
@@ -275,7 +275,7 @@ Use soft pastel colors and readable text. Avoid highly saturated primary colors.
 | Data Access | `#A3E4D7` | `#48C9B0` | `[DB]`, `[Repo]` |
 | Infrastructure | `#AED6F1` | `#5DADE2` | `[API]`, `[Cloud]` |
 
-## Resources
+## リソース
 
-- `../diagram/scripts/render_diagrams.py` - Batch render `.mmd` to PNG
-- `../diagram/references/mermaid-patterns.md` - Template patterns for each diagram type
+- `../diagram/scripts/render_diagrams.py` - `.mmd` を PNG に一括レンダリング
+- `../diagram/references/mermaid-patterns.md` - 各図の種類のテンプレートパターン

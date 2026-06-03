@@ -5,23 +5,23 @@ description: "Sprite Fusion Pixel Snapperを使って、ラスタ画像をグリ
 
 # Sprite Fusion Pixel Snapper
 
-## Purpose
+## 目的
 
-Use Hugo-Dz/spritefusion-pixel-snapper as the processing engine for raster images. The tool snaps source pixels to a regular grid and quantizes colors into a strict palette, which is especially useful for AI-generated pixel art, tilemaps, isometric maps, 2D game assets, and textures.
+ラスタ画像の処理エンジンとして Hugo-Dz/spritefusion-pixel-snapper を使用する。このツールはソースピクセルを規則的なグリッドに揃え、色を厳密なパレットに量子化する。AI生成ピクセルアート、タイルマップ、アイソメトリックマップ、2Dゲームアセット、テクスチャに特に有効。
 
-## Operating Model
+## 動作モデル
 
-Sprite Fusion Pixel Snapper is a grid-snapper, not a fixed-resolution image resizer. Upstream output dimensions are derived from the detected grid cell count: one output pixel per detected cell. Different images can produce different output sizes even when their source canvases match. The wrapper's `--preserve-aspect` only pads the final PNG to keep the input aspect ratio; it does not guarantee a specific absolute size such as `512x512`, nor does it guarantee that animation frames keep a consistent character scale.
+Sprite Fusion Pixel Snapper はグリッドスナッパーであり、固定解像度のリサイザーではない。上流の出力寸法は検出されたグリッドセル数（セル1個につき出力1ピクセル）から導出される。ソースキャンバスが同じでも、画像が異なれば出力サイズが異なる場合がある。ラッパーの `--preserve-aspect` は入力アスペクト比を維持するためにPNGをパディングするだけであり、`512x512` などの絶対サイズを保証するものでも、アニメーションフレーム間でキャラクタースケールを統一するものでもない。
 
-For animation frames, sprites, and game assets, treat frame dimensions as a contract. If the source frames share a fixed canvas and the user needs consistent in-game scale, preserve the whole source canvas at one uniform scale or use a fixed-canvas post-process. Do not accept raw upstream batch output as final until all frame dimensions and relative paths have been verified.
+アニメーションフレーム・スプライト・ゲームアセットでは、フレーム寸法を契約として扱う。ソースフレームが固定キャンバスを共有しており、ゲーム内での一貫したスケールが必要な場合は、ソースキャンバス全体を均一スケールで保持するか、fixed-canvasの後処理を使用する。全フレームの寸法と相対パスを検証するまで、上流のバッチ出力をそのまま最終成果物として受け入れてはならない。
 
-Transparency is also part of the visual contract. For PNG sprites, RGB palette size and alpha preservation are separate concerns: an output can be correctly reduced to `8` RGB colors while still retaining many alpha values for soft edges. Do not flatten, premultiply, or hard-mask alpha unless the user explicitly asks for that look. If a source has many nonzero alpha levels but the output has only `A=255` for visible pixels, treat that as a failed conversion because it can turn transparent dark edge pixels into opaque black halos.
+透過性もビジュアル上の契約の一部である。PNGスプライトにおいて、RGBパレットサイズとalphaの保持は別の関心事である。出力のRGB色数を `8` に削減しても、ソフトエッジ用の多数のalpha値は保持できる。ユーザーが明示的にそのルックを求めない限り、alphaをフラット化・プリマルチプライ・ハードマスクしてはならない。ソースに多数の非ゼロalphaレベルがあるにもかかわらず出力の可視ピクセルが `A=255` のみであれば、それは変換失敗として扱う（透過の暗いエッジピクセルが不透明な黒いハローになる恐れがあるため）。
 
-## Intent Gate
+## インテントゲート
 
-Before generating final outputs, establish what the user wants the conversion to optimize. Do not infer this silently for batches, animation frames, character sprites, or other assets that may be used in a game runtime.
+最終出力を生成する前に、ユーザーが変換で最適化したいことを確認する。バッチ・アニメーションフレーム・キャラクタースプライト・ゲームランタイムで使用される可能性のあるアセットに対して、この確認を暗黙で省略してはならない。
 
-If the requested mode is not explicit, ask a short question before final processing:
+要求されたモードが明示されていない場合は、最終処理の前に短い質問をする:
 
 ```text
 どちらを優先しますか？
@@ -30,46 +30,46 @@ If the requested mode is not explicit, ask a short question before final process
 3. まず代表フレームで比較サンプルを作る。
 ```
 
-Ask only for missing parameters needed by the chosen mode:
+選択されたモードに必要な、不足しているパラメータのみを確認する:
 
-- For Sprite Fusion grid-snap: color count and output path.
-- For fixed-canvas animation output: color count, output path, and target frame size such as `512` or `512x512`.
-- For comparison samples: representative source frame(s), color counts to compare, and sample output path.
+- Sprite Fusion grid-snap の場合: 色数と出力パス。
+- Fixed-canvas animation output の場合: 色数、出力パス、`512` や `512x512` のようなターゲットフレームサイズ。
+- 比較サンプルの場合: 代表ソースフレーム、比較する色数、サンプル出力パス。
 
-Proceed without asking only when the user already specified the mode and all required parameters, or when the task is a single image where grid-derived output size is clearly acceptable.
+ユーザーがモードと必要なパラメータをすべて指定済みの場合、またはグリッド導出の出力サイズが明らかに許容できる単一画像の場合のみ、確認なしで進める。
 
-## Workflow
+## ワークフロー
 
-1. Run the Intent Gate before final conversion. Ask the mode question when the desired tradeoff is unclear.
-2. Use the provided input and output paths. Ask when either path is missing or ambiguous. Prefer PNG output.
-3. Classify the asset before conversion:
-   - Single images, textures, maps, and cleanup samples may use upstream's natural grid-derived output size.
-   - Animation frames, character sprites, action folders, frame sequences, and spritesheet inputs require a dimension contract before batch conversion.
-   - If fixed frame size or consistent character scale matters, ask for or infer the target output canvas size and make the output path explicit. Prefer writing to a new directory instead of overwriting source assets.
-4. Choose `k_colors` before final processing:
-   - If the user specified a color count, use that value.
-   - If the color count is missing, ask before running final or batch conversion. Offer `8` for stronger retro styling, `16` for balanced pixel-art detail, and `32` when preserving shading matters.
-   - If the user is unsure, create comparison samples from a representative image at `8`, `16`, and `32` colors, then ask which setting to use for the remaining images.
-   - Use `16` only when the user explicitly accepts the default or asks you to proceed without choosing.
-5. For single-image work, use auto-detected pixel size first. Add `--pixel-size N` only if the output grid is wrong.
-6. For animation or frame-sequence work, run a calibration pass before final batch conversion:
-   - Count source images and inspect source PNG dimensions.
-   - Convert representative frames from different actions/views.
-   - Inspect output dimensions and alpha behavior, not only visual quality.
-   - If source PNGs have multiple nonzero alpha values, the representative outputs should also preserve multiple alpha values unless the user explicitly requested hard edges.
-   - For fixed-canvas resizing, require premultiplied-alpha resizing and unpremultiply before palette quantization. Do not resize straight/unassociated RGBA directly, because transparent black RGB can bleed into semi-transparent edges and make the result look dark.
-   - If representative outputs differ in size, raw upstream output is not acceptable for fixed-frame animation assets.
-7. Run the appropriate script only after the expected output contract is clear:
-   - Use `scripts/pixel_snapper.py` for single images or batches where grid-derived output dimensions are acceptable.
-   - Use `scripts/fixed_canvas_pixelate.py` for animation frames that need fixed frame dimensions and consistent sprite scale. This fixed-canvas script preserves the source canvas at one uniform scale and quantizes colors; it does not run the upstream grid walker.
-8. Keep the wrapper's default aspect-ratio preservation enabled unless the user explicitly asks for raw upstream dimensions. The wrapper pads the PNG canvas with transparent pixels when the upstream grid would change the input aspect ratio.
-9. Inspect the output:
-   - For single images, verify the grid is neither too coarse nor too fine; rerun with `--pixel-size N` if needed.
-   - For frame batches, verify file count, relative path parity, unique frame dimensions, RGB color count among visible pixels, and alpha preservation. If `unique frame dimensions != 1` when fixed frames are required, treat the batch as failed and regenerate with a fixed-canvas workflow.
+1. 最終変換前にインテントゲートを実行する。望ましいトレードオフが不明な場合はモードの質問をする。
+2. 指定された入力・出力パスを使用する。どちらかのパスが不明または曖昧な場合は確認する。PNG出力を優先する。
+3. 変換前にアセットを分類する:
+   - 単一画像・テクスチャ・マップ・クリーンアップサンプルは、上流の自然なグリッド導出の出力サイズを使用してよい。
+   - アニメーションフレーム・キャラクタースプライト・アクションフォルダ・フレームシーケンス・スプライトシート入力は、バッチ変換前に寸法の契約が必要。
+   - 固定フレームサイズや一貫したキャラクタースケールが重要な場合は、ターゲット出力キャンバスサイズを確認または推定し、出力パスを明示する。ソースアセットを上書きする代わりに新しいディレクトリに書き出すことを優先する。
+4. 最終処理前に `k_colors` を決定する:
+   - ユーザーが色数を指定した場合はその値を使用する。
+   - 色数が未指定の場合は、最終またはバッチ変換の実行前に確認する。レトロ感を強くするなら `8`、バランスの良いピクセルアートなら `16`、シェーディングを保持したいなら `32` を提示する。
+   - ユーザーが迷っている場合は、代表画像で `8`・`16`・`32` の比較サンプルを作成し、残りの画像に使う設定を確認する。
+   - ユーザーがデフォルトを明示的に受け入れるか選択なしで進めるよう求めた場合のみ `16` を使用する。
+5. 単一画像の作業では、まず自動検出のピクセルサイズを使用する。出力グリッドが正しくない場合のみ `--pixel-size N` を追加する。
+6. アニメーションまたはフレームシーケンスの作業では、最終バッチ変換の前にキャリブレーションパスを実行する:
+   - ソース画像数を数え、ソースPNGの寸法を確認する。
+   - 異なるアクション・視点から代表フレームを変換する。
+   - 視覚的なクオリティだけでなく、出力寸法とalphaの挙動を確認する。
+   - ソースPNGに複数の非ゼロalpha値がある場合、ユーザーがハードエッジを明示的に要求しない限り、代表出力にも複数のalpha値が保持されるべきである。
+   - fixed-canvasリサイズでは、プリマルチプライドalphaリサイズを使用し、パレット量子化の前にアンプリマルチプライする。透過の黒RGBが半透明エッジにブリードして暗く見えるため、ストレート/非関連付けRGBAを直接リサイズしてはならない。
+   - 代表出力のサイズが異なる場合、上流の生出力は固定フレームアニメーションアセットとして受け入れられない。
+7. 期待される出力の契約が明確になった後にのみ、適切なスクリプトを実行する:
+   - グリッド導出の出力寸法が許容できる単一画像またはバッチには `scripts/pixel_snapper.py` を使用する。
+   - 固定フレーム寸法と一貫したスプライトスケールが必要なアニメーションフレームには `scripts/fixed_canvas_pixelate.py` を使用する。このfixed-canvasスクリプトはソースキャンバスを均一スケールで保持し色を量子化する。上流のグリッドウォーカーは実行しない。
+8. ユーザーが上流の生の寸法を明示的に求めない限り、ラッパーのデフォルトのアスペクト比保持を有効にする。上流のグリッドが入力のアスペクト比を変更する場合、ラッパーはPNGキャンバスを透過ピクセルでパディングする。
+9. 出力を確認する:
+   - 単一画像の場合、グリッドが粗すぎず細かすぎないことを確認する。必要であれば `--pixel-size N` で再実行する。
+   - フレームバッチの場合、ファイル数・相対パスの一致・ユニークなフレーム寸法・可視ピクセルのRGB色数・alphaの保持を確認する。固定フレームが必要な場合に `ユニークなフレーム寸法 != 1` であれば、バッチを失敗として扱いfixed-canvasワークフローで再生成する。
 
-## Failure-Proof Batch Flow
+## 失敗耐性バッチフロー
 
-Use this flow before producing or replacing a full animation asset set:
+完全なアニメーションアセットセットを生成・置換する前に、このフローを使用する:
 
 ```text
 classify asset
@@ -87,39 +87,39 @@ classify asset
   -> verify the full batch with the same checks
 ```
 
-Do not proceed from sample to full batch if any invariant fails. Do not overwrite a known-good output until the new output passes validation.
+いずれかの不変条件が満たされない場合、サンプルからフルバッチに進んではならない。新しい出力が検証を通過するまで、正常な出力を上書きしてはならない。
 
-## Animation Frame Contract
+## アニメーションフレーム契約
 
-Use this contract whenever the input is a character animation, frame sequence, or spritesheet source:
+入力がキャラクターアニメーション・フレームシーケンス・スプライトシートソースの場合は常にこの契約を使用する:
 
-- Source frame count must match output frame count.
-- Relative paths should match unless the user explicitly asks for a new structure.
-- Source frame dimensions should be recorded before conversion.
-- Required output frame dimensions must be known before final batch conversion.
-- All final frame PNGs must have the same dimensions.
-- Character scale must come from the original source canvas, not from per-image content bounds.
-- Do not crop to the visible character unless the user explicitly asks for trimmed frames and accepts anchor/offset handling.
-- Alpha channel behavior must be intentional. Preserve soft alpha by default; use a hard alpha threshold only when the user explicitly wants crisp cutout edges.
-- Validate RGB colors among pixels with `alpha > 0` separately from RGBA colors. Many RGBA values can be correct when one RGB palette color appears at many alpha levels.
+- ソースフレーム数と出力フレーム数は一致しなければならない。
+- ユーザーが明示的に新しい構造を求めない限り、相対パスは一致するべきである。
+- 変換前にソースフレームの寸法を記録するべきである。
+- 最終バッチ変換前に必要な出力フレーム寸法を把握しなければならない。
+- 全ての最終フレームPNGは同じ寸法でなければならない。
+- キャラクタースケールは、画像ごとのコンテンツ境界からではなく、元のソースキャンバスから決定しなければならない。
+- ユーザーがトリミングされたフレームを明示的に要求しアンカー/オフセット処理を承認しない限り、可視キャラクターに合わせてクロップしてはならない。
+- alphaチャンネルの挙動は意図的なものでなければならない。デフォルトでソフトalphaを保持する。ユーザーがくっきりしたカットアウトエッジを明示的に求める場合のみハードalphaしきい値を使用する。
+- `alpha > 0` のピクセルのRGB色数は、RGBA色数とは別に検証する。1つのRGBパレット色が多数のalphaレベルで現れる場合、多数のRGBA値は正常である。
 
-If the user asks for "low-resolution pixel art" but also needs game-ready animation frames, a fixed-canvas downscale plus palette quantization may be more appropriate than raw upstream grid snapping. In that case, state that Sprite Fusion's grid-derived output is unsafe for fixed-frame animation and use a fixed-canvas pipeline while preserving the source directory structure.
+ユーザーが「低解像度ピクセルアート」を求めながらもゲーム対応アニメーションフレームが必要な場合、上流の生のグリッドスナッピングよりもfixed-canvasダウンスケール＋パレット量子化が適切な場合がある。その場合は、Sprite FusionのグリッドデリバードOutputが固定フレームアニメーションに安全でないことを明示し、ソースディレクトリ構造を維持しながらfixed-canvasパイプラインを使用する。
 
-## Quick Commands
+## クイックコマンド
 
-Run a fixed-canvas animation batch after the user chooses the target size and color count:
+ユーザーがターゲットサイズと色数を選択した後にfixed-canvasアニメーションバッチを実行する:
 
 ```bash
 python3 "<skill>/scripts/fixed_canvas_pixelate.py" --input-dir "input_dir" --output-dir "output_dir" --size 512 --colors 16
 ```
 
-Run after the user chooses a 16-color palette:
+ユーザーが16色パレットを選択した後に実行する:
 
 ```bash
 python3 "<skill>/scripts/pixel_snapper.py" --input "input.png" --output "output.png" --colors 16
 ```
 
-Inspect PNG dimensions in a batch:
+バッチ内のPNG寸法を確認する:
 
 ```bash
 python3 - <<'PY'
@@ -140,7 +140,7 @@ for size, count in sorted(counts.items()):
 PY
 ```
 
-Check source/output path parity:
+ソース/出力のパス一致を確認する:
 
 ```bash
 out="output_dir"
@@ -149,7 +149,7 @@ comm -3 \
   <(find "$out" -path "$out/spritesheets" -prune -o -type f -iname '*.png' -printf '%P\n' | sort)
 ```
 
-Inspect RGB palette count and alpha preservation in a PNG batch:
+PNGバッチ内のRGBパレット数とalphaの保持を確認する:
 
 ```bash
 python3 "<skill>/scripts/inspect_png_batch.py" \
@@ -159,9 +159,9 @@ python3 "<skill>/scripts/inspect_png_batch.py" \
   --max-visible-rgb "<requested_color_count>"
 ```
 
-With `--source-root`, the inspector reads the first matching source files by default (`--source-check-limit 8`) to detect whether the source set uses soft alpha, then fails outputs that collapse visible pixels to one alpha level. Use `--source-check-limit 0` for exhaustive source/output alpha comparison, especially when an asset set intentionally mixes soft-alpha frames and hard-edged or fully opaque frames. Add `--min-alpha-levels 2` only when every non-empty output frame is expected to contain soft alpha; do not use it for fully opaque or intentionally hard-edged sprites.
+`--source-root` を指定すると、インスペクターはデフォルトで最初に一致するソースファイル（`--source-check-limit 8`）を読み込んでソースセットがソフトalphaを使用しているか検出し、可視ピクセルを1つのalphaレベルに圧縮した出力を失敗とする。ソフトalphaフレームとハードエッジまたは完全不透明フレームが意図的に混在するアセットセットでは、徹底的なソース/出力alpha比較のために `--source-check-limit 0` を使用する。`--min-alpha-levels 2` は、全ての非空出力フレームにソフトalphaが含まれる場合のみ追加する。完全不透明または意図的にハードエッジのスプライトには使用しない。
 
-Run comparison samples:
+比較サンプルを実行する:
 
 ```bash
 python3 "<skill>/scripts/pixel_snapper.py" --input "input.png" --output "sample-8.png" --colors 8
@@ -169,85 +169,85 @@ python3 "<skill>/scripts/pixel_snapper.py" --input "input.png" --output "sample-
 python3 "<skill>/scripts/pixel_snapper.py" --input "input.png" --output "sample-32.png" --colors 32
 ```
 
-Override pixel grid size:
+ピクセルグリッドサイズを上書きする:
 
 ```bash
 python3 "<skill>/scripts/pixel_snapper.py" --input "input.png" --output "output.png" --colors 16 --pixel-size 8
 ```
 
-Keep raw upstream output dimensions, even if the aspect ratio changes:
+アスペクト比が変わっても上流の生の出力寸法を維持する:
 
 ```bash
 python3 "<skill>/scripts/pixel_snapper.py" --input "input.png" --output "output.png" --colors 16 --no-preserve-aspect
 ```
 
-Use an already cloned upstream repository:
+クローン済みの上流リポジトリを使用する:
 
 ```bash
 python3 "<skill>/scripts/pixel_snapper.py" --repo "/path/to/spritefusion-pixel-snapper" --input "input.png" --output "output.png"
 ```
 
-Run against the latest upstream checkout instead of the verified commit:
+検証済みcommitではなく最新の上流checkoutに対して実行する:
 
 ```bash
 python3 "<skill>/scripts/pixel_snapper.py" --input "input.png" --output "output.png" --ref main
 ```
 
-## Requirements
+## 要件
 
-- Rust/Cargo must be installed.
-- Git is required if the upstream repository is not already present locally.
-- Use `python` or `py -3` instead of `python3` on systems where that is the configured Python command.
-- The wrapper clones `https://github.com/Hugo-Dz/spritefusion-pixel-snapper.git` into a local cache unless `--repo` or `SPRITEFUSION_PIXEL_SNAPPER_REPO` is provided.
-- The wrapper checks out the verified upstream commit by default. Use `--ref main`, `--ref <commit-or-tag>`, or `--ref none` when a different checkout policy is needed.
-- If network access, cache writes, or Cargo builds are blocked by sandboxing, ask the user for approval and rerun the same command with the required permission.
+- Rust/Cargo がインストールされていること。
+- 上流リポジトリがローカルに存在しない場合はGitが必要。
+- システムで設定されているPythonコマンドが `python3` でない場合は `python` または `py -3` を使用する。
+- `--repo` または `SPRITEFUSION_PIXEL_SNAPPER_REPO` が指定されない限り、ラッパーは `https://github.com/Hugo-Dz/spritefusion-pixel-snapper.git` をローカルキャッシュにクローンする。
+- ラッパーはデフォルトで検証済みの上流commitをcheckoutする。別のcheckoutポリシーが必要な場合は `--ref main`、`--ref <commit-or-tag>`、または `--ref none` を使用する。
+- ネットワークアクセス・キャッシュ書き込み・Cargoビルドがサンドボックスによってブロックされている場合は、ユーザーの承認を求め、必要な権限で同じコマンドを再実行する。
 
-## Script Interface
+## スクリプトインターフェース
 
-The bundled script delegates to the upstream Rust CLI:
+バンドルされたスクリプトは上流のRust CLIに委譲する:
 
 ```text
 input output [k-colors] [--pixel-size N]
 ```
 
-The upstream CLI defaults to `16` colors when `k-colors` is omitted, but this skill should still confirm the intended color count with the user before final or batch conversion.
+上流CLIは `k-colors` が省略された場合 `16` 色をデフォルトとするが、このスキルは最終またはバッチ変換の前にユーザーに意図した色数を確認するべきである。
 
-The script calls Cargo as:
+スクリプトはCargoを次のように呼び出す:
 
 ```text
 cargo run --release --manifest-path <repo>/Cargo.toml -- <input> <output> [k-colors] [--pixel-size N]
 ```
 
-Use `--dry-run` to print the command without executing it. Use `--ref none` to skip Git checkout for a manually managed repository.
+コマンドを実行せずに表示するには `--dry-run` を使用する。手動で管理するリポジトリでGit checkoutをスキップするには `--ref none` を使用する。
 
-By default, the wrapper post-processes the upstream PNG output with `--preserve-aspect`: if the detected grid makes a square source become rectangular, or otherwise changes the source aspect ratio, the wrapper pads the output canvas with transparent pixels instead of stretching pixels. Use `--no-preserve-aspect` only when exact upstream dimensions are required.
+デフォルトでは、ラッパーは上流のPNG出力を `--preserve-aspect` で後処理する。検出されたグリッドが正方形のソースを長方形にするなど、ソースのアスペクト比が変わる場合、ラッパーはピクセルを引き伸ばすのではなく透過ピクセルで出力キャンバスをパディングする。正確な上流の寸法が必要な場合のみ `--no-preserve-aspect` を使用する。
 
-Important: `--preserve-aspect` does not preserve the source dimensions and does not normalize all batch outputs to one frame size. It only preserves the source aspect ratio by padding the upstream result.
+重要: `--preserve-aspect` はソースの寸法を保持せず、全バッチ出力を1つのフレームサイズに正規化しない。上流の結果をパディングすることでソースのアスペクト比を保持するだけである。
 
-The fixed-canvas script accepts PNG frame directories:
+fixed-canvasスクリプトはPNGフレームディレクトリを受け取る:
 
 ```text
 --input-dir <dir> --output-dir <dir> --size <N|WIDTHxHEIGHT> --colors <k>
 ```
 
-It preserves relative paths, resizes the whole source canvas to the requested output canvas, and quantizes each frame to the requested color count. During resize it premultiplies alpha first, then unpremultiplies before quantization. By default it preserves every nonzero alpha value, while excluding very low-alpha pixels from palette selection (`--palette-alpha-threshold 16`) so transparent dark edge pixels do not consume palette entries. It supports non-interlaced 8-bit grayscale, RGB, grayscale-alpha, and RGBA PNG inputs. Use it when animation scale consistency is more important than upstream's content-sensitive grid snapping.
+相対パスを保持し、ソースキャンバス全体を要求された出力キャンバスにリサイズし、各フレームを要求された色数に量子化する。リサイズ時は先にalphaをプリマルチプライし、量子化前にアンプリマルチプライする。デフォルトで全ての非ゼロalpha値を保持しながら、パレット選択から非常に低いalphaのピクセルを除外する（`--palette-alpha-threshold 16`）ことで、透過の暗いエッジピクセルがパレットエントリを消費しないようにする。非インターレースの8ビットグレースケール・RGB・グレースケールalpha・RGBA PNG入力をサポートする。アニメーションスケールの一貫性が上流のコンテンツ感応型グリッドスナッピングより重要な場合に使用する。
 
-## Troubleshooting
+## トラブルシューティング
 
-- Bad grid detection: rerun with `--pixel-size N`. The upstream range is `1` through half of the smallest image dimension.
-- Aspect ratio changed unexpectedly: keep the default `--preserve-aspect` behavior enabled. If a caller used `--no-preserve-aspect`, rerun without it.
-- Animation character size changes between frames: raw upstream grid-derived output dimensions differ. Treat the batch as failed; regenerate with a fixed output canvas and uniform scale from the original source canvas.
-- Frame batch has many output dimensions: auto-detected pixel size or content-sensitive grid walking changed per image. Do not ship as animation frames unless the engine also receives per-frame offsets/anchors.
-- Output looks darker or has black halos: alpha was probably flattened, premultiplied, or hard-masked. Compare source/output alpha-level counts. Regenerate with the fixed-canvas workflow and preserve soft alpha.
-- Output appears to exceed the requested color count: check visible RGB colors separately from RGBA colors. Many RGBA colors can be expected when soft alpha is preserved.
-- Aspect preservation fails on source dimension reading: convert the source to PNG, JPEG, GIF, or BMP, or pass `--no-preserve-aspect` when raw upstream dimensions are acceptable.
-- Too few colors: increase `--colors`.
-- Too many colors or blurry result: decrease `--colors`.
-- Very large images: resize before processing; upstream rejects dimensions above `10000x10000`.
-- Cargo cannot find a binary: verify the repository is up to date and run from the upstream project root or use the wrapper's `--repo` option.
-- Broken cache: if the cache path exists but has no `Cargo.toml`, remove that partial directory or pass `--repo` with a valid checkout.
-- Cargo may warn that `src/main.rs` is present in both `lib` and `bin` targets; this is expected in the upstream project and does not block output generation.
+- グリッド検出が悪い: `--pixel-size N` で再実行する。上流の範囲は `1` から最小画像寸法の半分まで。
+- アスペクト比が予期せず変わった: デフォルトの `--preserve-aspect` 動作を有効のままにする。呼び出し元が `--no-preserve-aspect` を使用していた場合は、それなしで再実行する。
+- フレーム間でアニメーションキャラクターサイズが変わる: 上流のグリッドデリバードの出力寸法が異なっている。バッチを失敗として扱い、元のソースキャンバスから均一スケールの固定出力キャンバスで再生成する。
+- フレームバッチに多数の出力寸法がある: 画像ごとに自動検出のピクセルサイズまたはコンテンツ感応型グリッドウォーキングが変化した。エンジンがフレームごとのオフセット/アンカーも受け取らない限り、アニメーションフレームとして出荷してはならない。
+- 出力が暗く見えるか黒いハローがある: alphaがフラット化・プリマルチプライ・ハードマスクされた可能性がある。ソース/出力のalphaレベル数を比較する。fixed-canvasワークフローでソフトalphaを保持して再生成する。
+- 出力が要求した色数を超えているように見える: RGBA色数とは別に可視RGB色数を確認する。ソフトalphaが保持されている場合、多数のRGBA色は想定内である。
+- アスペクト保持でソース寸法の読み取りが失敗する: ソースをPNG・JPEG・GIF・BMPに変換するか、上流の生の寸法が許容できる場合は `--no-preserve-aspect` を渡す。
+- 色数が少なすぎる: `--colors` を増やす。
+- 色数が多すぎる、またはぼやけた結果: `--colors` を減らす。
+- 非常に大きな画像: 処理前にリサイズする。上流は `10000x10000` を超える寸法を拒否する。
+- Cargoがバイナリを見つけられない: リポジトリが最新であることを確認し、上流プロジェクトのルートから実行するか、ラッパーの `--repo` オプションを使用する。
+- キャッシュが破損している: キャッシュパスは存在するが `Cargo.toml` がない場合は、その部分的なディレクトリを削除するか有効なcheckoutで `--repo` を渡す。
+- Cargoが `src/main.rs` が `lib` と `bin` の両ターゲットに存在すると警告する場合がある。これは上流プロジェクトでは想定内であり、出力生成をブロックしない。
 
-## References
+## 参考資料
 
-Read `references/upstream.md` when exact upstream usage details are needed.
+正確な上流の使用詳細が必要な場合は `references/upstream.md` を参照する。

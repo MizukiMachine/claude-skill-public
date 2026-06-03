@@ -7,101 +7,101 @@ metadata:
 
 # MCP Server Configurator for Claude Code
 
-Configure Claude Code MCP servers reliably, even when upstream docs are written for other clients (Cursor/Claude Desktop) or only provide a website URL.
+Cursor/Claude Desktop 向けのドキュメントや URL しかない場合でも、Claude Code の MCP サーバーを確実に設定します。
 
-## Philosophy: Reduce MCP Setup to 3 Decisions
+## 方針: MCP セットアップを3つの決断に絞る
 
-Most MCP "setup pain" comes from mixing formats and guessing. Don't guess—map.
+MCP の「セットアップの痛み」のほとんどは、フォーマットの混在と推測から来ています。推測せず、マッピングしましょう。
 
-**Before adding a server, ask:**
-1. **Transport**: Is this a local launcher (**stdio**) or a remote endpoint (**HTTP/SSE**)?
-2. **Auth**: Is it OAuth, bearer token, API key header, or none?
-3. **Scope**: Which audience needs this server (local dev-only, shared with team in repo, or across all your projects)?
+**サーバーを追加する前に確認すること:**
+1. **Transport**: ローカルランチャー(**stdio**)かリモートエンドポイント(**HTTP/SSE**)か？
+2. **Auth**: OAuth、bearer token、API key header、それともなしか？
+3. **Scope**: このサーバーが必要な対象は誰か（ローカル開発専用、リポジトリでチーム共有、または全プロジェクト共通）？
 
-**Core principles**
-1. **Treat MCP config as access control**: a stdio server can execute code; HTTP/SSE servers access remote resources.
-2. **Keep secrets out of files**: use environment variables (`${VAR}` in `.mcp.json`, or `--env` with `claude mcp add`).
-3. **Understand scopes**: local (private to you, project), project (shared via `.mcp.json`), user (across all projects).
-4. **Verify after wiring**: always check `/mcp` in Claude Code or run `claude mcp list/get` before assuming it works.
+**基本原則**
+1. **MCP config をアクセス制御として扱う**: stdio サーバーはコードを実行できる。HTTP/SSE サーバーはリモートリソースにアクセスする。
+2. **シークレットをファイルに含めない**: 環境変数を使う（`.mcp.json` では `${VAR}`、`claude mcp add` では `--env`）。
+3. **スコープを理解する**: local（自分専用、プロジェクト内）、project（`.mcp.json` 経由で共有）、user（全プロジェクト共通）。
+4. **配線後に確認する**: 動作を前提とせず、必ず Claude Code の `/mcp` または `claude mcp list/get` で確認する。
 
-## Workflow: Docs/Website → Working Server Configuration
+## ワークフロー: ドキュメント/Web サイト → 動作するサーバー設定
 
-### Step 0 — Intake (minimum questions)
-- What's the MCP server docs URL (or paste the install/config snippet)?
-- What should we call it in Claude Code (e.g. `github`, `sentry`, `airtable`)?
-- Do you want **stdio** (local, command-driven) or **HTTP/SSE** (remote)? If unsure: share the snippet and we infer.
-- Should this be **local** (just you, current project), **project** (shared via `.mcp.json`), or **user** (all your projects)?
+### Step 0 — 情報収集（最低限の確認事項）
+- MCP サーバーのドキュメント URL は何か（またはインストール/設定スニペットを貼り付けてください）？
+- Claude Code でのサーバー名は何にするか（例: `github`、`sentry`、`airtable`）？
+- **stdio**（ローカル、コマンド駆動）と **HTTP/SSE**（リモート）のどちらにするか？不明な場合はスニペットを共有すれば推定します。
+- **local**（自分だけ、現在のプロジェクト）、**project**（`.mcp.json` で共有）、**user**（全プロジェクト）のどれにするか？
 
-If the website is JS-heavy and `curl` shows no config, ask the user to copy/paste the relevant "MCP config" block.
+Web サイトが JavaScript ヘビーで `curl` では設定が取得できない場合は、ユーザーに関連する「MCP config」ブロックをコピー＆ペーストしてもらいます。
 
-### Step 1 — Identify transport
+### Step 1 — transport の特定
 
-Use these signals from the docs:
-- **Stdio**: shows `command` + `args`, mentions "stdio", "run this locally", `npx`, `uvx`, `docker run`, or a CLI binary.
-- **HTTP**: shows a URL like `https://mcp.example.com/mcp`, mentions "remote", "hosted", or OAuth login.
-- **SSE**: older remote transport, shows `https://` endpoint with Server-Sent Events (deprecated in favor of HTTP).
+ドキュメントから以下のシグナルを確認します:
+- **Stdio**: `command` + `args` が記載されている、「stdio」「run this locally」`npx`、`uvx`、`docker run`、または CLI バイナリが言及されている。
+- **HTTP**: `https://mcp.example.com/mcp` のような URL が記載されている、「remote」「hosted」または OAuth ログインが言及されている。
+- **SSE**: 旧式のリモート transport。Server-Sent Events を使った `https://` エンドポイントが示されている（HTTP に置き換えられた非推奨方式）。
 
-### Step 2 — Map auth to Claude Code fields
+### Step 2 — auth を Claude Code フィールドにマッピングする
 
-**For HTTP/SSE** (`url = "https://..."`):
-- **OAuth-supported**: configure basic server, then run `/mcp` in Claude Code to authenticate via browser.
-- **Bearer token**: use `--header "Authorization: Bearer ${API_TOKEN}"` with `claude mcp add`, or set `"headers": { "Authorization": "Bearer ${API_TOKEN}" }` in `.mcp.json`.
-- **API key in header**: use `--header "X-API-Key: ${API_KEY}"` or `"headers": { "X-API-Key": "${API_KEY}" }` in `.mcp.json`.
-- **Custom headers (secrets)**: set as `"headers": { "Header-Name": "${ENV_VAR}" }` in `.mcp.json` with environment variable expansion.
+**HTTP/SSE の場合** (`url = "https://..."`):
+- **OAuth 対応**: 基本的なサーバーを設定後、Claude Code で `/mcp` を実行してブラウザ経由で認証する。
+- **Bearer token**: `claude mcp add` に `--header "Authorization: Bearer ${API_TOKEN}"` を渡すか、`.mcp.json` に `"headers": { "Authorization": "Bearer ${API_TOKEN}" }` を設定する。
+- **ヘッダー内の API key**: `--header "X-API-Key: ${API_KEY}"` または `.mcp.json` に `"headers": { "X-API-Key": "${API_KEY}" }` を使う。
+- **カスタムヘッダー（シークレット）**: `.mcp.json` に `"headers": { "Header-Name": "${ENV_VAR}" }` として設定し、環境変数展開を利用する。
 
-**For Stdio** (`command = "..."`):
-- Pass environment variables via `--env KEY=VALUE` with `claude mcp add`, or `"env": { "KEY": "VALUE" }` in `.mcp.json`.
-- Use `${VAR:-default}` syntax in `.mcp.json` for optional env expansion with defaults.
+**Stdio の場合** (`command = "..."`):
+- `claude mcp add` に `--env KEY=VALUE` で環境変数を渡すか、`.mcp.json` に `"env": { "KEY": "VALUE" }` を設定する。
+- `.mcp.json` ではデフォルト値付きオプション展開のために `${VAR:-default}` 構文を使う。
 
-### Step 3 — Understand Claude Code scopes
+### Step 3 — Claude Code のスコープを理解する
 
-Claude Code stores MCP server configurations at three scopes. Choose the right one:
+Claude Code は MCP サーバー設定を3つのスコープで管理します。適切なものを選んでください:
 
-| Scope | Loads in | Shared | Stored in | Use case |
+| スコープ | ロード範囲 | 共有 | 保存先 | ユースケース |
 |-------|----------|--------|-----------|----------|
-| **local** (default) | Current project only | No, private to you | `~/.claude.json` | Personal dev servers, experimental configs, credentials you don't want in Git |
-| **project** | Current project only | Yes, via version control | `.mcp.json` in project root | Team-shared servers (GitHub, Slack, databases everyone uses) |
-| **user** | All your projects | No, private to you | `~/.claude.json` (user section) | Personal utilities, cross-project tools (Sentry, monitoring) |
+| **local**（デフォルト） | 現在のプロジェクトのみ | いいえ、自分専用 | `~/.claude.json` | 個人用開発サーバー、実験的な設定、Git に入れたくない認証情報 |
+| **project** | 現在のプロジェクトのみ | はい、バージョン管理経由 | プロジェクトルートの `.mcp.json` | チーム共有サーバー（全員が使う GitHub、Slack、データベースなど） |
+| **user** | 全プロジェクト | いいえ、自分専用 | `~/.claude.json`（user セクション） | 個人用ユーティリティ、クロスプロジェクトツール（Sentry、モニタリングなど） |
 
-### Step 4 — Produce `claude mcp add` commands
+### Step 4 — `claude mcp add` コマンドを生成する
 
-The primary way to add servers is via the `claude mcp add` command. Choose the transport and scope:
+サーバーを追加する主な方法は `claude mcp add` コマンドです。transport とスコープを選択してください:
 
-#### HTTP server (remote, OAuth-friendly)
+#### HTTP server（リモート、OAuth フレンドリー）
 ```bash
-# Basic (local scope, default)
+# 基本（local スコープ、デフォルト）
 claude mcp add --transport http <name> <url>
 
-# With bearer token (stored as header in config)
+# bearer token 付き（設定にヘッダーとして保存）
 claude mcp add --transport http <name> <url> \
   --header "Authorization: Bearer YOUR_TOKEN"
 
-# Shared with team (project scope)
+# チームと共有（project スコープ）
 claude mcp add --transport http <name> --scope project <url>
 
-# Across all projects (user scope)
+# 全プロジェクト共通（user スコープ）
 claude mcp add --transport http <name> --scope user <url>
 
-# Real examples:
+# 実例:
 claude mcp add --transport http github https://api.githubcopilot.com/mcp/ \
   --header "Authorization: Bearer YOUR_GITHUB_PAT"
 
-claude mcp add --transport http sentry https://mcp.sentry.dev/mcp  # OAuth later via /mcp
+claude mcp add --transport http sentry https://mcp.sentry.dev/mcp  # OAuth は後で /mcp から実行
 ```
 
-#### Stdio server (local command)
+#### Stdio server（ローカルコマンド）
 ```bash
-# Basic (local scope, default)
-# Note: -- separates Claude options from server command
+# 基本（local スコープ、デフォルト）
+# 注意: -- は Claude のオプションとサーバーコマンドを分離する
 claude mcp add --transport stdio <name> -- <command> [args...]
 
-# With environment variables
+# 環境変数付き
 claude mcp add --transport stdio <name> --env KEY=VALUE -- <command> [args...]
 
-# Project-scoped (shared in repo)
+# project スコープ（リポジトリで共有）
 claude mcp add --transport stdio <name> --scope project -- <command> [args...]
 
-# Real examples:
+# 実例:
 claude mcp add --transport stdio airtable -- npx -y airtable-mcp-server
 
 claude mcp add --transport stdio database --scope project \
@@ -109,19 +109,19 @@ claude mcp add --transport stdio database --scope project \
   npx -y @bytebase/dbhub
 ```
 
-#### SSE server (remote, deprecated)
+#### SSE server（リモート、非推奨）
 ```bash
-# SSE is deprecated; use HTTP instead
+# SSE は非推奨。代わりに HTTP を使うこと
 claude mcp add --transport sse <name> <url>
 
-# With header (e.g., API key)
+# ヘッダー付き（例: API key）
 claude mcp add --transport sse <name> <url> \
   --header "X-API-Key: YOUR_KEY"
 ```
 
-### Step 5 — Manual `.mcp.json` format (for project-scoped servers)
+### Step 5 — 手動での `.mcp.json` フォーマット（project スコープのサーバー向け）
 
-If you prefer to edit `.mcp.json` directly (checked into your repo), place it at your project root:
+`.mcp.json` を直接編集（リポジトリにチェックイン）したい場合は、プロジェクトルートに配置します:
 
 ```json
 {
@@ -149,23 +149,23 @@ If you prefer to edit `.mcp.json` directly (checked into your repo), place it at
 }
 ```
 
-**Key points:**
-- `type`: one of `"http"`, `"sse"` (deprecated), `"stdio"`, or `"ws"` (WebSocket).
-- `url`: for HTTP/SSE/WebSocket servers.
-- `command` + `args`: for stdio servers (command is the program, args are CLI arguments).
-- `headers`: HTTP headers (can include `${ENV_VAR}` or `${ENV_VAR:-default}` expansion).
-- `env`: environment variables passed to stdio server (supports variable expansion).
-- `timeout`: per-server tool execution timeout in milliseconds (optional).
-- `alwaysLoad`: set to `true` to load this server's tools upfront instead of deferring (optional).
+**主なフィールド:**
+- `type`: `"http"`、`"sse"`（非推奨）、`"stdio"`、`"ws"`（WebSocket）のいずれか。
+- `url`: HTTP/SSE/WebSocket サーバー向け。
+- `command` + `args`: stdio サーバー向け（command はプログラム、args は CLI 引数）。
+- `headers`: HTTP ヘッダー（`${ENV_VAR}` または `${ENV_VAR:-default}` の展開が可能）。
+- `env`: stdio サーバーに渡す環境変数（変数展開に対応）。
+- `timeout`: サーバーごとのツール実行タイムアウト（ミリ秒、省略可能）。
+- `alwaysLoad`: `true` に設定すると、遅延読み込みではなくサーバーのツールを起動時にロードする（省略可能）。
 
-**Environment variable expansion in `.mcp.json`:**
-- `${VAR}` expands to the environment variable `VAR`.
-- `${VAR:-default}` expands to `VAR` if set, otherwise `default`.
-- Expansion works in `command`, `args`, `url`, `headers`, and `env`.
+**`.mcp.json` における環境変数展開:**
+- `${VAR}` は環境変数 `VAR` に展開される。
+- `${VAR:-default}` は `VAR` が設定されていれば `VAR` に、そうでなければ `default` に展開される。
+- `command`、`args`、`url`、`headers`、`env` の中で展開が有効。
 
-### Step 6 — Verify and authenticate in Claude Code
+### Step 6 — Claude Code で確認と認証を行う
 
-After adding a server, verify it loads and authenticate if needed:
+サーバーを追加したら、正常にロードされるか確認し、必要に応じて認証を行います:
 
 ```bash
 # List all configured servers
@@ -178,19 +178,19 @@ claude mcp get <name>
 claude mcp remove <name>
 ```
 
-In Claude Code (interactive session), check server status:
+Claude Code（インタラクティブセッション）でサーバーの状態を確認します:
 ```
 /mcp
 ```
 
-If a server requires OAuth (appears with a 🔐 lock icon or "Needs authentication"):
-1. Run `/mcp` in Claude Code.
-2. Select the server and complete the browser OAuth flow.
-3. Tokens are stored securely in your system keychain; they refresh automatically.
+サーバーが OAuth を要求する場合（🔐 ロックアイコンまたは「Needs authentication」として表示）:
+1. Claude Code で `/mcp` を実行する。
+2. サーバーを選択してブラウザの OAuth フローを完了する。
+3. トークンはシステムのキーチェーンに安全に保存され、自動的に更新される。
 
-## Translation Cheat-Sheet (Other Clients → Claude Code)
+## 変換チートシート（他クライアント → Claude Code）
 
-Many docs provide JSON like:
+多くのドキュメントは次のような JSON を提供しています:
 ```json
 {
   "mcpServers": {
@@ -205,67 +205,67 @@ Many docs provide JSON like:
 }
 ```
 
-Convert it to Claude Code by:
-1. Copy the server entry into `.mcp.json` (same `mcpServers` structure).
-2. Or use `claude mcp add-json <name> '<json>'` to add from JSON directly.
-3. Or use `claude mcp add --transport http supabase https://mcp.supabase.com/mcp --header "Authorization: Bearer YOUR_TOKEN"`.
+これを Claude Code 向けに変換するには:
+1. サーバーエントリを `.mcp.json` にコピーする（`mcpServers` の構造は同じ）。
+2. または `claude mcp add-json <name> '<json>'` で JSON から直接追加する。
+3. または `claude mcp add --transport http supabase https://mcp.supabase.com/mcp --header "Authorization: Bearer YOUR_TOKEN"` を使う。
 
-For Claude Desktop config (which uses the same JSON format), you can also import:
+Claude Desktop の設定（同じ JSON フォーマットを使用）からインポートすることもできます:
 ```bash
 claude mcp add-from-claude-desktop
 ```
-This reads your Claude Desktop config and lets you import servers interactively.
+これにより Claude Desktop の設定が読み込まれ、インタラクティブにサーバーをインポートできます。
 
-## Anti-Patterns to Avoid
+## 避けるべきアンチパターン
 
-❌ **Hardcoding secrets in `.mcp.json`**: use `${ENV_VAR}` instead; never commit API keys.
+❌ **`.mcp.json` にシークレットをハードコードする**: 代わりに `${ENV_VAR}` を使う。API キーは絶対にコミットしない。
 
-❌ **Confusing scopes**: don't add a shared team server with local scope (it won't appear for teammates); use `--scope project` and commit `.mcp.json` to version control.
+❌ **スコープを混同する**: チーム共有サーバーを local スコープで追加してもチームメンバーには表示されない。`--scope project` を使い `.mcp.json` をバージョン管理にコミットする。
 
-❌ **Mixing transport types**: if docs show a URL, use HTTP (or SSE if explicitly noted); if docs show a command, use stdio.
+❌ **transport タイプを混在させる**: ドキュメントに URL が示されていれば HTTP（明示されている場合は SSE）を使い、コマンドが示されていれば stdio を使う。
 
-❌ **Forgetting the `--` separator**: for stdio with `claude mcp add`, the `--` prevents Claude's flags from being parsed as server flags.
+❌ **`--` セパレータを忘れる**: stdio で `claude mcp add` を使う場合、`--` がないと Claude のフラグがサーバーのフラグとして解析されてしまう。
 
-❌ **Skipping verification**: always run `/mcp` or `claude mcp list` after edits to confirm the server connects.
+❌ **確認をスキップする**: 編集後は必ず `/mcp` または `claude mcp list` を実行してサーバーが接続できることを確認する。
 
-## Variation Guidance (Don't Converge)
+## バリエーションのガイダンス（同じ回答に収束しないこと）
 
-Your output should vary based on what the docs provide:
-- If docs provide a **launcher command** (npx/uvx/docker), produce a **stdio** `claude mcp add` command or `.mcp.json` entry.
-- If docs provide an **endpoint URL**, produce an **HTTP/SSE** command or entry.
-- If docs provide **JSON config**, either translate into `.mcp.json` by hand or use `claude mcp add-json`.
-- For **high-risk servers** (code execution, broad data access), propose an `--env KEY=VALUE` with environment variable isolation and verify via `/mcp`.
-- For **team servers**, always recommend `--scope project` and mention checking the `.mcp.json` into Git.
+ドキュメントの内容に応じて出力を変えること:
+- ドキュメントが**ランチャーコマンド**（npx/uvx/docker）を提供している場合 → **stdio** の `claude mcp add` コマンドまたは `.mcp.json` エントリを生成する。
+- ドキュメントが**エンドポイント URL** を提供している場合 → **HTTP/SSE** のコマンドまたはエントリを生成する。
+- ドキュメントが **JSON 設定**を提供している場合 → 手動で `.mcp.json` に変換するか `claude mcp add-json` を使う。
+- **高リスクなサーバー**（コード実行、広範なデータアクセス）の場合 → 環境変数分離のための `--env KEY=VALUE` を提案し、`/mcp` で確認する。
+- **チームサーバー**の場合 → 常に `--scope project` を推奨し、`.mcp.json` を Git にチェックインするよう案内する。
 
-## Common MCP Configuration Tasks
+## よくある MCP 設定タスク
 
-### Add a local stdio server
+### ローカル stdio サーバーを追加する
 ```bash
 claude mcp add --transport stdio my-tool -- npx my-tool-server
 ```
 
-### Add a remote HTTP server with token auth
+### token 認証付きのリモート HTTP サーバーを追加する
 ```bash
 claude mcp add --transport http secure-api https://api.example.com/mcp \
   --header "Authorization: Bearer ${MY_TOKEN}"
 ```
 
-### Add a team-shared server (project scope)
+### チーム共有サーバーを追加する（project スコープ）
 ```bash
 claude mcp add --transport http github --scope project https://api.github.example.com/mcp
 ```
 
-### View server status in Claude Code
+### Claude Code でサーバーの状態を確認する
 ```
 /mcp
 ```
 
-### Complete OAuth authentication
-1. Server appears as "Needs authentication" in `/mcp` or `claude mcp get <name>`.
-2. Run `/mcp` in Claude Code, select the server.
-3. Complete the browser flow; token is stored securely.
+### OAuth 認証を完了する
+1. `/mcp` または `claude mcp get <name>` でサーバーが「Needs authentication」として表示される。
+2. Claude Code で `/mcp` を実行し、サーバーを選択する。
+3. ブラウザフローを完了する。トークンは安全に保存される。
 
-### Use environment variables in `.mcp.json`
+### `.mcp.json` で環境変数を使う
 ```json
 {
   "mcpServers": {
@@ -279,10 +279,10 @@ claude mcp add --transport http github --scope project https://api.github.exampl
   }
 }
 ```
-Set `API_TOKEN` in your shell or `.env` before running `claude`.
+`claude` を実行する前に、シェルまたは `.env` で `API_TOKEN` を設定してください。
 
-## References
+## 参考リンク
 
-- **Claude Code MCP docs**: https://code.claude.com/docs/en/mcp.md
-- **MCP specification**: https://modelcontextprotocol.io/introduction
-- **MCP server directory**: https://claude.ai/directory (browse verified servers)
+- **Claude Code MCP ドキュメント**: https://code.claude.com/docs/en/mcp.md
+- **MCP 仕様**: https://modelcontextprotocol.io/introduction
+- **MCP サーバーディレクトリ**: https://claude.ai/directory（認証済みサーバーを閲覧）
