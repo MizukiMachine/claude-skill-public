@@ -5,151 +5,151 @@ description: "Build and ship Three.js apps on Capacitor iOS with Vite and Swift 
 
 # Three.js Capacitor iOS
 
-Build interactive Three.js apps that run in browser and ship in an iOS native shell via Capacitor.
-This skill focuses on the integration boundary where most breakage happens: web build output, animation contracts, controls, and native sync/run workflow.
+ブラウザで動作し、Capacitor経由でiOSネイティブシェルに内包できるインタラクティブなThree.jsアプリを構築するスキル。
+ほとんどの問題が発生する統合境界（webビルド出力・animationコントラクト・controls・ネイティブsync/runワークフロー）に重点を置く。
 
-## Philosophy: Two Runtimes, One Contract
+## 哲学: Two Runtimes, One Contract
 
-Treat the project as two systems that must agree:
-- A web renderer runtime (Three.js + Vite)
-- A native runtime wrapper (Capacitor iOS)
+プロジェクトを合意が必要な2つのシステムとして扱う:
+- webレンダラーランタイム（Three.js + Vite）
+- ネイティブランタイムラッパー（Capacitor iOS）
 
-Most failures happen when their contract is implicit.
-Make file paths, animation names, build output, and iOS package manager choices explicit and testable.
+コントラクトが暗黙的な場合にほとんどの障害が発生する。
+ファイルパス・animationの名前・ビルド出力・iOSパッケージマネージャーの選択を明示的かつテスト可能にすること。
 
-**Before implementing, ask:**
-- What is the exact web output directory (`dist` or `www`) and does Capacitor `webDir` match it?
-- Are animation names loaded from data (`assets_index.json`) instead of hardcoded strings?
-- Is iOS using SPM or CocoaPods, and are plugin dependencies compatible with that choice?
-- Are desktop and touch controls intentionally mapped, or left to defaults that may not match product UX?
+**実装前に確認すること:**
+- webの出力ディレクトリ（`dist` または `www`）は何か、Capacitorの `webDir` と一致しているか?
+- animation名はハードコードされた文字列ではなく、データ（`assets_index.json`）から読み込んでいるか?
+- iOSはSPMとCocoaPodsのどちらを使っており、プラグインの依存関係はその選択と互換性があるか?
+- デスクトップとタッチのcontrolsは意図的にマッピングされているか、それともプロダクトUXと一致しないデフォルトのままか?
 
-**Core principles:**
-1. Contract-first data flow: UI and animation playback should derive from JSON metadata, not ad-hoc clip names in code.
-2. SPM-first iOS setup: on modern Capacitor, default to Swift Package Manager unless a specific plugin forces CocoaPods.
-3. Symmetric controls: define mouse and touch mappings together so desktop and mobile behavior stay aligned.
-4. Build-sync discipline: every native run depends on fresh web assets and sync.
-5. Fast diagnosis: prefer small runtime checks for paths, clip names, and action resolution before deep debugging.
+**コア原則:**
+1. Contract-firstデータフロー: UIとanimation再生はJSONメタデータから導出し、コード内のad-hocなclip名には依存しない。
+2. SPM-first iOSセットアップ: 特定のプラグインがCocoaPodsを強制する場合を除き、モダンなCapacitorではSwift Package Managerをデフォルトとする。
+3. 対称的なcontrols: マウスとタッチのマッピングを一緒に定義し、デスクトップとモバイルの動作を揃える。
+4. Build-syncの規律: すべてのネイティブ実行は最新のwebアセットとsyncに依存する。
+5. 高速診断: 深いデバッグの前に、パス・clip名・action解決に対して小さなランタイムチェックを優先する。
 
-## Quick Start Workflow
+## クイックスタートワークフロー
 
-1. Build the Three.js app with Vite (`npm run build`).
-2. Keep static assets under `public/` and load via absolute URLs (`/assets/...`).
-3. Configure Capacitor with `webDir: "dist"`.
-4. Add iOS platform with SPM (`npx cap add ios --packagemanager SPM`).
-5. Repeat day-to-day loop:
+1. ViteでThree.jsアプリをビルドする（`npm run build`）。
+2. 静的アセットは `public/` 以下に置き、絶対URL（`/assets/...`）で読み込む。
+3. Capacitorを `webDir: "dist"` で設定する。
+4. SPMでiOSプラットフォームを追加する（`npx cap add ios --packagemanager SPM`）。
+5. 日々のループを繰り返す:
    - `npm run build`
    - `npx cap sync ios`
-   - `npx cap run ios` or `npx cap open ios`
+   - `npx cap run ios` または `npx cap open ios`
 
-For command-level details, see `references/capacitor-ios-spm-workflow.md`.
+コマンドレベルの詳細は `references/capacitor-ios-spm-workflow.md` を参照。
 
-## Implementation Guidelines
+## 実装ガイドライン
 
-### 1) Project Shape
+### 1) プロジェクト構成
 
-Prefer this shape for minimal ambiguity:
-- `index.html` and `src/*` for app code
-- `public/assets/...` for GLBs and JSON contracts
-- `capacitor.config.ts` with `webDir: "dist"`
+曖昧さを最小化するため、以下の構成を推奨:
+- `index.html` と `src/*` にアプリコード
+- `public/assets/...` にGLBとJSONコントラクト
+- `capacitor.config.ts` に `webDir: "dist"`
 
-If using Vite, keep all runtime fetches compatible with both browser and WKWebView:
-- Good: `fetch('/assets/assets_index.json')`
-- Avoid: filesystem paths or environment-specific base URLs unless intentionally configured.
+Viteを使う場合、すべてのランタイムfetchをブラウザとWKWebViewの両方で動作するように保つこと:
+- 良い例: `fetch('/assets/assets_index.json')`
+- 避けるべき例: 意図的に設定していない限り、ファイルシステムパスや環境固有のベースURL。
 
-### 2) Animation Contract via `assets_index.json`
+### 2) `assets_index.json` によるAnimationコントラクト
 
-Use one source of truth:
-- Character skeleton URL
-- Animation source URL
-- `animations[]` entries with:
-  - stable app id (`idle`, `walk`, `run`)
-  - `sourceClipName` (exact `AnimationClip.name`)
-  - loop mode and defaults
+単一の信頼できる情報源を使う:
+- キャラクタースケルトンのURL
+- animationソースのURL
+- `animations[]` エントリ（以下を含む）:
+  - 安定したアプリid（`idle`・`walk`・`run`）
+  - `sourceClipName`（`AnimationClip.name` の正確な値）
+  - ループモードとデフォルト値
 
-Runtime pattern:
-1. Load index JSON
-2. Load skeleton GLB and animation GLB
-3. Resolve each UI button to a clip by `sourceClipName`
-4. Build `AnimationAction` map keyed by app id
-5. Play default action from index
+ランタイムパターン:
+1. インデックスJSONを読み込む
+2. スケルトンGLBとanimation GLBを読み込む
+3. 各UIボタンを `sourceClipName` でclipに解決する
+4. アプリidをキーとした `AnimationAction` マップを構築する
+5. インデックスのデフォルトactionを再生する
 
-See `references/threejs-animation-index-pattern.md`.
+`references/threejs-animation-index-pattern.md` を参照。
 
-### 3) Controls: Desktop and Touch
+### 3) Controls: デスクトップとタッチ
 
-Use `OrbitControls` and set mappings explicitly:
-- Mouse:
-  - left = rotate
-  - wheel = dolly/zoom
-  - right = pan
-- Touch:
-  - one-finger = rotate
-  - two-finger = dolly + pan
+`OrbitControls` を使い、マッピングを明示的に設定する:
+- マウス:
+  - 左ボタン = 回転
+  - ホイール = dolly/ズーム
+  - 右ボタン = パン
+- タッチ:
+  - 1本指 = 回転
+  - 2本指 = dolly + パン
 
-If product requires vertical-only pan, constrain target/camera translation after `controls.update()` each frame.
-Do not silently change rotate/zoom semantics when adding this constraint.
+プロダクトが垂直方向のみのパンを必要とする場合、毎フレーム `controls.update()` の後にtarget/cameraの移動を制限する。
+この制限を追加するとき、rotate/zoomのセマンティクスを暗黙的に変更しないこと。
 
-### 4) Performance and Stability Guardrails
+### 4) パフォーマンスと安定性のガードレール
 
-- Cap pixel ratio: `Math.min(devicePixelRatio, 2)`.
-- Reuse mixer/actions; do not recreate per click.
-- On resize, always update camera aspect, projection, and renderer size.
-- Keep animation switching with fade transitions from metadata defaults.
+- ピクセル比を制限する: `Math.min(devicePixelRatio, 2)`。
+- mixer/actionsは再利用し、クリックのたびに再生成しない。
+- リサイズ時は必ずcameraのaspect・projection・rendererのサイズを更新する。
+- animationの切り替えはメタデータのデフォルト値によるフェードトランジションで行う。
 
-### 5) Capacitor iOS Integration
+### 5) Capacitor iOS統合
 
-Use SPM by default with Capacitor 8+.
-For existing CocoaPods projects, migrate intentionally (assistant or recreate iOS platform).
+Capacitor 8+ではデフォルトでSPMを使う。
+既存のCocoaPodsプロジェクトは、意図的に移行すること（アシスタントまたはiOSプラットフォームの再作成）。
 
-After native-side changes or plugin changes, run `npx cap sync ios` again.
+ネイティブ側の変更やプラグインの変更後は、再度 `npx cap sync ios` を実行する。
 
-## Anti-Patterns to Avoid
+## 避けるべきアンチパターン
 
-❌ **Hardcoding clip names in UI handlers**
-Why bad: a renamed clip in GLB silently breaks buttons.
-Better: map buttons from `assets_index.json` and resolve clip names once at startup.
+❌ **UIハンドラーにclip名をハードコードする**
+問題点: GLB内のclipをリネームするとボタンが静かに壊れる。
+改善策: `assets_index.json` からボタンをマッピングし、起動時に一度だけclip名を解決する。
 
-❌ **Mixing SPM and CocoaPods assumptions**
-Why bad: dependency drift and broken Xcode project expectations.
-Better: choose one package manager per project; for modern setups prefer SPM.
+❌ **SPMとCocoaPodsの前提を混在させる**
+問題点: 依存関係のずれとXcodeプロジェクトの期待値の破損。
+改善策: プロジェクトごとにパッケージマネージャーを1つに決める。モダンなセットアップではSPMを優先。
 
-❌ **Running iOS without rebuilding web assets**
-Why bad: simulator shows stale JS/CSS and debugging becomes misleading.
-Better: use scripts that always build before `cap sync`/`cap run`.
+❌ **webアセットを再ビルドせずにiOSを実行する**
+問題点: シミュレーターに古いJS/CSSが表示され、デバッグが誤った方向に進む。
+改善策: `cap sync`/`cap run` の前に必ずビルドを行うスクリプトを使う。
 
-❌ **Leaving control mappings implicit**
-Why bad: desktop and mobile interaction diverge from UX requirements.
-Better: set `mouseButtons` and `touches` explicitly in code.
+❌ **controlsのマッピングを暗黙的なままにする**
+問題点: デスクトップとモバイルの操作感がUX要件から乖離する。
+改善策: `mouseButtons` と `touches` をコード内で明示的に設定する。
 
-❌ **Debugging native first for web contract errors**
-Why bad: wastes time in Xcode when issue is usually missing JSON keys, bad paths, or unresolved clips.
-Better: add startup assertions/logs for index shape and clip resolution.
+❌ **webコントラクトエラーに対してネイティブから先にデバッグする**
+問題点: 問題の原因が通常はJSONキーの欠落・パスの誤り・未解決のclipであるのに、Xcodeで時間を無駄にする。
+改善策: インデックスの構造とclip解決に対して起動時のアサーション/ログを追加する。
 
-## Variation Guidance
+## バリエーションガイダンス
 
-**IMPORTANT**: Do not produce identical viewers by default.
-Adjust implementation to the product intent:
-- Character showcase: richer lighting, slower camera damping, emphasis on idle loop.
-- Gameplay prototype: fast transitions, state-driven animation switching, minimal UI chrome.
-- Asset QA tool: diagnostics overlay, clip length/track info, missing-clip warnings surfaced clearly.
+**重要**: デフォルトで同一のviewerを生成しないこと。
+プロダクトの意図に合わせて実装を調整する:
+- キャラクタショーケース: より豊かなライティング・遅いカメラダンピング・idleループの強調。
+- ゲームプレイプロトタイプ: 素早いトランジション・状態駆動のanimation切り替え・最小限のUIクローム。
+- アセットQAツール: 診断オーバーレイ・clip長/トラック情報・missing-clip警告を明確に表示。
 
-Vary at least these dimensions intentionally:
-- Visual style (lighting/background/floor treatment)
-- Input tuning (damping/zoom/pan speeds)
-- Animation UX (buttons, keyboard shortcuts, auto-play strategy)
+意図的に以下のディメンションを変化させる:
+- ビジュアルスタイル（ライティング/背景/床の処理）
+- 入力チューニング（ダンピング/ズーム/パン速度）
+- アニメーションUX（ボタン・キーボードショートカット・自動再生戦略）
 
-Avoid converging on a single generic "orbit + three buttons" output when context calls for more.
+文脈がより多くを求めているときに、汎用的な「orbit + 3ボタン」の出力に収束することを避ける。
 
-## Resource Map
+## リソースマップ
 
 - `references/capacitor-ios-spm-workflow.md`
-  - canonical iOS setup, migration, and run commands
+  - iOSセットアップ・移行・実行コマンドの正典
 - `references/threejs-animation-index-pattern.md`
-  - index contract and runtime loading pattern
+  - indexコントラクトとランタイム読み込みパターン
 - `references/gotchas.md`
-  - high-frequency integration failures and fixes
+  - 高頻度の統合障害と修正方法
 
-## Remember
+## まとめ
 
-Three.js + Capacitor iOS succeeds when contracts are explicit and workflows are disciplined.
-Build a clear metadata contract, map controls intentionally, prefer SPM on modern Capacitor, and keep build/sync/run deterministic.
+Three.js + Capacitor iOSは、コントラクトを明示的にし、ワークフローを規律立てることで成功する。
+明確なメタデータコントラクトを構築し、controlsを意図的にマッピングし、モダンなCapacitorではSPMを優先し、build/sync/runを決定論的に保つこと。

@@ -5,118 +5,118 @@ description: "Webプロジェクトのsite metadataを生成、監査、実装�
 
 # Site Metadata Generator
 
-## Purpose
+## 目的
 
-Use this skill to make a web project understandable to search engines, social platforms, and AI crawlers. Produce framework-native metadata, structured data, crawlability files, and a concise audit trail rather than generic SEO copy.
+このスキルを使って、Webプロジェクトを検索エンジン・ソーシャルプラットフォーム・AIクローラーに理解させる。汎用的なSEOコピーではなく、framework-nativeなmetadata・構造化データ・クロール対応ファイル・簡潔な監査記録を生成する。
 
-## Operating Model
+## 動作モデル
 
-Treat metadata as semantic communication. The correct output describes what the page actually is, who it serves, and how machines should classify it.
+metadataをセマンティックなコミュニケーションとして扱う。正しい出力は、そのページが実際に何であるか・誰のためのものか・機械がどう分類すべきかを記述する。
 
-Prioritize:
+優先順位:
 
-1. Accurate page meaning and user intent
-2. Crawlability, canonical URLs, robots.txt, and sitemap coverage
-3. Framework-native metadata APIs and existing project conventions
-4. Unique titles, descriptions, and social tags per important page
-5. JSON-LD only for content that is genuinely present on the page
-6. Performance and mobile issues that affect discoverability
+1. 正確なページの意味とユーザーの意図
+2. クロール対応・canonical URL・robots.txt・sitemapの網羅
+3. framework-nativeなmetadata APIと既存のプロジェクト規約
+4. 重要な各ページに固有のtitle・description・ソーシャルタグ
+5. ページ上に実際に存在するコンテンツに対してのみJSON-LD
+6. 発見可能性に影響するパフォーマンス・モバイルの問題
 
-Before implementing, establish:
+実装前に確認すること:
 
-- Framework, router, build tool, and metadata conventions already present
-- Site name, canonical domain, locale, default social image, and brand voice
-- Page types: home, product, service, article, documentation, FAQ, contact, legal, or app-only
-- Whether the request is an audit, implementation, sitemap generation, structured-data work, or all of them
-- Which checks can be run locally without credentials or production access
+- Framework・router・ビルドツール・既存のmetadata規約
+- サイト名・canonical domain・locale・デフォルトソーシャル画像・ブランドボイス
+- ページタイプ: home・product・service・article・documentation・FAQ・contact・legal・またはapp専用
+- リクエストが監査・実装・sitemap生成・構造化データ作業・またはその全てかどうか
+- credentialやproductionアクセスなしにローカルで実行できるチェック
 
-## Contracts
+## 制約事項
 
-- Do not invent production domains, ratings, prices, review counts, author names, publish dates, addresses, phone numbers, or social handles. Ask or leave a clearly named project-local placeholder when those facts are required.
-- Canonical URLs, `og:url`, sitemap URLs, and robots sitemap links must use the same production origin and trailing-slash policy.
-- Sitemaps must include only canonical URLs intended for indexing. Exclude admin, API, auth, search result, redirect, draft, duplicate, and `noindex` pages.
-- JSON-LD must be valid JSON, injected in a way the framework renders correctly, and limited to content visible or verifiable on the page.
-- Metadata ownership should be singular. Avoid competing title, canonical, Open Graph, or JSON-LD definitions across layout, route, component, and CMS layers.
-- Social image URLs should resolve in production. Use absolute URLs unless the framework reliably expands relative assets from a configured metadata base.
+- production domain・評価・価格・レビュー数・著者名・公開日・住所・電話番号・ソーシャルハンドルを捏造しない。それらの情報が必要な場合は質問するか、明確に命名されたプロジェクトローカルのプレースホルダーを残す。
+- canonical URL・`og:url`・sitemap URL・robotsのsitemapリンクは、同じproduction originとtrailing-slashポリシーを使用する。
+- sitemapにはインデックスを意図したcanonical URLのみを含める。admin・API・auth・検索結果・リダイレクト・下書き・重複・`noindex`ページは除外する。
+- JSON-LDは有効なJSONであり、frameworkが正しくレンダリングする方法で注入し、ページ上で表示・確認可能なコンテンツに限定する。
+- metadataの所有権は単一であるべき。layout・route・component・CMSレイヤー間でtitle・canonical・Open Graph・JSON-LDの定義が競合しないようにする。
+- ソーシャル画像のURLはproductionで解決できるものにする。frameworkが設定済みのmetadata baseからの相対アセットを確実に展開する場合を除き、絶対URLを使用する。
 
-Ask one concise question before editing when the canonical production domain, target locale, or required business facts cannot be discovered and would materially change generated URLs or structured data. Otherwise proceed with a conservative implementation and document assumptions.
+canonical production domain・ターゲットlocale・必要なビジネス情報が発見できず、生成されるURLや構造化データに重大な影響を与える場合は、編集前に簡潔な質問を1つする。それ以外の場合は保守的な実装を進め、前提条件を文書化する。
 
-## Capabilities and Deliverables
+## 機能と成果物
 
-Use this skill to:
+このスキルでできること:
 
-- Audit current metadata, crawlability, sitemap, robots, social tags, and JSON-LD coverage
-- Implement missing metadata through the project's native framework pattern
-- Generate or update `robots.txt`, framework robots routes, `sitemap.xml`, or framework sitemap routes
-- Add page-appropriate Schema.org JSON-LD without fabricating content
-- Produce a focused findings summary with blocking issues, quick wins, changed files, and verification results
+- 現在のmetadata・クロール対応・sitemap・robots・ソーシャルタグ・JSON-LDの網羅状況を監査する
+- プロジェクトのnative frameworkパターンで不足しているmetadataを実装する
+- `robots.txt`・framework robotsルート・`sitemap.xml`・framework sitemapルートを生成または更新する
+- コンテンツを捏造せずにページタイプに適したSchema.org JSON-LDを追加する
+- ブロッキングな問題・クイックウィン・変更ファイル・検証結果を含む簡潔なfindings summaryを生成する
 
-Expected deliverables may include:
+想定される成果物:
 
-- Edited route, layout, SEO helper, content/frontmatter, config, public asset, robots, or sitemap files
-- A page-type map showing which metadata pattern applies where
-- A short audit report when the user asks for review rather than implementation
-- Local validation output and a clear note for checks that require deployed URLs or external accounts
+- 編集されたroute・layout・SEOヘルパー・コンテンツ/frontmatter・設定・publicアセット・robots・またはsitemapファイル
+- どのmetadataパターンがどこに適用されるかを示すページタイプマップ
+- 実装ではなくレビューを求める場合の簡潔な監査レポート
+- ローカル検証の出力と、デプロイ済みURLや外部アカウントが必要で実行していないチェックについての明確な注記
 
-## Reference Files
+## リファレンスファイル
 
-Load only the reference needed for the current task.
+現在のタスクに必要なリファレンスのみ読み込む。
 
-| Topic | File | Use When |
+| トピック | ファイル | 使用場面 |
 |-------|------|----------|
-| Audit checklist | [analysis-checklist.md](references/analysis-checklist.md) | Reviewing current SEO, crawlability, social tags, schema, performance, or mobile basics |
-| Framework patterns | [framework-implementations.md](references/framework-implementations.md) | Implementing metadata in Next.js, Astro, Gatsby, React, Vue/Nuxt, or static HTML |
-| Complete tag reference | [meta-tags-complete.md](references/meta-tags-complete.md) | Choosing exact meta, Open Graph, Twitter, canonical, robots, or verification tags |
-| Structured data | [structured-data-schemas.md](references/structured-data-schemas.md) | Adding Organization, WebSite, Article, Product, FAQPage, BreadcrumbList, LocalBusiness, Event, or HowTo JSON-LD |
+| 監査チェックリスト | [analysis-checklist.md](references/analysis-checklist.md) | 現在のSEO・クロール対応・ソーシャルタグ・schema・パフォーマンス・モバイルの基本をレビューするとき |
+| Frameworkパターン | [framework-implementations.md](references/framework-implementations.md) | Next.js・Astro・Gatsby・React・Vue/Nuxt・またはstatic HTMLでmetadataを実装するとき |
+| タグ完全リファレンス | [meta-tags-complete.md](references/meta-tags-complete.md) | meta・Open Graph・Twitter・canonical・robots・または検証タグを選択するとき |
+| 構造化データ | [structured-data-schemas.md](references/structured-data-schemas.md) | Organization・WebSite・Article・Product・FAQPage・BreadcrumbList・LocalBusiness・Event・またはHowTo JSON-LDを追加するとき |
 
-## Workflow
+## ワークフロー
 
-1. Discover the project shape.
+1. プロジェクトの構成を把握する。
 
    ```bash
    rg --files | rg '(^|/)(package\.json|next\.config\.(js|mjs|ts)|astro\.config\.(mjs|ts)|gatsby-config\.(js|ts)|nuxt\.config\.(js|ts)|vite\.config\.(js|ts)|index\.html|robots\.txt|sitemap\.xml|src/|app/|pages/|public/|static/)'
    rg -n "metadata|generateMetadata|<Head|next/head|react-helmet|Helmet|useHead|<title>|meta name=|property=\"og:|twitter:|application/ld\\+json|canonical|robots" .
    ```
 
-   Narrow searches to the target route or page folder when output is large.
+   出力が大きい場合は、対象のrouteやページフォルダに絞って検索する。
 
-2. Run the bundled analyzer when useful.
+2. 必要に応じてバンドルされたアナライザーを実行する。
 
    ```bash
    python3 <skill-dir>/scripts/analyze_seo.py <project-path>
    ```
 
-   Replace `<skill-dir>` with the directory containing this `SKILL.md`. Use the output as a starting point, not as a complete judgment. It detects common files and tags, but cannot understand all dynamic metadata or content strategy.
+   `<skill-dir>` はこの `SKILL.md` を含むディレクトリに置き換える。出力は出発点として使用し、完全な判断材料としない。一般的なファイルやタグは検出できるが、すべての動的metadataやコンテンツ戦略は理解できない。
 
-3. Identify page types and metadata ownership.
+3. ページタイプとmetadata所有権を特定する。
 
-   Decide whether metadata belongs in a root layout, route-level file, page component, content collection, CMS data, or shared helper. Reuse existing helpers and naming conventions before adding a new abstraction.
+   metadataをroot layout・routeレベルのファイル・pageコンポーネント・content collection・CMSデータ・または共有ヘルパーのどこに置くかを決定する。新しい抽象化を追加する前に、既存のヘルパーや命名規約を再利用する。
 
-4. Define the metadata contract for the site.
+4. サイトのmetadataコントラクトを定義する。
 
-   Lock the canonical origin, trailing slash policy, default locale, site name, default social image, noindex rules, and source of page facts. If any of these are unknown and necessary for the requested output, ask before writing production URLs.
+   canonical origin・trailing slashポリシー・デフォルトlocale・サイト名・デフォルトソーシャル画像・noindexルール・ページ情報のソースを確定する。これらのいずれかが不明でかつ要求された出力に必要な場合は、production URLを書く前に確認する。
 
-5. Write metadata from page truth.
+5. ページの事実からmetadataを書く。
 
-   Titles should be unique and usually 50-60 characters. Descriptions should be unique, accurate, and usually 150-160 characters. Social metadata may be more click-oriented but must still match the content.
+   Titleは固有であり、通常50〜60文字。Descriptionは固有・正確であり、通常150〜160文字。ソーシャルmetadataはクリック重視にしてもよいが、コンテンツに一致させる必要がある。
 
-6. Add structured data only when supported by visible content.
+6. 表示可能なコンテンツに裏付けられた場合のみ構造化データを追加する。
 
-   Prefer JSON-LD with `@context: "https://schema.org"`. Use `@graph` when a page needs multiple connected schemas. Do not add Product, Review, FAQ, Event, or LocalBusiness properties that the page does not actually expose.
+   `@context: "https://schema.org"` のJSON-LDを優先する。ページが複数の関連するschemaを必要とする場合は `@graph` を使用する。ページが実際に公開していないProduct・Review・FAQ・Event・LocalBusinessのプロパティは追加しない。
 
-7. Add crawlability files if missing.
+7. クロール対応ファイルが不足している場合は追加する。
 
-   Create or update `robots.txt`, framework-native robots routes, static `sitemap.xml`, or framework-native sitemap routes. Include only indexable canonical URLs in sitemaps.
+   `robots.txt`・framework-nativeなrobotsルート・static `sitemap.xml`・またはframework-nativeなsitemapルートを作成または更新する。sitemapにはインデックス可能なcanonical URLのみを含める。
 
-8. Verify locally.
+8. ローカルで検証する。
 
-   Run the narrowest available project checks, inspect rendered HTML when possible, and validate generated XML/JSON. Use external validators only when the user asks or the local environment already has access.
+   利用可能なプロジェクトチェックの中で最小限のものを実行し、可能であればレンダリングされたHTMLを確認し、生成されたXML/JSONを検証する。外部バリデーターはユーザーが求める場合、またはローカル環境がすでにアクセス権を持っている場合のみ使用する。
 
-## Implementation Guidance
+## 実装ガイダンス
 
-### Metadata Essentials
+### Metadataの必須事項
 
-Every indexable page should have:
+インデックス対象の全ページに必要なもの:
 
 ```html
 <title>Page Title | Site Name</title>
@@ -130,33 +130,33 @@ Every indexable page should have:
 <meta name="twitter:card" content="summary_large_image">
 ```
 
-Adapt this to the framework's metadata API instead of hand-editing tags when the framework provides one.
+frameworkがmetadata APIを提供している場合は、タグを手動編集せずにそれに合わせる。
 
-### Page Type Decisions
+### ページタイプの判断
 
-| Page Type | Metadata Priority | Structured Data |
+| ページタイプ | Metadataの優先事項 | 構造化データ |
 |-----------|-------------------|-----------------|
-| Home or landing | Brand, category, primary value, default social image | Organization, WebSite, BreadcrumbList if relevant |
-| Product or commerce | Product name, category, price/availability if present | Product, Offer, AggregateRating only when visible and true |
-| Article or blog | Article title, author, publish/update dates, image | Article or BlogPosting, BreadcrumbList |
-| Documentation | Precise task or concept, version if relevant | TechArticle, HowTo, FAQPage only for actual Q/A or steps |
-| FAQ | Question-oriented title and summary | FAQPage |
-| Local business | Service, city/region, contact intent | LocalBusiness with real address/hours/contact |
-| Legal or account-only | Basic metadata, often noindex | Usually none |
+| ホーム・ランディング | ブランド・カテゴリー・主要な価値・デフォルトソーシャル画像 | Organization・WebSite・関連する場合はBreadcrumbList |
+| 商品・ecommerce | 商品名・カテゴリー・価格/在庫状況（あれば） | 表示済みかつ正確な場合のみProduct・Offer・AggregateRating |
+| 記事・ブログ | 記事タイトル・著者・公開/更新日・画像 | Article または BlogPosting・BreadcrumbList |
+| ドキュメント | 具体的なタスクまたは概念・関連する場合はバージョン | 実際のQ&Aやステップに対してのみTechArticle・HowTo・FAQPage |
+| FAQ | 質問指向のtitleとsummary | FAQPage |
+| ローカルビジネス | サービス・市区町村/地域・問い合わせ意図 | 実際の住所/営業時間/連絡先を持つLocalBusiness |
+| 法的・アカウント専用 | 基本的なmetadata・多くの場合noindex | 通常なし |
 
 ### Sitemaps
 
-Use the generator for static projects or as a route discovery aid:
+静的プロジェクトやルート発見の補助にジェネレーターを使用する:
 
 ```bash
 python3 <skill-dir>/scripts/generate_sitemap.py <project-path> --domain https://example.com --output <project-path>/public/sitemap.xml
 ```
 
-Replace `<skill-dir>` with the directory containing this `SKILL.md`. Prefer framework-native sitemap routes for Next.js App Router, Astro integrations, Gatsby plugins, or Nuxt modules when the project already uses them. Exclude admin, API, auth, search-result, duplicate, noindex, redirect, and unpublished pages.
+`<skill-dir>` はこの `SKILL.md` を含むディレクトリに置き換える。プロジェクトがすでに使用している場合は、Next.js App Router・Astroインテグレーション・Gatsbyプラグイン・またはNuxtモジュールのframework-nativeなsitemapルートを優先する。admin・API・auth・検索結果・重複・noindex・リダイレクト・未公開ページは除外する。
 
 ### Robots.txt
 
-For a public site, start from a permissive default and block only known private or non-indexable areas:
+公開サイトの場合、許可的なデフォルトから始め、既知のプライベートまたはインデックス不要なエリアのみをブロックする:
 
 ```txt
 User-agent: *
@@ -169,84 +169,84 @@ Disallow: /private/
 Sitemap: https://example.com/sitemap.xml
 ```
 
-Check staging and preview deployments carefully. A production `Disallow: /` is a blocking issue; an unblocked staging site may also be a blocking issue.
+stagingおよびpreviewデプロイメントは慎重に確認する。production環境の `Disallow: /` はブロッキング問題であり、ブロックされていないstagingサイトもブロッキング問題になり得る。
 
-## Audit Mode
+## 監査モード
 
-When the user asks for a review or audit, lead with findings rather than implementation notes. Order issues by severity:
+ユーザーがレビューまたは監査を求める場合、実装の注記よりもfindingsを先に示す。問題を深刻度順に並べる:
 
-1. Blocking: deindexing risks, broken canonical host, invalid JSON-LD, sitemap full of noncanonical URLs, missing metadata on critical pages
-2. Major: duplicated titles/descriptions, absent social metadata on shareable pages, missing structured data for key page types, mobile or performance issues affecting crawl/render
-3. Minor: wording refinements, optional verification tags, lower-priority schema opportunities, metadata consistency cleanup
+1. ブロッキング: インデックス除外リスク・壊れたcanonical host・無効なJSON-LD・non-canonical URLだらけのsitemap・重要ページのmetadata欠落
+2. 主要: 重複したtitle/description・共有可能なページにソーシャルmetadataがない・主要なページタイプに構造化データがない・クロール/レンダリングに影響するモバイルまたはパフォーマンスの問題
+3. 軽微: 表現の改善・任意の検証タグ・優先度の低いschemaの機会・metadata一貫性のクリーンアップ
 
-For each finding, include the affected file or route, why it matters, and the concrete fix. Keep general SEO advice out of the report unless it maps to an observed issue.
+各findingについて、影響を受けるファイルまたはルート・その重要性・具体的な修正方法を記載する。観察された問題に対応していない限り、一般的なSEOアドバイスはレポートから除外する。
 
-## Anti-Patterns
+## アンチパターン
 
-**Keyword stuffing**
+**キーワードの詰め込み**
 
-Why bad: Repetition creates spammy snippets and misrepresents page value.
+問題点: 繰り返しはスパム的なsnippetを生み出し、ページの価値を誤って表現する。
 
-Better: Write a specific title and description that match the actual page and search intent.
+改善策: 実際のページと検索意図に合った具体的なtitleとdescriptionを書く。
 
-**One description everywhere**
+**全ページ同一のdescription**
 
-Why bad: Search engines may ignore duplicated descriptions and users cannot distinguish pages.
+問題点: 検索エンジンが重複したdescriptionを無視する可能性があり、ユーザーがページを区別できなくなる。
 
-Better: Generate page-specific descriptions for important routes and use a sensible default only for low-priority pages.
+改善策: 重要なルートにページ固有のdescriptionを生成し、優先度の低いページにのみ合理的なデフォルトを使用する。
 
-**Schema for invisible content**
+**非表示コンテンツへのSchema**
 
-Why bad: Structured data that claims reviews, FAQs, prices, events, or locations not shown on the page can violate search guidelines.
+問題点: ページに表示されていないレビュー・FAQ・価格・イベント・場所を主張する構造化データは、検索ガイドラインに違反する可能性がある。
 
-Better: Add schema only for information a user can see or reasonably verify on the page.
+改善策: ユーザーがページで確認・検証できる情報にのみschemaを追加する。
 
-**Framework bypass**
+**Frameworkのバイパス**
 
-Why bad: Manual `<head>` tags can be deduplicated, overridden, or missed by server rendering.
+問題点: 手動の `<head>` タグは重複除去・上書き・またはサーバーレンダリングの見落としが起きる可能性がある。
 
-Better: Use the project's metadata API, layout conventions, head component, or plugin system.
+改善策: プロジェクトのmetadata API・layout規約・headコンポーネント・またはプラグインシステムを使用する。
 
-**Sitemap as route dump**
+**SitemapをRouteのダンプとして使用**
 
-Why bad: Including noncanonical, private, duplicate, or noindex URLs wastes crawl budget and sends contradictory signals.
+問題点: non-canonical・プライベート・重複・またはnoindexのURLを含めると、クロールバジェットが無駄になり、矛盾したシグナルを送ることになる。
 
-Better: Include only canonical URLs intended for indexing.
+改善策: インデックスを意図したcanonical URLのみを含める。
 
-## Variation Guidance
+## バリエーションガイダンス
 
-Vary by:
+以下の要素に応じてアプローチを変える:
 
-- Framework: Next.js metadata API, Astro layout props, Gatsby Head exports, React Helmet, Vue/Nuxt head helpers, or static HTML
-- Industry: ecommerce, SaaS, local services, documentation, editorial, portfolio, event, or app shell
-- Locale and domain: canonical host, hreflang, region, and translated metadata
-- Page importance: comprehensive metadata for key pages, lightweight defaults for low-value pages
-- Content source: hardcoded pages, markdown/frontmatter, CMS records, database routes, or generated docs
+- Framework: Next.js metadata API・Astro layout props・Gatsby Head exports・React Helmet・Vue/Nuxt headヘルパー・またはstatic HTML
+- 業種: ecommerce・SaaS・ローカルサービス・ドキュメント・編集系・ポートフォリオ・イベント・またはapp shell
+- LocaleとDomain: canonical host・hreflang・region・および翻訳されたmetadata
+- ページの重要度: 重要なページには包括的なmetadata・低価値ページには軽量なデフォルト
+- コンテンツソース: ハードコードされたページ・markdown/frontmatter・CMSレコード・databaseルート・または生成されたドキュメント
 
-Avoid converging on:
+以下への収束を避ける:
 
-- The same title format for every page type
-- Generic descriptions such as "Welcome to our website"
-- Social images with missing dimensions or relative-only production URLs
-- JSON-LD copied from examples without matching the site
-- Adding broad SEO dependencies when a small native change is enough
+- 全ページタイプで同じtitleフォーマット
+- 「Welcome to our website」などの汎用的なdescription
+- サイズが不明またはrelative-onlyなproduction URLのソーシャル画像
+- サイトに合わせずにサンプルからコピーされたJSON-LD
+- 小さなnativeな変更で十分な場合に広範なSEO依存関係を追加する
 
-## Verification
+## 検証
 
-Use the checks that fit the project:
+プロジェクトに合ったチェックを使用する:
 
 ```bash
 python3 <skill-dir>/scripts/analyze_seo.py .
 python3 -m py_compile <skill-dir>/scripts/*.py
 ```
 
-Also verify:
+また以下を確認する:
 
-- Project lint, typecheck, tests, or build pass when available
-- Rendered HTML contains one title, one canonical URL, expected description, social tags, and valid JSON-LD
-- `robots.txt` and `sitemap.xml` are reachable in the app's public output or framework route
-- Sitemap XML parses and contains canonical URLs only
-- JSON-LD parses with no trailing comments or framework escaping issues
-- Open Graph image URL is absolute in production contexts and resolves to a real image
+- 利用可能であればプロジェクトのlint・typecheck・テスト・またはビルドが通る
+- レンダリングされたHTMLにtitleが1つ・canonical URLが1つ・期待されるdescription・ソーシャルタグ・有効なJSON-LDが含まれている
+- `robots.txt` と `sitemap.xml` がアプリのpublic出力またはframeworkルートからアクセス可能
+- Sitemap XMLが解析でき、canonical URLのみを含んでいる
+- JSON-LDがtrailing commentやframeworkのエスケープ問題なしで解析できる
+- Open Graph画像URLがproduction環境では絶対URLであり、実際の画像に解決できる
 
-Report any checks that require production credentials, deployed URLs, Search Console, or external validators and were not run.
+production credential・デプロイ済みURL・Search Console・または外部バリデーターが必要で実行しなかったチェックがあれば報告する。

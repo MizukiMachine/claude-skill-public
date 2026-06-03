@@ -7,133 +7,130 @@ description: スキル作成ガイド。新しいスキルの作成や既存ス�
 
 スキルを作成・更新するための包括的なガイド。ファイル構造、本文テンプレート、設計原則を提供する。
 
-## About Skills
+## スキルについて
 
-Skills are modular, self-contained packages that extend Claude's capabilities by providing
-specialized knowledge, workflows, and tools. Think of them as "onboarding guides" for specific
-domains or tasks—they transform Claude from a general-purpose agent into a specialized agent
-equipped with procedural knowledge that no model can fully possess.
+スキルとは、専門的な知識・ワークフロー・ツールを提供することでClaudeの能力を拡張する、モジュール式かつ自己完結型のパッケージです。特定のドメインやタスクの「オンボーディングガイド」として捉えるとわかりやすい――スキルはClaudeを汎用エージェントから、いかなるモデルも完全には保持できない手続き的知識を備えた専門エージェントへと変えます。
 
-### What Skills Provide
+### スキルが提供するもの
 
-1. Specialized workflows - Multi-step procedures for specific domains
-2. Tool integrations - Instructions for working with specific file formats or APIs
-3. Domain expertise - Company-specific knowledge, schemas, business logic
-4. Bundled resources - Scripts, references, and assets for complex and repetitive tasks
+1. 専門的なワークフロー — 特定ドメイン向けの複数ステップからなる手順
+2. ツール統合 — 特定のファイル形式やAPIと連携するための指示
+3. ドメイン専門知識 — 企業固有の知識・スキーマ・ビジネスロジック
+4. リソース一式 — 複雑・反復的なタスク向けのスクリプト・リファレンス・アセット
 
-### Skill Categories
+### スキルのカテゴリ
 
-**Category 1: Document & Asset Creation**
-- Creating consistent, high-quality output (documents, presentations, apps, designs, code)
-- Key techniques: style guides, template structures, quality checklists
+**カテゴリ 1: ドキュメント・アセット作成**
+- 一貫性の高い品質のアウトプット（ドキュメント・プレゼンテーション・アプリ・デザイン・コード）の生成
+- 主なテクニック: スタイルガイド、テンプレート構造、品質チェックリスト
 
-**Category 2: Workflow Automation**
-- Multi-step processes with consistent methodology
-- Key techniques: step-by-step workflows, validation gates, iterative refinement
+**カテゴリ 2: ワークフロー自動化**
+- 一貫した方法論による複数ステップのプロセス
+- 主なテクニック: ステップバイステップのワークフロー、バリデーションゲート、反復的な改善
 
-**Category 3: MCP Enhancement**
-- Workflow guidance to enhance MCP tool access
-- Key techniques: MCP coordination, embedded domain expertise, error handling
+**カテゴリ 3: MCP強化**
+- MCPツールへのアクセスを強化するためのワークフローガイダンス
+- 主なテクニック: MCPの連携、組み込みのドメイン専門知識、エラーハンドリング
 
 ---
 
-## Skill File Structure
+## スキルのファイル構造
 
-Every skill consists of a required SKILL.md file and optional bundled resources:
+すべてのスキルは必須の SKILL.md ファイルとオプションのバンドルリソースで構成されます:
 
 ```
 skill-name/
-├── SKILL.md (required)
-│   ├── YAML frontmatter (required)
-│   └── Markdown body (required)
-└── Bundled Resources (optional)
-    ├── scripts/          - Executable code (Python/Bash/etc.)
-    ├── references/       - Loaded into context as needed
-    └── assets/           - Files used in output (templates, icons, etc.)
+├── SKILL.md (必須)
+│   ├── YAML frontmatter (必須)
+│   └── Markdown 本文 (必須)
+└── バンドルリソース (任意)
+    ├── scripts/          - 実行可能なコード (Python/Bash 等)
+    ├── references/       - 必要に応じてコンテキストに読み込む
+    └── assets/           - アウトプットで使用するファイル (テンプレート・アイコン等)
 ```
 
 ### Frontmatter (YAML)
 
 ```yaml
 ---
-name: skill-name          # kebab-case (required)
-description: >            # What + when to trigger (required)
-  What the skill does and when to use it.
-  Triggers: "trigger phrase 1", "trigger phrase 2".
-license: MIT              # (optional)
-allowed-tools: AskUserQuestion  # (optional)
+name: skill-name          # kebab-case (必須)
+description: >            # 内容 + トリガー条件 (必須)
+  スキルの内容と使用する場面。
+  トリガー: "トリガーフレーズ 1", "トリガーフレーズ 2".
+license: MIT              # (任意)
+allowed-tools: AskUserQuestion  # (任意)
 ---
 ```
 
-**Required**: `name`, `description`
-**Optional**: `license`, `allowed-tools`, `metadata`, `compatibility`
+**必須**: `name`、`description`
+**任意**: `license`、`allowed-tools`、`metadata`、`compatibility`
 
-**Security**: No XML angle brackets in frontmatter. No "claude"/"anthropic" prefixed names.
+**セキュリティ**: frontmatter 内に XML の山括弧を使用しない。`claude`/`anthropic` を接頭辞とした名前は使用しない。
 
-### Bundled Resources
+### バンドルリソース
 
-- **scripts/** — Deterministic operations, repeatedly rewritten code. Token efficient.
-- **references/** — Domain knowledge loaded on demand. Keeps SKILL.md lean.
-- **assets/** — Templates, images, fonts used in output (not loaded into context).
+- **scripts/** — 決定論的な操作、繰り返し書き直されるコード。トークン効率が良い。
+- **references/** — オンデマンドで読み込むドメイン知識。SKILL.md をスリムに保つ。
+- **assets/** — アウトプットで使用するテンプレート・画像・フォント（コンテキストには読み込まない）。
 
-**Progressive Disclosure**: SKILL.md body under 500 lines. Split into references/ when approaching limit. Keep references one level deep.
-
----
-
-## SKILL.md Body Architecture
-
-### Design Principles
-
-**1. Philosophy Before Procedure**
-Every skill starts with a philosophy section that establishes mental frameworks before diving into procedures. This helps Claude understand the "why" behind the "what."
-
-**2. Anti-Pattern Prevention**
-Each skill explicitly names what NOT to do with specific examples, helping avoid common pitfalls and ensuring quality outputs.
-
-**3. Variation Encouragement**
-Skills explicitly instruct to vary outputs and avoid convergence on "favorite" patterns, ensuring diverse and creative solutions.
-
-**4. Progressive Disclosure**
-Main SKILL.md stays concise (500 lines max), with detailed content moved to references/ for on-demand loading.
-
-**5. Empowerment Over Constraint**
-Skills unlock Claude's capabilities rather than constraining them to rigid templates or checklists. Guidance illuminates the path—it doesn't fence it.
-
-### The 6-Section Template
-
-Every SKILL.md body should follow this structure. Sections can be renamed to fit the domain, but the purpose and order must be preserved:
-
-```
-1. Philosophy         — Mental model, values, "before you start, ask..."
-2. Workflow           — Step-by-step procedure (analyze → design → implement)
-3. Implementation     — Code examples, tables, patterns, reference material
-4. Anti-Patterns      — What NOT to do, with BAD/GOOD examples
-5. Variation Guidance — "IMPORTANT: vary your approach, don't converge"
-6. Remember           — Empowering conclusion
-```
+**プログレッシブ・ディスクロージャー**: SKILL.md 本文は500行以内。上限に近づいたら references/ に分割する。references は1階層のみ。
 
 ---
 
-### Section 1: Philosophy
+## SKILL.md 本文のアーキテクチャ
 
-Establish the mental framework. Give Claude a way to THINK about the domain, not just rules to follow.
+### 設計原則
 
-**Template:**
+**1. 手順の前に哲学を**
+すべてのスキルは、手順に入る前にメンタルフレームワークを確立する哲学セクションから始まります。これにより、Claudeは「何をするか」の背景にある「なぜするか」を理解できます。
+
+**2. アンチパターンの予防**
+各スキルは具体的な例を挙げながら「してはいけないこと」を明示し、よくある落とし穴を避けて高品質なアウトプットを確保します。
+
+**3. バリエーションの奨励**
+スキルはアウトプットを多様にし、「お気に入り」パターンへの収束を避けるよう明示的に指示します。これにより多様で創造的なソリューションを確保します。
+
+**4. プログレッシブ・ディスクロージャー**
+メインの SKILL.md は簡潔に保ちます（最大500行）。詳細なコンテンツはオンデマンド読み込みのために references/ に移動します。
+
+**5. 制約よりもエンパワーメント**
+スキルは、Claudeの能力を硬直したテンプレートやチェックリストに縛るのではなく、解放します。ガイダンスは道を照らすものであり、囲い込むものではありません。
+
+### 6セクションテンプレート
+
+すべての SKILL.md 本文はこの構造に従ってください。セクション名はドメインに合わせて変更できますが、目的と順序は保持する必要があります:
+
+```
+1. Philosophy（哲学）    — メンタルモデル・価値観・「始める前に確認すること」
+2. Workflow（ワークフロー） — ステップバイステップの手順 (分析 → 設計 → 実装)
+3. Implementation（実装） — コード例・表・パターン・リファレンス資料
+4. Anti-Patterns（アンチパターン） — してはいけないこと (BAD/GOOD 例付き)
+5. Variation Guidance（バリエーションガイダンス） — 「重要: アプローチを変えること、収束しないこと」
+6. Remember（まとめ）    — エンパワーする締めくくり
+```
+
+---
+
+### セクション 1: Philosophy（哲学）
+
+メンタルフレームワークを確立します。ドメインについて「考える」方法をClaudeに示します――単なるルールではなく。
+
+**テンプレート:**
 ```markdown
-## Philosophy: <Catchy Frame>
+## Philosophy: <キャッチーなフレーム>
 
-**Before <doing X>, ask**:
-- Question 1 about context
-- Question 2 about audience/constraints
-- Question 3 about goals
+**<X を行う>前に確認すること**:
+- コンテキストに関する質問 1
+- 対象者・制約に関する質問 2
+- 目標に関する質問 3
 
-**Core Principles**:
-1. Principle Name — Brief explanation
-2. Principle Name — Brief explanation
-3. Principle Name — Brief explanation
+**コア原則**:
+1. 原則名 — 簡単な説明
+2. 原則名 — 簡単な説明
+3. 原則名 — 簡単な説明
 ```
 
-**Example:**
+**例:**
 ```markdown
 ## Philosophy: SEO as Semantic Communication
 
@@ -148,239 +145,239 @@ to machines so they can properly understand and surface it.
 
 ---
 
-### Section 2: Workflow
+### セクション 2: Workflow（ワークフロー）
 
-The operational procedure. Usually follows an analyze → design → implement → verify pattern.
+操作手順を記述します。通常は「分析 → 設計 → 実装 → 検証」のパターンに従います。
 
-**Template:**
+**テンプレート:**
 ```markdown
 ## Workflow
 
 ### Step 1: Discover and Analyze
-- What to look for in the codebase/context
-- How to categorize what you find
+- コードベース・コンテキストで何を探すか
+- 見つけたものをどう分類するか
 
 ### Step 2: Design Strategy
-- Decision framework based on Step 1 findings
-- When to choose which approach
+- Step 1 の結果に基づく意思決定フレームワーク
+- どの状況でどのアプローチを選ぶか
 
 ### Step 3: Implement
-- Concrete actions with code examples
-- How to use bundled scripts if available
+- コード例を含む具体的なアクション
+- バンドルされたスクリプトがある場合の使い方
 
 ### Step 4: Verify
-- What to check after implementation
-- How to validate quality
+- 実装後に何を確認するか
+- 品質をどう検証するか
 ```
 
 ---
 
-### Section 3: Implementation
+### セクション 3: Implementation（実装）
 
-Domain-specific knowledge organized for quick reference. Use tables, code blocks, and categorized lists.
+素早く参照できるよう整理されたドメイン固有の知識。表・コードブロック・カテゴリ別リストを活用します。
 
-**Good patterns:**
-- **Tables** for "when to use what" decisions
-- **Code blocks** with inline comments for common tasks
-- **Categorized lists** for options (e.g., material types, schema types)
-- **Framework-specific sections** (Next.js / Astro / React etc.)
+**良いパターン:**
+- **表** — 「何をいつ使うか」の意思決定に
+- **コードブロック** — よくあるタスクにはインラインコメント付きで
+- **カテゴリ別リスト** — 選択肢の整理に（例: マテリアルの種類、スキーマの種類）
+- **フレームワーク別セクション** — (Next.js / Astro / React 等)
 
-**Keep in SKILL.md**: Core patterns, most common cases
-**Move to references/**: Exhaustive lists, rare edge cases, deep technical specs
+**SKILL.md に置くもの**: コアパターン、最も一般的なケース
+**references/ に移すもの**: 網羅的なリスト、まれなエッジケース、深い技術仕様
 
-Cross-reference from SKILL.md:
+SKILL.md からのクロスリファレンス:
 ```markdown
-See `references/structured-data-schemas.md` for complete schema examples.
+完全なスキーマ例は `references/structured-data-schemas.md` を参照。
 ```
 
 ---
 
-### Section 4: Anti-Patterns
+### セクション 4: Anti-Patterns（アンチパターン）
 
-Explicitly call out what NOT to do. This is the single most impactful section for quality.
+してはいけないことを明示します。品質への影響が最も大きいセクションです。
 
-**Template:**
+**テンプレート:**
 ```markdown
 ## Anti-Patterns to Avoid
 
-❌ **<Pattern Name>**
+❌ **<パターン名>**
 ```
-Problem: What goes wrong
-Fix: What to do instead
+Problem: 何が問題か
+Fix: 代わりに何をすべきか
 ```
-Why bad: <Why this is harmful>
-Better: <The correct approach>
+Why bad: <なぜ有害か>
+Better: <正しいアプローチ>
 
-❌ **<Another Pattern>**
+❌ **<別のパターン>**
 ```bad
-// BAD code example
+// BAD コード例
 ```
 ```good
-// GOOD code example
+// GOOD コード例
 ```
-Why bad: <Concrete reason>
-Better: <What to do instead>
+Why bad: <具体的な理由>
+Better: <代わりに何をすべきか>
 ```
 
-**Rules for anti-patterns:**
-- Always include **Why bad** — without a reason, Claude can't judge edge cases
-- Always include **Better** — don't just say "don't do this" without an alternative
-- Use concrete examples (actual code, actual markup) over abstract descriptions
-- 5-10 anti-patterns is the sweet spot
+**アンチパターンのルール:**
+- 必ず **Why bad（なぜ悪いか）** を含める — 理由がなければ、Claudeはエッジケースを判断できない
+- 必ず **Better（改善案）** を含める — 「これをするな」と言うだけで代替案を示さないのはNG
+- 抽象的な説明ではなく具体的な例（実際のコード・実際のマークアップ）を使う
+- アンチパターンは 5〜10 個が適切
 
 ---
 
-### Section 5: Variation Guidance
+### セクション 5: Variation Guidance（バリエーションガイダンス）
 
-Prevent Claude's outputs from converging on the same pattern every time.
+Claudeのアウトプットが毎回同じパターンに収束するのを防ぎます。
 
-**Template:**
+**テンプレート:**
 ```markdown
 ## Variation Guidance
 
-**IMPORTANT**: <What should vary and why>
+**重要**: <何がなぜ変わるべきか>
 
-**Vary based on**:
-- Factor 1 (e.g., industry, content type, audience)
-- Factor 2 (e.g., complexity, context, platform)
+**以下に基づいてバリエーションを持たせる**:
+- 要因 1 (例: 業種、コンテンツの種類、対象者)
+- 要因 2 (例: 複雑さ、コンテキスト、プラットフォーム)
 
-**Avoid converging on**:
-- Same pattern X every time
-- Same default choice Y
-- Identical structure Z
+**以下への収束を避ける**:
+- 毎回同じパターン X
+- 同じデフォルトの選択 Y
+- 同一の構造 Z
 ```
 
-**Why this section matters:** AI outputs naturally converge toward "favorites." This section is the countermeasure. Without it, every skill output starts looking identical.
+**このセクションが重要な理由:** AIのアウトプットは自然と「お気に入り」に収束します。このセクションはその対策です。なければ、スキルのアウトプットはすべて似たようなものになっていきます。
 
 ---
 
-### Section 6: Remember
+### セクション 6: Remember（まとめ）
 
-A brief, empowering conclusion. Reinforce the philosophy in 2-4 sentences.
+短くエンパワーする締めくくり。2〜4文で哲学を再確認します。
 
-**Template:**
+**テンプレート:**
 ```markdown
 ## Remember
 
-**<Domain> is <core insight>.**
+**<ドメイン> は <コアな洞察> です。**
 
-The best <outputs>:
-- Key principle 1
-- Key principle 2
-- Key principle 3
+最高の <アウトプット> とは:
+- 主要な原則 1
+- 主要な原則 2
+- 主要な原則 3
 
-**Claude is capable of <what great output looks like>. These guidelines illuminate
-the path—they don't limit the result.**
+**Claude は <優れたアウトプットとはどのようなものか> を実現できます。これらのガイドラインは
+道を照らすものであり、結果を制限するものではありません。**
 ```
 
 ---
 
-## Degrees of Freedom
+## 自由度
 
-Match guidance specificity to task fragility:
+タスクの繊細さに合わせてガイダンスの詳細度を調整します:
 
-| Freedom Level | Format | When to Use |
+| 自由度 | 形式 | 使用場面 |
 |---|---|---|
-| **High** | Text guidance, principles | Creative/contextual tasks, multiple valid approaches |
-| **Medium** | Pseudocode, parameterized scripts | Structured tasks, some variation acceptable |
-| **Low** | Specific scripts, exact sequences | Fragile operations, consistency critical |
+| **高** | テキストのガイダンス・原則 | 創造的・文脈依存タスク、複数の有効なアプローチがある場合 |
+| **中** | 擬似コード・パラメータ化されたスクリプト | 構造化されたタスク、ある程度のバリエーションが許容される場合 |
+| **低** | 具体的なスクリプト・正確なシーケンス | 繊細な操作、一貫性が重要な場合 |
 
-Think of Claude as exploring a path: a narrow bridge with cliffs needs specific guardrails (low freedom), while an open field allows many routes (high freedom).
+Claudeがパスを探索するイメージで考えてください: 崖のある細い橋には具体的なガードレールが必要（低自由度）ですが、開けた野原では多くのルートが取れます（高自由度）。
 
 ---
 
-## Skill Creation Process
+## スキル作成プロセス
 
-### Step 1: Understand with Concrete Examples
+### Step 1: 具体的な例で理解を深める
 
-Clarify how the skill will be used:
-- "What functionality should the skill support?"
-- "Can you give examples of how this skill would be used?"
-- "What would a user say that should trigger this skill?"
+スキルの用途を明確にします:
+- 「スキルはどのような機能をサポートすべきですか?」
+- 「このスキルがどのように使われるか例を挙げていただけますか?」
+- 「ユーザーがどのような言葉を発したときにこのスキルが起動すべきですか?」
 
-**Pro Tip**: Iterate on a single challenging task until Claude succeeds, then extract the winning approach into a skill.
+**ヒント**: 一つの難しいタスクでClaudeが成功するまで反復し、その勝利したアプローチをスキルに抽出します。
 
-### Step 2: Plan Reusable Contents
+### Step 2: 再利用可能なコンテンツを計画する
 
-For each example, identify what resources help when executing repeatedly:
-- Code being rewritten each time → `scripts/`
-- Knowledge being rediscovered each time → `references/`
-- Files used in output → `assets/`
+各例について、繰り返し実行するときに役立つリソースを特定します:
+- 毎回書き直されているコード → `scripts/`
+- 毎回再発見されている知識 → `references/`
+- アウトプットで使用するファイル → `assets/`
 
-### Step 3: Initialize the Skill
+### Step 3: スキルを初期化する
 
 ```bash
 scripts/init_skill.py <skill-name> --path <output-directory>
 ```
 
-Creates SKILL.md template with proper frontmatter and resource directories.
+適切な frontmatter とリソースディレクトリを持つ SKILL.md テンプレートを作成します。
 
-### Step 4: Edit the Skill
+### Step 4: スキルを編集する
 
-1. **Start with bundled resources** — scripts, references, assets
-2. **Test all scripts** by actually running them
-3. **Write SKILL.md** using the 6-Section Template above
-4. **Delete unused** example files and directories
+1. **バンドルリソースから着手** — scripts・references・assets
+2. **すべてのスクリプトを実際に実行してテスト**する
+3. **SKILL.md を記述**する — 上記の6セクションテンプレートを使用
+4. **不要な**サンプルファイルとディレクトリを削除する
 
-#### Writing the Body
+#### 本文の書き方
 
-Use the 6-Section Template as the skeleton:
-1. Philosophy — Why does this domain matter? What's the mental model?
-2. Workflow — What's the step-by-step process?
-3. Implementation — What are the concrete patterns and examples?
-4. Anti-Patterns — What are the common mistakes?
-5. Variation — How should outputs differ across contexts?
-6. Remember — What's the empowering takeaway?
+6セクションテンプレートを骨格として使用します:
+1. Philosophy — このドメインはなぜ重要か? メンタルモデルは?
+2. Workflow — ステップバイステップのプロセスは?
+3. Implementation — 具体的なパターンと例は?
+4. Anti-Patterns — よくある間違いは?
+5. Variation — コンテキストによってアウトプットをどう変えるべきか?
+6. Remember — エンパワーする学びは?
 
-**Writing style**: Imperative/infinitive form. Concise examples over verbose explanations. Default assumption: Claude is already smart—only add what Claude doesn't know.
+**文体**: 命令形・不定詞形。冗長な説明よりも簡潔な例。デフォルトの前提: Claudeはすでに賢い――Claudeが知らないことだけを追加する。
 
-### Step 5: Package the Skill
+### Step 5: スキルをパッケージ化する
 
 ```bash
 scripts/package_skill.py <path/to/skill-folder>
 ```
 
-Validates frontmatter, naming, description quality. Packages into .skill file.
+frontmatter・命名・description の品質を検証。.skill ファイルにパッケージ化します。
 
-### Step 6: Iterate
+### Step 6: 反復改善
 
-**Undertriggering** → Add more detail to description, include keywords
-**Overtriggering** → Add negative triggers, be more specific
-**Inconsistent results** → Add anti-patterns, strengthen workflow steps
+**トリガーが少なすぎる場合** → description にキーワードを追加し、詳細を増やす
+**トリガーが多すぎる場合** → 否定トリガーを追加し、より具体的にする
+**結果が一貫しない場合** → アンチパターンを追加し、ワークフローのステップを強化する
 
-For detailed troubleshooting, see references/troubleshooting.md.
+詳細なトラブルシューティングは references/troubleshooting.md を参照。
 
 ---
 
-## Reference Guides
+## リファレンスガイド
 
-| Topic | File | Use When |
+| トピック | ファイル | 使用場面 |
 |---|---|---|
-| Multi-step processes | references/workflows.md | Sequential workflows, conditional logic |
-| Output formats | references/output-patterns.md | Templates, example patterns |
-| Design patterns | references/patterns.md | 5 proven skill patterns |
-| Testing | references/testing.md | Testing methodology |
-| Troubleshooting | references/troubleshooting.md | Debugging skill issues |
+| 複数ステップのプロセス | references/workflows.md | 順次ワークフロー、条件ロジック |
+| アウトプット形式 | references/output-patterns.md | テンプレート、例のパターン |
+| 設計パターン | references/patterns.md | 実証済みの 5 つのスキルパターン |
+| テスト | references/testing.md | テスト方法論 |
+| トラブルシューティング | references/troubleshooting.md | スキルの問題のデバッグ |
 
 ---
 
-## Quick Reference: Complete SKILL.md Checklist
+## クイックリファレンス: SKILL.md 完全チェックリスト
 
 **Frontmatter:**
-- [ ] `name` in kebab-case
-- [ ] `description` includes what + trigger conditions
-- [ ] No XML brackets, no reserved name prefixes
+- [ ] `name` が kebab-case である
+- [ ] `description` に内容とトリガー条件が含まれている
+- [ ] XML の山括弧なし、予約済みの名前プレフィックスなし
 
-**Body Structure:**
-- [ ] Philosophy section with "before X, ask" questions
-- [ ] Workflow section (analyze → design → implement → verify)
-- [ ] Implementation details with code examples and tables
-- [ ] Anti-patterns with Why bad + Better (5-10 items)
-- [ ] Variation Guidance with "IMPORTANT" callout
-- [ ] Remember section with empowering conclusion
+**本文構造:**
+- [ ] 「X の前に確認すること」という問いを含む Philosophy セクション
+- [ ] Workflow セクション (分析 → 設計 → 実装 → 検証)
+- [ ] コード例と表を含む Implementation の詳細
+- [ ] Why bad + Better を含む Anti-patterns（5〜10 項目）
+- [ ] 「重要」という強調を含む Variation Guidance
+- [ ] エンパワーする締めくくりの Remember セクション
 
-**Quality:**
-- [ ] Under 500 lines (split to references/ if needed)
-- [ ] No information duplicated between SKILL.md and references/
-- [ ] Scripts tested and working
-- [ ] Cross-references to reference files use relative paths
+**品質:**
+- [ ] 500行以内（必要に応じて references/ に分割）
+- [ ] SKILL.md と references/ の間で情報が重複していない
+- [ ] スクリプトがテスト済みで動作する
+- [ ] リファレンスファイルへのクロスリファレンスが相対パスを使用している

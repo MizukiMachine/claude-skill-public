@@ -5,75 +5,75 @@ description: "Webプロジェクト向けに、ブランドに合ったOpen Grap
 
 # OG Image Creator
 
-## Purpose
+## 目的
 
-Create Open Graph images that feel native to the site being shared. Inspect the codebase first, extract routes and brand signals, generate reviewable 1200x630 assets, and integrate metadata in the framework's native style.
+共有されるサイトに自然に馴染むOpen Graph画像を作成する。まずコードベースを調査してrouteとブランドシグナルを抽出し、レビュー可能な1200x630アセットを生成し、frameworkのネイティブスタイルでmetadataを統合する。
 
-## Operating Model
+## 動作モデル
 
-An OG image is part of the page contract and brand system, not a standalone poster. Optimize for accurate previews, readability in small social cards, and repeatable regeneration.
+OG画像は単独のポスターではなく、ページコントラクトとブランドシステムの一部である。正確なプレビュー、小さなソーシャルカードでの可読性、再生成の容易さを最優先に最適化する。
 
-Prioritize:
-1. Correct route metadata, dimensions, URLs, and accessibility.
-2. Authentic brand fit from existing colors, fonts, logos, components, and tone.
-3. Thumbnail readability with strong hierarchy and safe padding.
-4. A maintainable generation path instead of one-off manual images.
+優先順位:
+1. 正確なroute metadata、寸法、URL、アクセシビリティ。
+2. 既存の色、フォント、ロゴ、コンポーネント、トーンに基づいた本物のブランドフィット。
+3. 強いヒエラルキーと安全なpaddingによるサムネイルの可読性。
+4. 手作業の一回限りの画像ではなく、保守可能な生成パス。
 
-Before acting, establish:
-- Framework and routing model: Next.js App Router, Pages Router, Astro, Gatsby, React SPA, static HTML, or custom.
-- Current metadata owner: page exports, layout component, SEO component, HTML head, MD/MDX frontmatter, or CMS data.
-- Brand sources: logo files, CSS variables, Tailwind/theme config, fonts, components, screenshots, and existing image style.
-- Static vs dynamic need: fixed marketing pages, many content routes, user-generated routes, or per-slug article cards.
-- Canonical site URL for absolute `og:image` and `twitter:image` values.
+実行前に以下を確認する:
+- Frameworkとroutingモデル: Next.js App Router、Pages Router、Astro、Gatsby、React SPA、static HTML、またはカスタム。
+- 現在のmetadata所有者: page exports、layout component、SEO component、HTML head、MD/MDX frontmatter、またはCMSデータ。
+- ブランドソース: ロゴファイル、CSS変数、Tailwind/theme config、フォント、コンポーネント、スクリーンショット、既存の画像スタイル。
+- 静的 vs 動的の必要性: 固定のマーケティングページ、多数のコンテンツroute、ユーザー生成route、またはslugごとの記事カード。
+- `og:image` および `twitter:image` の絶対URLに使用するサイトの正規URL。
 
-## Capabilities
+## 機能
 
-- Analyze a web project and produce `og-analysis.json` with framework, routes, metadata, brand colors, fonts, and logos.
-- Generate route-specific images in `public/og/` plus `manifest.json` and `preview.html` for review.
-- Update framework-native metadata so pages expose correct Open Graph and Twitter card tags.
-- Audit existing OG images for generic design, stale metadata, missing absolute URLs, poor contrast, bad dimensions, or over-large files.
+- Webプロジェクトを分析し、framework、route、metadata、ブランドカラー、フォント、ロゴを含む `og-analysis.json` を生成する。
+- route固有の画像を `public/og/` に生成し、レビュー用の `manifest.json` と `preview.html` も出力する。
+- framework nativeのmetadataを更新して、ページが正しいOpen GraphとTwitterカードタグを公開するようにする。
+- 汎用的なデザイン、古いmetadata、絶対URLの欠如、コントラスト不足、不正な寸法、ファイルサイズ過大など、既存のOG画像を監査する。
 
-## Reference Files
+## リファレンスファイル
 
-| Topic | File | Use When |
+| トピック | ファイル | 使用するとき |
 |-------|------|----------|
-| OG specs and validation | [og-specifications.md](references/og-specifications.md) | Checking dimensions, metadata, URLs, image alt text, file size, and platform preview behavior |
-| Design and content principles | [design-principles.md](references/design-principles.md) | Choosing layouts, typography, hierarchy, brand usage, and page-type variations |
-| Framework workflows | [framework-workflows.md](references/framework-workflows.md) | Integrating metadata in Next.js, Astro, React SPA, Gatsby, or static HTML |
+| OG仕様とバリデーション | [og-specifications.md](references/og-specifications.md) | 寸法、metadata、URL、画像のalt text、ファイルサイズ、プラットフォームのプレビュー動作の確認 |
+| デザインとコンテンツの原則 | [design-principles.md](references/design-principles.md) | レイアウト、タイポグラフィ、ヒエラルキー、ブランド使用方法、ページタイプ別のバリエーション選択 |
+| Frameworkワークフロー | [framework-workflows.md](references/framework-workflows.md) | Next.js、Astro、React SPA、Gatsby、static HTMLでのmetadata統合 |
 
-## Workflow
+## ワークフロー
 
-### 1. Discover Existing State
+### 1. 現状の把握
 
-Use the analyzer as a first pass, then inspect the code manually where it reports gaps.
+アナライザーで最初のパスを実行し、ギャップが報告された箇所はコードを直接確認する。
 
 ```bash
 SKILL_ROOT="${CLAUDE_HOME:-$HOME/.claude}/skills/og-image-creator"
 python3 "$SKILL_ROOT/scripts/analyze_codebase.py" /path/to/project
 ```
 
-The script writes `/path/to/project/og-analysis.json`. Review it before generating images. If routes or brand signals are missing, inspect framework files directly with `rg`, then patch the JSON or improve the analyzer result before generation. Dynamic routes are marked with `dynamic: true`; generate concrete per-slug entries from real data instead of treating `[slug]`, `:id`, or `*` routes as final static pages.
+スクリプトは `/path/to/project/og-analysis.json` を書き出す。画像生成前に内容を確認すること。routeやブランドシグナルが欠けている場合は、`rg` でframeworkのファイルを直接調査し、JSONにパッチを当てるかアナライザーの結果を改善してから生成する。動的routeは `dynamic: true` でマークされる。`[slug]`、`:id`、`*` のrouteを最終的な静的ページとして扱わず、実際のデータから具体的なslugごとのエントリを生成すること。
 
-Discovery targets:
-- `package.json`, framework config, route folders, route config, SEO components, layout components, and MD/MDX frontmatter.
-- Existing `<Head>`, `metadata`, `generateMetadata`, `Helmet`, or HTML `<meta>` ownership.
-- `public/`, `src/assets/`, CSS files, Tailwind config, theme tokens, favicon/app icons, and logo assets.
-- Existing generated images and any social preview references.
+調査対象:
+- `package.json`、framework config、routeフォルダ、route config、SEOコンポーネント、layoutコンポーネント、MD/MDX frontmatter。
+- 既存の `<Head>`、`metadata`、`generateMetadata`、`Helmet`、またはHTML `<meta>` の所有権。
+- `public/`、`src/assets/`、CSSファイル、Tailwind config、theme tokens、favicon/appアイコン、ロゴアセット。
+- 既存の生成画像とソーシャルプレビューへの参照。
 
-### 2. Choose The Strategy
+### 2. 戦略の選択
 
-Use static generated images for stable routes and brand-critical pages. Use dynamic framework image generation only when route count or user-generated content makes static assets impractical.
+安定したrouteおよびブランド重要ページには静的生成画像を使用する。動的なframework画像生成は、route数またはユーザー生成コンテンツによって静的アセットが非現実的になる場合にのみ使用する。
 
-Choose page-type-specific treatments:
-- Landing: brand-forward, large value statement, minimal supporting copy.
-- Article/blog: category/date when available, title, excerpt, publisher mark.
-- Product/feature: product name, core benefit, actual visual or UI cue when available.
-- Documentation: topic label, structured feel, high clarity, restrained accents.
-- About/company: logo and identity-forward, professional and direct.
+ページタイプ別の処理を選択する:
+- Landing: ブランドを前面に出し、大きなバリューステートメント、補足コピーは最小限。
+- Article/blog: カテゴリ・日付（存在する場合）、タイトル、抜粋、パブリッシャーマーク。
+- Product/feature: 製品名、主要なベネフィット、実際のビジュアルまたはUIキュー（存在する場合）。
+- Documentation: トピックラベル、構造的な印象、高い明瞭性、抑制されたアクセント。
+- About/company: ロゴとアイデンティティを前面に出し、プロフェッショナルで直接的に。
 
-### 3. Generate Reviewable Images
+### 3. レビュー可能な画像の生成
 
-Install the rendering dependency in the target environment if it is missing:
+ターゲット環境にレンダリング依存関係がない場合はインストールする:
 
 ```bash
 python3 -m pip install playwright
@@ -85,103 +85,103 @@ SKILL_ROOT="${CLAUDE_HOME:-$HOME/.claude}/skills/og-image-creator"
 python3 "$SKILL_ROOT/scripts/generate_og_images.py" /path/to/project
 ```
 
-Expected outputs:
+期待される出力:
 - `public/og/<route>.png`
 - `public/og/manifest.json`
 - `public/og/preview.html`
 
-Open or screenshot `preview.html` when visual quality matters. Regenerate after editing `og-analysis.json`, routes, metadata, assets, or the generator.
+ビジュアル品質が重要な場合は `preview.html` を開くかスクリーンショットを撮ること。`og-analysis.json`、route、metadata、アセット、またはジェネレーターを編集した後は再生成すること。
 
-The generator skips dynamic parameterized routes by default. Use `--include-dynamic` only when intentionally producing a fallback image for a route pattern.
+ジェネレーターはデフォルトで動的パラメータ化routeをスキップする。`--include-dynamic` はrouteパターンのフォールバック画像を意図的に生成する場合にのみ使用すること。
 
-### 4. Integrate Metadata
+### 4. Metadataの統合
 
-Read [framework-workflows.md](references/framework-workflows.md) for the detected framework. Prefer the existing metadata abstraction if the project already has one. If no abstraction exists and several pages need metadata, create a small shared SEO helper rather than duplicating long tag blocks.
+検出されたframeworkに対して [framework-workflows.md](references/framework-workflows.md) を参照する。プロジェクトにすでにmetadata abstractionがある場合はそれを優先する。abstractionが存在せず複数のページにmetadataが必要な場合は、長いタグブロックを重複させるのではなく、小さな共有SEOヘルパーを作成する。
 
-Use absolute URLs for deployed social tags when the framework does not resolve them automatically. Include `og:image:width`, `og:image:height`, and `og:image:alt` when possible.
+frameworkが自動解決しない場合は、デプロイ済みのソーシャルタグに絶対URLを使用する。可能な限り `og:image:width`、`og:image:height`、`og:image:alt` を含めること。
 
-### 5. Verify
+### 5. 検証
 
-Run checks matched to the failure modes:
-- Image dimensions are 1200x630.
-- Text fits the safe area and remains readable at small preview sizes.
-- File sizes are reasonable; prefer under 200 KB when practical.
-- Metadata points to reachable absolute image URLs in deployed HTML.
-- Social preview tools show the intended image after cache refresh.
-- No unrelated user changes were overwritten while integrating metadata.
+失敗モードに対応したチェックを実行する:
+- 画像の寸法が1200x630であること。
+- テキストがセーフエリアに収まり、小さなプレビューサイズでも読みやすいこと。
+- ファイルサイズが適切であること。実用的な範囲で200 KB未満を推奨。
+- Metadataがデプロイ済みHTMLの到達可能な絶対画像URLを指していること。
+- キャッシュリフレッシュ後にソーシャルプレビューツールが意図した画像を表示すること。
+- Metadata統合中に無関係なユーザー変更が上書きされていないこと。
 
-## Command Patterns
+## コマンドパターン
 
-Analyze a project and write a custom analysis path:
+プロジェクトを分析してカスタム分析パスに書き出す:
 
 ```bash
 SKILL_ROOT="${CLAUDE_HOME:-$HOME/.claude}/skills/og-image-creator"
 python3 "$SKILL_ROOT/scripts/analyze_codebase.py" . --output ./tmp/og-analysis.json
 ```
 
-Generate from a reviewed analysis file:
+レビュー済みの分析ファイルから生成する:
 
 ```bash
 SKILL_ROOT="${CLAUDE_HOME:-$HOME/.claude}/skills/og-image-creator"
 python3 "$SKILL_ROOT/scripts/generate_og_images.py" . --analysis ./tmp/og-analysis.json --out-dir ./public/og
 ```
 
-Generate only a few routes while iterating:
+イテレーション中にいくつかのrouteのみ生成する:
 
 ```bash
 SKILL_ROOT="${CLAUDE_HOME:-$HOME/.claude}/skills/og-image-creator"
 python3 "$SKILL_ROOT/scripts/generate_og_images.py" . --limit 3
 ```
 
-Generate fallback images for dynamic route patterns only when that is the intended result:
+それが意図した結果である場合にのみ、動的routeパターンのフォールバック画像を生成する:
 
 ```bash
 SKILL_ROOT="${CLAUDE_HOME:-$HOME/.claude}/skills/og-image-creator"
 python3 "$SKILL_ROOT/scripts/generate_og_images.py" . --include-dynamic
 ```
 
-## Anti-Patterns
+## アンチパターン
 
-**Generating before discovery**
+**調査前に生成する**
 
-Why bad: The result usually misses routes, uses the wrong metadata owner, and looks detached from the product.
+問題: 結果はrouteが欠けていたり、間違ったmetadata所有者を使っていたり、製品から乖離した印象になりがちである。
 
-Better: Run analysis, inspect route and brand sources, then generate.
+改善策: 分析を実行し、routeとブランドソースを確認してから生成する。
 
-**One layout for every route**
+**すべてのrouteに同一レイアウトを使用する**
 
-Why bad: Landing pages, docs, articles, and products communicate different jobs.
+問題: ランディングページ、docs、記事、製品はそれぞれ異なる役割を持つ。
 
-Better: Vary layout, hierarchy, labels, and visual emphasis by page type.
+改善策: ページタイプ別にレイアウト、ヒエラルキー、ラベル、ビジュアルの強調を変える。
 
-**Generic gradient plus title**
+**汎用グラデーション＋タイトル**
 
-Why bad: It could belong to any site and weakens brand recognition.
+問題: どのサイトにも当てはまる印象になり、ブランド認知が弱まる。
 
-Better: Use actual brand tokens, logo assets, component shapes, spacing, and typography patterns.
+改善策: 実際のブランドトークン、ロゴアセット、コンポーネントシェイプ、スペーシング、タイポグラフィパターンを使用する。
 
-**Relative social image URLs in final metadata**
+**最終的なmetadataに相対的なソーシャル画像URLを使用する**
 
-Why bad: Some crawlers require absolute public URLs and cannot resolve local paths.
+問題: 一部のクローラーは絶対的なパブリックURLを要求し、ローカルパスを解決できない。
 
-Better: Resolve images through the site's canonical origin or framework metadata base.
+改善策: サイトの正規originまたはframeworkのmetadata baseを通じて画像を解決する。
 
-**Overcrowded cards**
+**カードに情報を詰め込みすぎる**
 
-Why bad: Social previews are often rendered as thumbnails.
+問題: ソーシャルプレビューはサムネイルとして表示されることが多い。
 
-Better: Use one dominant idea, short supporting copy, large type, and safe padding.
+改善策: 1つの主要なアイデア、短い補足コピー、大きなフォント、安全なpaddingを使用する。
 
-## Variation Guidance
+## バリエーションガイダンス
 
-Vary based on:
-- Page type, content density, audience, and share context.
-- Brand maturity: established design systems should reuse exact tokens; young projects may need a restrained generated style aligned with current UI.
-- Asset availability: use real product or UI visuals when they help; avoid decorative placeholders.
-- Scale: a few static routes can be hand-reviewed; hundreds of routes need templating and dynamic generation.
+以下に基づいてバリエーションを持たせる:
+- ページタイプ、コンテンツ密度、対象読者、共有コンテキスト。
+- ブランドの成熟度: 確立されたデザインシステムは正確なトークンを再利用すべき。若いプロジェクトは現在のUIに合わせた抑制された生成スタイルが必要な場合がある。
+- アセットの利用可能性: 実際の製品やUIビジュアルが役立つ場合は使用する。装飾的なプレースホルダーは避ける。
+- 規模: 少数の静的routeは手動でレビュー可能。何百ものrouteにはテンプレート化と動的生成が必要。
 
-Avoid converging on:
-- Identical title/logo placement for every page.
-- A single dominant hue if the site itself has a richer palette.
-- Long titles squeezed into tiny type.
-- Metadata edits that ignore the project's established SEO pattern.
+以下への収束を避ける:
+- すべてのページで同一のタイトル・ロゴの配置。
+- サイト自体がより豊かなパレットを持つ場合の単一の支配的な色相。
+- 小さなフォントに押し込まれた長いタイトル。
+- プロジェクトの確立されたSEOパターンを無視したmetadata編集。

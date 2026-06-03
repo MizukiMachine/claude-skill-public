@@ -5,118 +5,118 @@ metadata:
   short-description: "Frontend testing on the browser-observer MCP: E2E, Vitest, flaky triage, game testing."
 ---
 
-# Frontend Testing
+# フロントエンドテスト
 
-Unlock reliable confidence fast: enable safe refactors by choosing the right test layer, making the app observable, and eliminating nondeterminism so failures are actionable.
+正しいテスト層を選び、アプリを観測可能にし、非決定性を排除することで、失敗を解析可能にしながら、素早く確実な信頼性を手に入れましょう。
 
-## Execution Substrate: browser-observer
+## 実行基盤: browser-observer
 
-This skill drives the **browser-observer** MCP (tools prefixed `browser_`, fully-qualified `mcp__browser-observer__browser_*`) as its real-browser layer. That MCP is Playwright-backed (Chromium) and capability-only; this skill owns the test methodology.
+このスキルは、実ブラウザ層として **browser-observer** MCP（ツール名プレフィックス `browser_`、完全修飾名 `mcp__browser-observer__browser_*`）を駆動します。この MCP は Playwright（Chromium）をバックエンドに持ち、ケイパビリティのみを提供します。テストの方法論はこのスキルが担います。
 
-Two layers, one substrate:
-- **Browser-driving steps** (E2E, game flows, visual capture) use `browser_*` tools.
-- **Runner-agnostic layers** — unit (Vitest/Jest), component (RTL), pixel diffing (`imgdiff.py`), CI wiring — touch no MCP and are unchanged by this.
+2つの層、1つの基盤:
+- **ブラウザ操作ステップ**（E2E、ゲームフロー、ビジュアルキャプチャ）は `browser_*` ツールを使用します。
+- **ランナー非依存の層**（unit（Vitest/Jest）、component（RTL）、ピクセル差分（`imgdiff.py`）、CI 配線）は MCP に触れず、変更もありません。
 
-Tool mapping (official Playwright MCP → this MCP):
+ツールマッピング（公式 Playwright MCP → この MCP）:
 
-| Need | `browser_*` tool / note |
+| 用途 | `browser_*` ツール / 備考 |
 |------|-------------------------|
-| navigate | `browser_navigate` (pass `url`; start the dev server with `BROWSER_OBSERVER_BLOCK_PRIVATE_IPS=false` so `localhost` isn't blocked) |
-| console messages | `browser_observe` — returns console errors/warnings/all messages |
-| network requests | `browser_observe` — returns failed + non-2xx requests |
-| DOM / element refs | `browser_observe` — DOM outline + interactive elements; act by **CSS selector**, not a snapshot ref |
-| click | `browser_click { selector }` |
-| keyboard | `browser_press_key { key }` (real keydown/keyup; WASD/arrows) |
-| type text | `browser_type { selector, text }` (sets value; for key events use `browser_press_key`) |
-| read app state | `browser_evaluate { expression }` — **sandboxed**: ≤1000 chars; `require/import/process/fs/Function/eval/globalThis` blocked. Read `window.__TEST__` only; expression must return JSON-serializable data |
-| screenshot | `browser_screenshot` (saved under `.browser-observer/screenshots`) |
-| wait for ready | `browser_wait { selector }` on a DOM ready-marker, or poll `browser_evaluate "window.__TEST__?.ready === true"` (`browser_wait` cannot poll arbitrary JS) |
+| ナビゲート | `browser_navigate`（`url` を渡す。`localhost` がブロックされないよう `BROWSER_OBSERVER_BLOCK_PRIVATE_IPS=false` で dev サーバーを起動すること） |
+| コンソールメッセージ | `browser_observe` — console errors/warnings/全メッセージを返す |
+| ネットワークリクエスト | `browser_observe` — 失敗リクエストと non-2xx リクエストを返す |
+| DOM / 要素参照 | `browser_observe` — DOM アウトライン + インタラクティブ要素。snapshot ref ではなく **CSS セレクター** で操作する |
+| クリック | `browser_click { selector }` |
+| キーボード | `browser_press_key { key }` (実際の keydown/keyup; WASD/矢印キー) |
+| テキスト入力 | `browser_type { selector, text }` (値をセット; キーイベントには `browser_press_key` を使用) |
+| アプリ状態の読み取り | `browser_evaluate { expression }` — **サンドボックス**: 1000文字以下; `require/import/process/fs/Function/eval/globalThis` はブロック。`window.__TEST__` のみを参照し、式は JSON シリアライズ可能なデータを返す必要がある |
+| スクリーンショット | `browser_screenshot`（`.browser-observer/screenshots` 配下に保存） |
+| 準備完了まで待機 | DOM ready マーカーに対して `browser_wait { selector }` を使うか、`browser_evaluate “window.__TEST__?.ready === true”` をポーリングする（`browser_wait` は任意の JS をポーリングできない） |
 
-Relationship to the **frontend-observation** skill: that one is the fast, in-loop "is it OK *now*?" check on the same MCP; this skill turns a confirmed, stable flow into a durable CI test. Confirm there; codify here.
+**frontend-observation** スキルとの関係: そちらは同じ MCP 上で「今これは OK か？」を素早くインループで確認するもので、このスキルは確認済みの安定したフローを永続的な CI テストに変換します。frontend-observation で確認し、ここで定式化します。
 
-## Philosophy: Confidence Per Minute
+## 哲学: 1分あたりの信頼性
 
-Frontend tests fail for two reasons: the product is broken, or the test is lying. Your job is to maximize signal and minimize "test is lying".
+フロントエンドのテストが失敗する理由は2つあります: プロダクトが壊れているか、テストが嘘をついているかです。あなたの仕事はシグナルを最大化し、「テストが嘘をつく」状況を最小化することです。
 
-**Before writing a test, ask**:
-- What user risk am I covering (money, progression, auth, data loss, crashes)?
-- What's the narrowest layer that catches this bug class (pure logic vs UI vs full browser)?
-- What nondeterminism exists (time, RNG, async loading, network, animations, fonts, GPU)?
-- What "ready" signal can I wait on besides `setTimeout`?
-- What should a failure print/screenshot so it's diagnosable in CI?
+**テストを書く前に問いかけること**:
+- どのユーザーリスクをカバーしているか（お金、進行状況、認証、データ損失、クラッシュ）?
+- このバグクラスを検出できる最も狭い層はどこか（純粋なロジック vs UI vs フルブラウザ）?
+- どのような非決定性が存在するか（時間、RNG、非同期ローディング、ネットワーク、アニメーション、フォント、GPU）?
+- `setTimeout` 以外に待機できる「準備完了」シグナルは何か?
+- 失敗時に何を print/screenshot すれば CI で診断可能になるか?
 
-**Core principles**:
-1. **Test the contract, not the implementation**: assert stable user-meaningful outcomes and public seams.
-2. **Prefer determinism over retries**: make time/RNG/network controllable; remove flake at the source.
-3. **Observe like a debugger**: console errors, network failures, screenshots, and state dumps on failure.
-4. **One critical flow first**: a reliable smoke test beats 50 flaky tests.
+**コア原則**:
+1. **実装ではなくコントラクトをテストする**: 安定したユーザー意味のある結果とパブリックなシームをアサートする。
+2. **リトライよりも決定性を優先する**: 時間/RNG/ネットワークを制御可能にし、flake を根本から取り除く。
+3. **デバッガーのように観察する**: 失敗時のコンソールエラー、ネットワーク障害、スクリーンショット、状態ダンプ。
+4. **最初に1つのクリティカルフロー**: 信頼できるスモークテスト1つは、50個の flaky テストに勝る。
 
-## Test Layer Decision Tree
+## テスト層の決定木
 
-Pick the cheapest layer that provides needed confidence:
+必要な信頼性を提供できる最もコストの低い層を選びます:
 
-| Layer | Speed | Use For |
+| 層 | 速度 | 用途 |
 |-------|-------|---------|
-| **Unit** | Fastest | Pure functions, reducers, validators, math, pathfinding, deterministic simulation |
-| **Component** | Medium | UI behavior with mocked IO (React Testing Library, Vue Testing Library) |
-| **E2E** | Slowest | Critical user flows across routing, storage, real bundling/runtime |
-| **Visual** | Specialized | Layout/pixel regressions; for canvas/WebGL, only after locking determinism |
+| **Unit** | 最速 | 純粋な関数、reducer、バリデーター、数学計算、パスファインディング、決定論的シミュレーション |
+| **Component** | 中程度 | モックされた IO を持つ UI の振る舞い（React Testing Library、Vue Testing Library） |
+| **E2E** | 最遅 | ルーティング、ストレージ、実際のバンドリング/ランタイムをまたがるクリティカルなユーザーフロー |
+| **Visual** | 特化 | レイアウト/ピクセルのリグレッション; canvas/WebGL の場合は決定性を固定した後にのみ実施 |
 
-## Quick Start: First Smoke Test
+## クイックスタート: 最初のスモークテスト
 
-1. **Define 1 critical flow**: "page loads → user can start → one key action works"
-2. **Add a test seam** to the app (see below)
-3. **Choose runner**: the browser-observer MCP (`browser_*`) for E2E, unit tests (Vitest/Jest) for logic
-4. **Fail loudly**: treat console errors and failed requests as test failures
-5. **Stabilize**: seed RNG, freeze time, fix viewport, disable animations
+1. **クリティカルフローを1つ定義する**: 「ページが読み込まれる → ユーザーが開始できる → 1つのキーアクションが機能する」
+2. **テストシーム**をアプリに追加する（下記参照）
+3. **ランナーを選択する**: E2E には browser-observer MCP（`browser_*`）、ロジックには unit テスト（Vitest/Jest）
+4. **大きく失敗させる**: コンソールエラーと失敗リクエストをテストの失敗として扱う
+5. **安定化する**: RNG シード固定、時間を凍結、viewport を固定、アニメーションを無効化
 
-## Concrete MCP Workflow: Testing a Game
+## 具体的な MCP ワークフロー: ゲームのテスト
 
-Step-by-step sequence for testing a Phaser/canvas game on the browser-observer MCP. Note `browser_evaluate` takes a JS **expression string** (not a function) and is sandboxed, so readiness is waited on a DOM marker rather than an in-page Promise.
+browser-observer MCP 上で Phaser/canvas ゲームをテストするためのステップバイステップのシーケンス。`browser_evaluate` はJS の**式の文字列**（関数ではない）を受け取り、サンドボックス化されているため、準備完了はページ内 Promise ではなく DOM マーカーで待機します。
 
 ```
-1. browser_navigate { url: "http://localhost:3000?test=1&seed=42" }
-   (One navigation. Start the dev server with BROWSER_OBSERVER_BLOCK_PRIVATE_IPS=false so localhost loads.)
+1. browser_navigate { url: “http://localhost:3000?test=1&seed=42” }
+   (ナビゲーションは1回のみ。localhost が読み込まれるよう BROWSER_OBSERVER_BLOCK_PRIVATE_IPS=false で dev サーバーを起動すること。)
 
-2. browser_wait { selector: "[data-test-ready]" }
-   (Have the seam set a DOM ready-marker, e.g. document.body.dataset.testReady = "1".
-    Alternative: poll browser_evaluate { expression: "window.__TEST__?.ready === true" }.)
+2. browser_wait { selector: “[data-test-ready]” }
+   (シームに DOM ready マーカーをセットさせる。例: document.body.dataset.testReady = “1”
+    代替案: browser_evaluate { expression: “window.__TEST__?.ready === true” } をポーリングする。)
 
 3. browser_observe { includeScreenshot: false, maxElements: 20 }
-   (One call returns console errors AND network failures. Fail on any own-origin error.)
+   (1回の呼び出しでコンソールエラーとネットワーク障害の両方を返す。自ドメインのエラーがあれば失敗とする。)
 
-4. browser_click { selector: "button#start" }
-   (Act by CSS selector — this MCP has no snapshot-ref model.)
+4. browser_click { selector: “button#start” }
+   (CSS セレクターで操作する — この MCP には snapshot-ref モデルがない。)
 
-5. browser_evaluate { expression: "window.__TEST__.state()" }
-   (Assert game state. Must return JSON-serializable data; expression ≤ 1000 chars.)
+5. browser_evaluate { expression: “window.__TEST__.state()” }
+   (ゲーム状態をアサートする。JSON シリアライズ可能なデータを返す必要がある; 式は1000文字以下。)
 
-6. browser_press_key { key: "ArrowRight" }
-   (Real keydown/keyup — WASD/arrows for movement.)
+6. browser_press_key { key: “ArrowRight” }
+   (実際の keydown/keyup — 移動には WASD/矢印キー。)
 
-7. browser_evaluate { expression: "window.__TEST__.state().player.x" }
-   (Verify movement happened.)
+7. browser_evaluate { expression: “window.__TEST__.state().player.x” }
+   (移動が発生したことを検証する。)
 
 8. browser_screenshot
-   (Visual evidence after deterministic setup; saved under .browser-observer/screenshots.)
+   (決定論的セットアップ後のビジュアルエビデンス; .browser-observer/screenshots 配下に保存。)
 ```
 
-## Recommended Test Seams
+## 推奨テストシーム
 
-Add to the app for testability (read-only, stable, minimal):
+テスト可能性のためにアプリに追加する（読み取り専用、安定、最小限）:
 
 ```javascript
 window.__TEST__ = {
-  ready: false,           // true after first interactive frame
-  seed: null,             // current RNG seed
-  sceneKey: null,         // current scene/route
-  state: () => ({         // JSON-serializable snapshot
+  ready: false,           // 最初のインタラクティブフレーム後に true
+  seed: null,             // 現在の RNG シード
+  sceneKey: null,         // 現在のシーン/ルート
+  state: () => ({         // JSON シリアライズ可能なスナップショット
     scene: this.sceneKey,
     player: { x, y, hp },
     score: gameState.score,
     entities: entities.map(e => ({ id: e.id, type: e.type, x: e.x, y: e.y }))
   }),
-  commands: {             // optional mutation commands
+  commands: {             // オプションのミューテーションコマンド
     reset: () => {},
     seed: (n) => {},
     skipIntro: () => {}
@@ -124,102 +124,102 @@ window.__TEST__ = {
 };
 ```
 
-**Rule**: Expose IDs + essential fields, not raw Phaser/engine objects.
+**ルール**: ID と必須フィールドを公開し、生の Phaser/エンジンオブジェクトは公開しない。
 
-## Anti-Patterns to Avoid
+## 避けるべきアンチパターン
 
-❌ **Testing the wrong layer**: E2E tests for pure logic
-*Why tempting*: "Let's just test everything through the browser"
-*Better*: Unit tests for logic; reserve E2E for integration contracts
+❌ **間違った層でのテスト**: 純粋なロジックに E2E テストを使う
+*魅力的な理由*: 「とにかくブラウザを通してすべてテストしよう」
+*より良い方法*: ロジックには unit テスト; E2E は統合コントラクトのために残す
 
-❌ **Testing implementation details**: Asserting DOM structure/classnames
-*Why tempting*: Easy to assert what you can see in DevTools
-*Better*: Assert user-meaningful outputs (text, score, HP changes)
+❌ **実装の詳細をテストする**: DOM 構造/クラス名をアサートする
+*魅力的な理由*: DevTools で見えるものを簡単にアサートできる
+*より良い方法*: ユーザーにとって意味のある出力をアサートする（テキスト、スコア、HP の変化）
 
-❌ **Sleep-driven tests**: `wait 2s then click`
-*Why tempting*: Simple and "works on my machine"
-*Better*: Wait on explicit readiness (DOM marker, `window.__TEST__.ready`)
+❌ **Sleep 駆動のテスト**: `wait 2s then click`
+*魅力的な理由*: シンプルで「自分のマシンでは動く」
+*より良い方法*: 明示的な準備完了シグナルを待機する（DOM マーカー、`window.__TEST__.ready`）
 
-❌ **Uncontrolled randomness**: RNG/time in assertions
-*Why tempting*: "The game uses random, so the test should too"
-*Better*: Seed RNG (`?seed=42`), freeze time, assert stable invariants
+❌ **制御されていないランダム性**: アサーションでの RNG/時間の使用
+*魅力的な理由*: 「ゲームはランダムを使うので、テストも同様にすべき」
+*より良い方法*: RNG をシード固定する（`?seed=42`）、時間を凍結する、安定した不変条件をアサートする
 
-❌ **Pixel snapshots without determinism**: Canvas screenshots that flake
-*Why tempting*: "I'll catch visual bugs automatically"
-*Better*: Deterministic mode first; then screenshot at known stable frames
+❌ **決定性なしのピクセルスナップショット**: Canvas スクリーンショットの flake
+*魅力的な理由*: 「ビジュアルバグを自動的に検出できる」
+*より良い方法*: まず決定論的モードを確立してから、既知の安定したフレームでスクリーンショットを撮る
 
-❌ **Retries as a strategy**: "Just bump retries to 3"
-*Why tempting*: Quick fix that makes CI green
-*Better*: Fix the flake source; retries hide real problems
+❌ **戦略としてのリトライ**: 「リトライを3回に増やすだけ」
+*魅力的な理由*: CI をグリーンにする簡単な修正
+*より良い方法*: flake の根本原因を修正する; リトライは本当の問題を隠す
 
-## Debugging Failed Tests
+## 失敗したテストのデバッグ
 
-When a test fails, gather evidence in this order:
+テストが失敗した場合、次の順序でエビデンスを収集する:
 
-1. **Console errors + network failures**: `browser_observe { includeScreenshot: false, maxElements: 20 }` — one call returns both; fail on any own-origin console/page error or failed/non-2xx request
-2. **Screenshot**: `browser_screenshot` → visual state at failure (saved under `.browser-observer/screenshots`)
-3. **App state**: `browser_evaluate { expression: "window.__TEST__.state()" }`
-4. **Classify the flake** (see references/flake-reduction.md):
-   - Readiness? → add explicit wait
-   - Timing? → control animation/physics
-   - Environment? → lock viewport/DPR
-   - Data? → isolate test data
+1. **コンソールエラー + ネットワーク障害**: `browser_observe { includeScreenshot: false, maxElements: 20 }` — 1回の呼び出しで両方を返す; 自ドメインのコンソール/ページエラーや失敗/non-2xx リクエストがあれば失敗とする
+2. **スクリーンショット**: `browser_screenshot` → 失敗時のビジュアル状態（`.browser-observer/screenshots` 配下に保存）
+3. **アプリ状態**: `browser_evaluate { expression: “window.__TEST__.state()” }`
+4. **flake の分類**（references/flake-reduction.md を参照）:
+   - 準備完了? → 明示的な待機を追加
+   - タイミング? → アニメーション/物理演算を制御
+   - 環境? → viewport/DPR を固定
+   - データ? → テストデータを分離
 
-## Graduation Criteria: When Is Testing "Enough"?
+## 卒業基準: テストは「十分」か？
 
-Minimum viable test suite:
-- [ ] **1 smoke test** that proves the app loads and primary action works
-- [ ] **Test seam exists** (`window.__TEST__` with ready flag and state)
-- [ ] **Deterministic mode** for canvas/games (`?test=1` enables seeding)
-- [ ] **Console errors fail tests** (no silent failures)
-- [ ] **CI runs tests** on every push
+最低限のテストスイート:
+- [ ] アプリが読み込まれ、主要なアクションが機能することを証明する **1つのスモークテスト**
+- [ ] **テストシームが存在する**（ready フラグと state を持つ `window.__TEST__`）
+- [ ] canvas/ゲームの**決定論的モード**（`?test=1` でシーディングを有効化）
+- [ ] **コンソールエラーがテストを失敗させる**（サイレントな失敗なし）
+- [ ] **CI がすべての push でテストを実行する**
 
-Level up when:
-- Critical paths (auth, payment, save/load) have dedicated E2E
-- Unit tests cover complex logic (pathfinding, damage calc, state machines)
-- Visual regression on key screens (menu, HUD) with locked determinism
+次のレベルに進む条件:
+- クリティカルなパス（認証、支払い、セーブ/ロード）に専用の E2E がある
+- 複雑なロジック（パスファインディング、ダメージ計算、ステートマシン）を unit テストがカバーする
+- 決定性が固定された主要画面（メニュー、HUD）でのビジュアルリグレッション
 
-## Visual Regression with imgdiff.py
+## imgdiff.py によるビジュアルリグレッション
 
-For pixel comparison of screenshots:
+スクリーンショットのピクセル比較:
 
 ```bash
-# Compare baseline to current
+# ベースラインと現在を比較
 python scripts/imgdiff.py baseline.png current.png --out diff.png
 
-# Allow small tolerance (anti-aliasing differences)
+# 小さな許容範囲を設定（アンチエイリアシングの差異）
 python scripts/imgdiff.py baseline.png current.png --max-rms 2.0
 ```
 
-Exit codes: 0 = identical, 1 = different, 2 = error
+終了コード: 0 = 同一、1 = 差異あり、2 = エラー
 
-## UI Slicing Regressions (Nine-Slice / Ribbons / Bars)
+## UI スライスのリグレッション（ナインスライス / リボン / バー）
 
-Canvas UI issues (panel seams, segmented ribbons, invisible HUD fills) are best caught with a dedicated UI harness instead of the full gameplay flow.
+Canvas の UI の問題（パネルのシーム、セグメント化されたリボン、見えない HUD のフィル）は、完全なゲームプレイフローの代わりに専用の UI ハーネスで検出するのが最適です。
 
-1. Build a simple `test.html`/scene that loads *only* the UI assets.
-2. Render raw slices next to assembled panels (multi-size), and include ribbon/bars with both “raw crop + scale” and “stitched multi-slice” views.
-3. Expose `window.__TEST__` with `.commands.showTest(n)` so the browser MCP can toggle each mode deterministically (drive it via `browser_evaluate { expression: "window.__TEST__.commands.showTest(2)" }`).
-4. Capture targeted screenshots (panels, ribbons, bars) and diff them in CI.
+1. *UI アセットのみ*を読み込むシンプルな `test.html`/シーンを作成する。
+2. 組み立て済みパネル（複数サイズ）の横に生のスライスをレンダリングし、「生のクロップ + スケール」と「スティッチされたマルチスライス」の両方のビューでリボン/バーを含める。
+3. ブラウザ MCP が各モードを決定論的に切り替えられるよう、`window.__TEST__` に `.commands.showTest(n)` を公開する（`browser_evaluate { expression: “window.__TEST__.commands.showTest(2)” }` で操作する）。
+4. 対象のスクリーンショット（パネル、リボン、バー）をキャプチャし、CI で差分を取る。
 
-See `references/phaser-canvas-testing.md` for the deterministic setup + screenshot workflow.
+決定論的セットアップ + スクリーンショットのワークフローについては `references/phaser-canvas-testing.md` を参照。
 
-## Variation Guidance
+## バリエーションガイダンス
 
-Adapt approach based on context:
-- **DOM app**: Standard CSS selectors via `browser_click`/`browser_observe`, wait for elements with `browser_wait`
-- **Canvas game**: Test seams mandatory, wait via `window.__TEST__.ready`
-- **Hybrid**: DOM for menus, test seams for gameplay
-- **CI-only GPU**: May need software rendering flags or skip visual tests
-- **UI slicing regressions**: For nine-slice/ribbon/bar artifacts, prefer a small UI harness scene/page with deterministic modes and targeted screenshots (`references/phaser-canvas-testing.md`).
+コンテキストに応じてアプローチを調整する:
+- **DOM アプリ**: `browser_click`/`browser_observe` で標準 CSS セレクターを使用し、`browser_wait` で要素を待機
+- **Canvas ゲーム**: テストシームは必須、`window.__TEST__.ready` で待機
+- **ハイブリッド**: メニューには DOM、ゲームプレイにはテストシーム
+- **CI のみの GPU**: ソフトウェアレンダリングフラグが必要か、ビジュアルテストをスキップする可能性あり
+- **UI スライスのリグレッション**: ナインスライス/リボン/バーのアーティファクトには、決定論的モードと対象スクリーンショットを持つ小さな UI ハーネスシーン/ページを優先する（`references/phaser-canvas-testing.md`）。
 
-## Bundled Resources
+## 同梱リソース
 
-Read these when needed:
-- `references/playwright-mcp-cheatsheet.md`: tool patterns written against the **official Playwright MCP** API — translate each call to a `browser_*` tool using the mapping table in "Execution Substrate" above (e.g. `browser_snapshot`+ref → `browser_observe`+CSS selector)
-- `references/phaser-canvas-testing.md`: Deterministic mode for Phaser games
-- `references/flake-reduction.md`: Flake classification and fixes
+必要に応じて参照:
+- `references/playwright-mcp-cheatsheet.md`: **公式 Playwright MCP** API に対して書かれたツールパターン — 「実行基盤」上のマッピングテーブルを使用して各呼び出しを `browser_*` ツールに変換する（例: `browser_snapshot`+ref → `browser_observe`+CSS セレクター）
+- `references/phaser-canvas-testing.md`: Phaser ゲームの決定論的モード
+- `references/flake-reduction.md`: Flake の分類と修正
 
-## Remember
+## 覚えておくこと
 
-You can make almost any frontend (including canvas/WebGL games) testable by adding a tiny, stable seam for readiness + state. One reliable smoke test is the foundation. Aim for tests that are boring to maintain: deterministic, explicit about readiness, and rich in failure evidence. The goal is confidence, not coverage numbers.
+準備完了と状態のための小さく安定したシームを追加することで、ほぼあらゆるフロントエンド（canvas/WebGL ゲームを含む）をテスト可能にできます。信頼できるスモークテスト1つが基盤です。メンテナンスが退屈なテストを目指しましょう: 決定論的で、準備完了について明示的で、失敗エビデンスが豊富なもの。目標はカバレッジの数値ではなく、信頼性です。

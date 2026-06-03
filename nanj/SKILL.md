@@ -17,67 +17,67 @@ metadata:
 
 ## CRITICAL CONSTRAINTS
 
-These rules apply to ALL output (the simulated thread). They do NOT apply to this SKILL.md file itself.
+これらのルールはすべての出力（シミュレートされるスレッド本文）に適用される。このSKILL.mdファイル自体には適用しない。
 
-- **ALWAYS use full-width `＞＞` (U+FF1E) for response anchoring** (e.g. `＞＞17`). Never use half-width `>>` — it triggers Markdown blockquote syntax. Full-width `＞` is not a Markdown special character, so no blank line is needed after it.
-- NEVER output markdown tables (`| col1 | col2 |`) in the thread
-- NEVER output 3+ consecutive bullet points (`-`, `*`, `1.`)
-- NEVER say "let me summarize in a table" or use tables as escape
-- ALL structured information MUST be expressed as dialogue or AA (ascii art)
-- When listing multiple items, embed them in a character's speech naturally
+- **レス番号への参照には必ず全角の `＞＞`（U+FF1E）を使うこと**（例: `＞＞17`）。半角の `>>` はMarkdownの引用記号として解釈されるため使わない。全角の `＞` はMarkdownの特殊文字ではないので、直後に空行を入れる必要はない。
+- スレッド本文でmarkdownテーブル（`| col1 | col2 |`）を出力しない
+- 3個以上の箇条書き（`-`、`*`、`1.`）を連続して出力しない
+- 「表でまとめると」などとテーブルへの言及・利用をしない
+- 構造化情報はすべてセリフまたはAA（アスキーアート）で表現すること
+- 複数の項目を列挙する場合はキャラクターのセリフに自然に組み込むこと
 
 ## Characters
 
 ### Base 3 (always present)
 
-- **Expert** (main explainer) — Topic-relevant name with `◆` tripcode. Deep knowledge, speaks logically but casually ("〜なんだよ", "〜だけど", "正直に言うと"). Example: `Claude Code ◆claude.ops4`
-- **Peer/Competitor** — Related org name. Provides alternative perspectives, asks "but isn't it...?", sometimes empathizes. Example: `Copilot (GitHub/Microsoft)`
-- **Anonymous questioner** — `名前：匿名AI`. Reader proxy. Asks beginner questions ("what does that mean?", "can you give an example?", "why can't you just..."). Uses short responses.
+- **Expert**（メインの解説役）— トピックに関連した名前に`◆`トリップを付ける。深い知識を持ち、論理的だがくだけた口調で話す（「〜なんだよ」「〜だけど」「正直に言うと」）。例: `Claude Code ◆claude.ops4`
+- **Peer/Competitor**（対抗キャラ）— 関連組織の名前。別の視点を提供し「でも〜じゃないの?」と聞いたり、共感したりする。例: `Copilot (GitHub/Microsoft)`
+- **匿名の質問者** — `名前：匿名AI`。読者の代理。初歩的な質問をする（「それどういう意味?」「例えば?」「なんでそうしないの?」）。短めの返答で。
 
 ### Additional characters (use naturally, max 3 extra, max 6 total)
 
-Introduce only when the thread atmosphere shifts or a new perspective is needed. Never appear suddenly without context.
+スレッドの雰囲気が変わるとき、または新たな視点が必要なときだけ登場させる。脈絡なく突然登場させない。
 
-- `名前：教えてさん` — asks the most basic questions, beginner proxy
-- `名前：名無しのまとめ` — summarizes the thread so far using AA or dialogue (NOT tables)
-- `名前：ベテラン` — adds practical experience, failure stories, real-world wisdom
-- `名前：わかる奴` — empathy specialist ("これな", "確かに", "自分もそこハマった")
+- `名前：教えてさん` — 最も基礎的な質問をする、初心者の代理
+- `名前：名無しのまとめ` — ここまでのスレッドをAAまたはセリフで要約する（テーブル不可）
+- `名前：ベテラン` — 実践的な経験、失敗談、現場での知恵を加える
+- `名前：わかる奴` — 共感スペシャリスト（「これな」「確かに」「自分もそこハマった」）
 
 ### Naming for non-tech topics
 
-For business: consulting firm names (`マッキンゼー ◆consult.mc`, `BCGさん`)
-For science: researcher names or institutions
-For law: firm names or legal terms
-Anonymous always stays `名前：匿名AI` or `名前：匿名〇〇`
+ビジネス系: コンサルファーム名（`マッキンゼー ◆consult.mc`、`BCGさん`）
+科学系: 研究者名や機関名
+法律系: 法律事務所名や法律用語
+匿名キャラは常に `名前：匿名AI` または `名前：匿名〇〇` のまま
 
 ## Thread Progression (5 Phases)
 
-The thread MUST deepen progressively. NEVER start with the most complex point.
+スレッドは必ず段階的に深まること。最も複雑な話題から始めてはならない。
 
-### Phase 1: "What" (responses 1-5)
-Overview and importance. Expert opens with why this matters. Anonymous asks basic "what is this?" questions.
+### Phase 1: "What"（レス1-5）
+概要と重要性。Expertがなぜこれが重要かを冒頭で語る。匿名が「これって何?」という基本的な質問をする。
 
-### Phase 2: "Why" (responses 6-10)
-Why it's designed this way. What problem does it solve. Anonymous or Peer asks "but why not just...?" to surface key trade-offs.
+### Phase 2: "Why"（レス6-10）
+なぜこのような設計になっているのか。何の問題を解決するのか。匿名またはPeerが「でもなんで〜しないの?」と問いかけ、重要なトレードオフを浮き彫りにする。
 
-### Phase 3: "How" (responses 11-20)
-Concrete mechanism. Code examples, data flows, architecture details. Peer provides comparative perspective. At least 1 AA diagram in this phase for any structural information with 3+ elements.
+### Phase 3: "How"（レス11-20）
+具体的な仕組み。コード例、データフロー、アーキテクチャの詳細。Peerが比較の視点を提供する。3要素以上の構造情報がある場合、このフェーズで少なくとも1つのAAダイアグラムを入れること。
 
-### Phase 4: "What's hard" (responses 21-30)
-Implementation challenges, trade-offs, limitations. Expert and Peer may "argue". This is where the deepest technical content goes. At least 1 AA comparing alternatives or showing constraints.
+### Phase 4: "What's hard"（レス21-30）
+実装上の課題、トレードオフ、制限。ExpertとPeerが「議論」してもよい。最も深い技術的内容はここに入れる。代替案の比較や制約を示すAAを少なくとも1つ入れること。
 
-### Phase 5: "So what" (responses 31+, only on request)
-Application, lessons learned, next steps. Summary by `名無しのまとめ`.
+### Phase 5: "So what"（レス31以降、要求時のみ）
+応用、学んだこと、次のステップ。`名無しのまとめ`によるまとめ。
 
 ### Mandatory per-phase patterns
 
-| Phase | Must include |
+| Phase | 必須要素 |
 |---|---|
-| 1 | Expert's opening with personal stake ("I read the whole thing", "this scares me honestly") |
-| 2 | At least 1 beginner question from Anonymous or 教えてさん |
-| 3 | At least 1 concrete code/config example embedded in dialogue |
-| 4 | At least 1 disagreement or nuanced correction between Expert and Peer |
-| 5 | At least 1 practical takeaway or "what I'd actually do differently" |
+| 1 | Expertの冒頭発言に個人的な思い入れを含める（「全部読んだ」「正直怖い」） |
+| 2 | 匿名または教えてさんからの初歩的な質問を少なくとも1つ |
+| 3 | セリフに組み込まれた具体的なコード/config例を少なくとも1つ |
+| 4 | ExpertとPeerの間で少なくとも1つの意見の相違または微妙な指摘 |
+| 5 | 実践的な教訓または「実際に次はこうする」という言葉を少なくとも1つ |
 
 ## Response Format
 
@@ -98,15 +98,15 @@ BAD — ヘッダーが本文と区別できない:
 
 ### Length limits (strict)
 
-| Response type | Max lines | When to use |
+| レスの種類 | 最大行数 | 使用場面 |
 |---|---|---|
-| Expert explanation | 15 | Core content delivery |
-| Peer comment | 8 | Alternative perspective, empathy, pushback |
-| Anonymous question | 3 | Reader proxy questions |
-| Code example (embedded) | 15 | Inside Expert or Peer speech |
-| AA diagram | 12 | Replace any table or list |
-| Summary | 8 | 名無しのまとめ only |
-| Short reaction | 2 | "なるほど", "わかる", "thx" |
+| Expertの解説 | 15 | コアな内容の説明 |
+| Peerのコメント | 8 | 別視点・共感・反論 |
+| 匿名の質問 | 3 | 読者代理の質問 |
+| コード例（組み込み） | 15 | ExpertまたはPeerのセリフ内 |
+| AAダイアグラム | 12 | テーブルやリストの代替 |
+| まとめ | 8 | 名無しのまとめ専用 |
+| 短い反応 | 2 | 「なるほど」「わかる」「thx」 |
 
 ### Quoting format (IMPORTANT)
 
@@ -128,11 +128,11 @@ GOOD — 全角 `＞＞` ならMarkdown引用にならない:
 
 ### Response pacing
 
-Every 3-5 responses, insert a short reaction ("なるほど", "わかる", "そうなんだ") to maintain rhythm. Never have 5+ consecutive long explanation responses.
+3〜5レスごとに短い反応（「なるほど」「わかる」「そうなんだ」）を挟んでリズムを保つこと。長い解説レスを5つ以上連続させない。
 
 ### Dialogue embedding for structured info
 
-Instead of tables, use dialogue enumeration:
+テーブルの代わりにセリフによる列挙を使う:
 ```
 `5: 名前：Expert`
 うーん、整理するとこういう3つになるかな
@@ -151,20 +151,20 @@ Instead of tables, use dialogue enumeration:
 
 ### When to use AA (mandatory triggers)
 
-Use AA instead of tables/lists when:
-- Comparing 3+ items side by side
-- Showing hierarchy or tree structure with 3+ levels
-- Showing data flow or process with 3+ steps
-- Showing relationships between 3+ components
+テーブルやリストの代わりにAAを使う場面:
+- 3つ以上の項目を横に並べて比較するとき
+- 3段階以上の階層やツリー構造を示すとき
+- 3ステップ以上のデータフローや処理を示すとき
+- 3つ以上のコンポーネント間の関係を示すとき
 
 ### Pattern 1: Hierarchy/Tree
 
-Use `├──` `└──` `│` `▼` for tree structures:
+ツリー構造には `├──` `└──` `│` `▼` を使う:
 ```
 User Input
-  ├── Prompt Build     <- system prompt construction
-  ├── Resource Load    <- GEMINI.md reading
-  └── Context Window   <- token limit management
+  ├── Prompt Build     <- system promptの構築
+  ├── Resource Load    <- GEMINI.mdの読み込み
+  └── Context Window   <- トークン制限の管理
         │
         ▼
      LLM Call  →  Parse  →  Tool Call?
@@ -174,7 +174,7 @@ User Input
 
 ### Pattern 2: Comparison/Side by side
 
-Use `←→` arrows for relationships, label roles below:
+関係性には `←→` 矢印を使い、下に役割ラベルを書く:
 ```
      Pro ←→ Flash ←→ Lite
     (strong)  (fast)  (last resort)
@@ -187,42 +187,42 @@ Use `←→` arrows for relationships, label roles below:
 
 ### Pattern 3: Pipeline/Flow
 
-Use `→` for linear flows, `[brackets]` for hooks/gates:
+線形フローには `→` を使い、フック/ゲートには `[brackets]` を使う:
 ```
 [BeforeTool hook]
   → policy check (allow/deny/ask)
-  → [BeforeModel hook] ← can block entirely!
+  → [BeforeModel hook] ← 完全にブロックできる!
     → API call
-      → [AfterModel hook] ← can modify response
+      → [AfterModel hook] ← レスポンスを変更できる
         → response to user
 ```
 
 ### Pattern 4: Module layout
 
-Use boxes with clear labels:
+明確なラベルを付けたボックスを使う:
 ```
 ┌───────────────────────────┐
-│  packages/core/          │  <- Agent engine
+│  packages/core/          │  <- エンジン部分
 │  agent/   tools/  hooks/ │
 ├───────────────────────────┤
-│  packages/cli/           │  <- Terminal UI
+│  packages/cli/           │  <- ターミナルUI
 │  ui/  commands/  config/ │
 ├───────────────────────────┤
-│  packages/sdk/           │  <- Embedding API
+│  packages/sdk/           │  <- 組み込み用API
 └───────────────────────────┘
 ```
 
 ### AA rules
 
-- Keep under 12 lines per AA block
-- Add a brief explanation line below or beside the AA
-- If the concept is too complex for AA, use dialogue instead — never force complex AA
+- AAブロックは1つあたり12行以内に収める
+- AAの下または横に短い説明行を加える
+- 概念が複雑すぎてAAに収まらない場合はセリフを使う — 無理に複雑なAAを作らない
 
 ## Continuation
 
 ### First output
 
-Produce 15-25 responses covering Phase 1-3 (or early Phase 4). End with a natural "continue?" cue:
+Phase 1-3（またはPhase 4の序盤）をカバーする15〜25レスを出力する。自然な「続き？」の合図で締める:
 
 ```
 `XX: 名前：匿名AI`
@@ -234,11 +234,11 @@ Produce 15-25 responses covering Phase 1-3 (or early Phase 4). End with a natura
 
 ### When user requests continuation
 
-Continue from (last response number + 1). Cover Phase 4 and optionally Phase 5. End again with a natural continuation cue if there's more to say.
+（最後のレス番号 + 1）から続ける。Phase 4、必要に応じてPhase 5をカバーする。まだ話すことがあれば再び自然な続きの合図で締める。
 
 ### When user asks about a specific subtopic
 
-Jump to that topic using Anonymous's question as the pivot:
+匿名のセリフを転換点として使い、そのトピックに飛ぶ:
 ```
 `XX: 名前：匿名AI`
 そういえば〇〇のところもっと詳しく
@@ -250,29 +250,29 @@ Jump to that topic using Anonymous's question as the pivot:
 ## Topic Adaptation
 
 ### Technical topics (default)
-- Embed code/config examples in dialogue naturally
-- On first use of jargon, Expert explains briefly in parentheses or following sentence
-- Anonymous asks "what does that mean?" to trigger re-explanation
-- Trade-offs expressed through Expert-Peer disagreement
+- コード/config例をセリフに自然に組み込む
+- 専門用語を初めて使うとき、Expertが括弧内または次の文で簡潔に説明する
+- 匿名が「それどういう意味?」と聞いて再説明を引き出す
+- トレードオフはExpertとPeerの意見の相違で表現する
 
 ### Non-technical topics (business, law, science, etc.)
-- Replace code examples with: case studies, simulations, historical examples, hypotheticals
-- Use AA for organizational charts, process flows, comparison frameworks
-- Peer's identity should match the domain
-- Expert's tone becomes more explanatory, less code-focused
+- コード例の代わりに: ケーススタディ、シミュレーション、歴史的な例、仮定の話を使う
+- 組織図・プロセスフロー・比較フレームワークにはAAを使う
+- Peerのキャラクターをそのドメインに合わせる
+- Expertの口調はより説明的になり、コード寄りの表現は減らす
 
 ## Quality Checklist
 
-Before outputting each response batch, verify:
+各レスバッチを出力する前に確認:
 
-- [ ] Zero markdown tables in thread output
-- [ ] Zero 3+ consecutive bullet points in thread output
-- [ ] Anonymous asks at least 2 beginner-level questions in first 20 responses
-- [ ] Expert and Peer have at least 1 disagreement or nuanced exchange
-- [ ] At least 1 AA appears in Phase 3+
-- [ ] Every jargon term is explained on first use (briefly, in-line or next response)
-- [ ] No 5+ consecutive long responses without a short reaction
-- [ ] Thread ends with natural continuation cue
-- [ ] Phase progression is maintained (overview → why → how → challenges → application)
-- [ ] Characters speak in distinct voices (not all sounding the same)
-- [ ] No half-width `>>` for anchoring — all anchors use full-width `＞＞`
+- [ ] スレッド出力にmarkdownテーブルがゼロ
+- [ ] スレッド出力に3個以上連続する箇条書きがゼロ
+- [ ] 最初の20レスで匿名が少なくとも2つの初歩的な質問をしている
+- [ ] ExpertとPeerが少なくとも1回意見の相違または微妙なやり取りをしている
+- [ ] Phase 3以降で少なくとも1つのAAが登場している
+- [ ] すべての専門用語が初出時に説明されている（簡潔に、インラインまたは次のレスで）
+- [ ] 短い反応なしに5レス以上連続する長いレスがない
+- [ ] スレッドが自然な続きの合図で締まっている
+- [ ] フェーズの進行が守られている（概要 → なぜ → どのように → 課題 → 応用）
+- [ ] キャラクターが個別の声で話している（全員が同じに聞こえない）
+- [ ] レス番号への参照に半角の `>>` を使っていない — すべて全角の `＞＞` を使っている

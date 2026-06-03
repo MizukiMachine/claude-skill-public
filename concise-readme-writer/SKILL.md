@@ -5,31 +5,31 @@ description: "Create or rewrite compact project README files focused on product 
 
 # Concise README Writer
 
-## Purpose
+## 目的
 
-Create README files that explain what the project is, what it does, and how it is structured without becoming an operations manual.
+プロジェクトが何であるか、何をするのか、どのように構成されているかを説明するREADMEファイルを作成する。運用マニュアルにはしない。
 
-## Operating Model
+## 動作モデル
 
-Treat the README as the reader's first product-and-system orientation, not as a setup checklist. Prioritize:
+READMEはセットアップチェックリストではなく、読者にとっての最初のプロダクト・システム概要説明として扱う。優先順位:
 
-1. What the project is
-2. What users can do
-3. How the product behaves
-4. How the code is organized
-5. Where to find development and deployment details
+1. プロジェクトが何であるか
+2. ユーザーが何をできるか
+3. プロダクトがどのように動作するか
+4. コードがどのように整理されているか
+5. 開発・デプロイの詳細をどこで確認できるか
 
-Keep commands, environment variables, and deployment instructions out of the README unless the user explicitly asks to keep them there.
+ユーザーが明示的に残すよう求めない限り、コマンド・環境変数・デプロイ手順はREADMEに含めない。
 
-## Before Writing
+## 書き始める前に
 
-- Inspect the existing README and project structure
-- Identify the product surface: screens, commands, gameplay, workflows, domain terms, data sources, and key constraints
-- Identify the architecture at a high level: frontend, backend, workers, engines, API boundaries, storage, deployment container
-- Find existing docs for development and deployment details; create separate docs only when moving operational content out of the README is requested or necessary
-- Preserve facts from the codebase; do not invent capabilities
+- 既存のREADMEとプロジェクト構造を確認する
+- プロダクトの表面を把握する: 画面・コマンド・ゲームプレイ・ワークフロー・ドメイン用語・データソース・主要な制約
+- アーキテクチャを高レベルで把握する: frontend・backend・workers・engines・API境界・ストレージ・デプロイコンテナ
+- 開発・デプロイの詳細を記した既存ドキュメントを探す。READMEから運用コンテンツを移す場合のみ、別途ドキュメントを作成する
+- コードベースの事実を保持する。存在しない機能を作り上げない
 
-Useful discovery commands:
+調査に役立つコマンド:
 
 ```bash
 sed -n '1,220p' README.md
@@ -37,16 +37,16 @@ rg --files -g 'package.json' -g 'Dockerfile' -g 'docs/**' -g 'src/**' -g 'fronte
 rg "(route|router|api|health|command|cli|scene|game|worker|schedule|cache|config|Dockerfile)" -n
 ```
 
-## Deliverables
+## 成果物
 
-- A concise `README.md` centered on product description, behavior, and structure
-- Optional `docs/development.md` for setup, commands, tests, and local environment notes
-- Optional `docs/deployment.md` for Docker, hosting, production environment variables, and health checks
-- A brief final note listing changed docs and whether tests were skipped because the change was documentation-only
+- プロダクトの説明・動作・構成を中心にした簡潔な `README.md`
+- セットアップ・コマンド・テスト・ローカル環境メモ用の `docs/development.md`（任意）
+- Docker・ホスティング・本番環境変数・ヘルスチェック用の `docs/deployment.md`（任意）
+- 変更したドキュメントの一覧と、ドキュメントのみの変更のためテストをスキップした場合はその旨を記載した短い最終メモ
 
-## README Shape
+## READMEの構成
 
-Use this section order by default:
+デフォルトではこのセクション順を使用する:
 
 ````markdown
 # Project Name
@@ -73,64 +73,64 @@ Use this section order by default:
 - デプロイ手順: [docs/deployment.md](docs/deployment.md)
 ````
 
-Choose heading names that match the project type and language. Examples:
+プロジェクトの種類と言語に合った見出し名を選ぶ。例:
 
-| Project Type | Overview Heading | Behavior Heading |
+| プロジェクトの種類 | 概要見出し | 挙動見出し |
 |---|---|---|
-| Web app or SaaS | `アプリ概要` | `アプリの仕様と挙動` |
-| Website | `サイト概要` | `サイトの仕様と挙動` |
-| CLI or developer tool | `ツール概要` | `ツールの仕様と挙動` |
-| Game | `ゲーム概要` | `ゲームの仕様と挙動` |
-| Library | `ライブラリ概要` | `ライブラリの仕様と挙動` |
+| Webアプリ・SaaS | `アプリ概要` | `アプリの仕様と挙動` |
+| Webサイト | `サイト概要` | `サイトの仕様と挙動` |
+| CLI・開発者ツール | `ツール概要` | `ツールの仕様と挙動` |
+| ゲーム | `ゲーム概要` | `ゲームの仕様と挙動` |
+| ライブラリ | `ライブラリ概要` | `ライブラリの仕様と挙動` |
 
-Do not hard-code `サイト` unless the project is actually a website.
+実際にWebサイトでない限り `サイト` をハードコードしない。
 
-## Style Rules
+## スタイルルール
 
-- Prefer bullet lists over long paragraphs
-- Do not end bullet items with Japanese or English sentence punctuation
-- Keep the README short enough to scan in one pass
-- Use concrete product language from the project rather than generic marketing copy
-- Use backticks for screen names, routes, directories, env vars, and commands
-- Use a compact directory tree in the `構成` section to show code organization
-- Link to separate docs instead of embedding setup, command, and deployment details
-- Keep all claims grounded in the codebase or existing docs
+- 長い段落よりも箇条書きを優先する
+- 箇条書きの末尾に日本語・英語の文末句読点を付けない
+- READMEは一度のスキャンで読める短さに保つ
+- 汎用的なマーケティング文句ではなく、プロジェクト固有の具体的なプロダクト言語を使う
+- 画面名・ルート・ディレクトリ・環境変数・コマンドにはバッククォートを使う
+- `構成` セクションではコンパクトなディレクトリツリーでコードの整理状況を示す
+- セットアップ・コマンド・デプロイの詳細はREADMEに埋め込まず、別ドキュメントへリンクする
+- 記載内容はすべてコードベースまたは既存ドキュメントに根拠を持たせる
 
-## Reference Files
+## 参照ファイル
 
-| Topic | File | Use When |
+| トピック | ファイル | 使用場面 |
 |---|---|---|
-| Few-shot README | `references/builder-agent-chain-readme.md` | You need an example of the preferred tone, section shape, and bullet style |
+| Few-shot README | `references/builder-agent-chain-readme.md` | 推奨するトーン・セクション構成・箇条書きスタイルの例が必要なとき |
 
-## Anti-Patterns
+## アンチパターン
 
-**README as operations manual**
+**READMEを運用マニュアルにする**
 
-Why bad: It buries the project's identity under setup commands and environment tables
+なぜ悪いか: セットアップコマンドと環境変数テーブルの下にプロジェクトのアイデンティティが埋もれる
 
-Better: Move operations details to `docs/development.md` and `docs/deployment.md`, then link them from README
+改善策: 運用の詳細を `docs/development.md` と `docs/deployment.md` に移し、READMEからリンクする
 
-**Generic product pitch**
+**汎用的なプロダクトの売り文句**
 
-Why bad: It sounds polished but fails to explain the actual product behavior
+なぜ悪いか: 洗練されて聞こえるが、実際のプロダクトの動作を説明できていない
 
-Better: Describe the real screens, commands, gameplay, workflows, data sources, cache behavior, permissions, and architecture
+改善策: 実際の画面・コマンド・ゲームプレイ・ワークフロー・データソース・キャッシュ動作・権限・アーキテクチャを説明する
 
-**Over-detailed internals**
+**過剰な内部実装の詳細**
 
-Why bad: It turns README into low-level implementation notes
+なぜ悪いか: READMEが低レベルの実装メモになってしまう
 
-Better: Keep implementation detail only when it changes how the reader understands behavior
+改善策: 読者の動作理解に影響する場合のみ実装の詳細を残す
 
-**Punctuated bullet endings**
+**箇条書き末尾の句読点**
 
-Why bad: The preferred format is clean, compact bullets without terminal punctuation
+なぜ悪いか: 推奨フォーマットは末尾句読点のないクリーンでコンパクトな箇条書き
 
-Better: Remove trailing `。`, `.`, and similar punctuation from bullet items
+改善策: 箇条書き項目の末尾にある `。`・`.` などの句読点を削除する
 
-## Verification
+## 検証
 
-- Read the final README top to bottom and confirm it contains no development or deployment procedure blocks except links to separate docs
-- Check bullet endings for unwanted punctuation
-- Check links to newly created docs
-- Run tests only when code changes were made; for documentation-only edits, state that tests were not run
+- 完成したREADMEを上から下まで読み、別ドキュメントへのリンク以外の開発・デプロイ手順ブロックが含まれていないことを確認する
+- 箇条書きの末尾に不要な句読点がないか確認する
+- 新規作成したドキュメントへのリンクを確認する
+- コードの変更があった場合のみテストを実行する。ドキュメントのみの編集の場合は、テストを実行しなかった旨を記載する

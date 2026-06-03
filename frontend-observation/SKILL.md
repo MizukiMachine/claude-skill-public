@@ -8,107 +8,107 @@ metadata:
 
 # Frontend Observation
 
-Confirm a frontend actually renders and works by **observing it in a real browser**, instead of declaring "looks done" from the code alone. This skill owns the *judgment* — when to look lightly, when to look deeply — while the `browser-observer` MCP owns the *capability* (running the browser, capturing DOM/console/network, flagging layout candidates).
+コードだけを見て「完成した」と宣言する代わりに、**実際のブラウザで観察**してフロントエンドが正しくレンダリングされ動作することを確認する。このスキルは*判断*を担う — どの深さで確認するか。一方、`browser-observer` MCP は*能力*を担う（ブラウザの操作、DOM/console/network のキャプチャ、レイアウト候補のフラグ付け）。
 
-## Division of Responsibility
+## 責任分担
 
-- **MCP = capability.** It executes against a live Chromium session and returns structured data + knobs. It does not decide *when* or *how much* to look.
-- **This skill = judgment.** Choose the cheapest observation that yields confidence, set the knobs, interpret the results (is a flagged layout candidate a real bug?), and decide whether to escalate.
+- **MCP = 能力。** ライブの Chromium セッションに対して実行し、構造化データとノブを返す。*いつ*または*どの程度*確認するかは判断しない。
+- **このスキル = 判断。** 最も低コストな観察を選んで確信を得る。ノブを設定し、結果を解釈し（フラグ付きのレイアウト候補が本当のバグかどうか）、エスカレーションするかを決定する。
 
-Keep this boundary: never push "when/which/how-much" decisions back into the MCP, and never reimplement the MCP's capture/heuristics here via `browser_evaluate`.
+この境界を守ること：「いつ/どれを/どの程度」という判断を MCP に押し返さない。また `browser_evaluate` でここに MCP のキャプチャ/ヒューリスティックを再実装しない。
 
-## Core Principle: Confidence Per Token
+## 基本原則：トークンあたりの確信度
 
-Every screenshot costs the model attention and latency; every full audit costs wall-clock. Start with the lightest observation that could disprove "it works," and escalate only on a signal. One honest light check beats a reflexive full audit.
+スクリーンショットのたびにモデルの注意とレイテンシが消費され、フル audit は実時間を消費する。「動いている」を反証しうる最も軽い観察から始め、シグナルがあったときだけエスカレートする。正直な軽いチェック1回は、反射的なフル audit に勝る。
 
-## Escalation Decision Tree
+## エスカレーション決定ツリー
 
-Navigate **once**, then climb only as far as the situation demands:
+**一度**ナビゲートし、状況が求める限りだけ段階を上げる：
 
 ```
-0. browser_navigate (once)        → load the page / dev server URL
+0. browser_navigate (once)        → ページ / dev server URL を読み込む
         │
         ▼
-1. browser_screenshot             → "does it visually look right?"
-   - selector: capture just the changed component when possible
-   - this is the default first look for a routine visual change
-        │  see something off, or need DOM/errors/state? ↓
+1. browser_screenshot             → "見た目は正しいか？"
+   - selector: 可能なら変更したコンポーネントだけをキャプチャ
+   - 通常の視覚的変更ではこれが最初の確認
+        │  何かおかしい、または DOM/エラー/状態が必要？ ↓
         ▼
-2. browser_observe                → "what does the DOM/console/network say?"
-   - includeScreenshot:false + maxElements:20 for a fast diagnostic pass
-   - returns DOM outline, interactive elements, forms, console errors,
-     network failures, layout-break candidates in ONE call
-        │  errors present, cause unclear, or responsive breakage suspected? ↓
+2. browser_observe                → "DOM/console/network は何を示しているか？"
+   - includeScreenshot:false + maxElements:20 で高速な診断パス
+   - 1回の呼び出しで DOM アウトライン、インタラクティブ要素、フォーム、
+     console エラー、ネットワーク失敗、レイアウト崩れ候補を返す
+        │  エラーあり、原因不明、またはレスポンシブ/レイアウト崩れが疑われる？ ↓
         ▼
-3. browser_audit                  → "is it sound across viewports?"
-   - in an edit loop: viewports:["desktop"], includeScreenshots:false
-   - to investigate: viewports:["desktop","mobile"], includeScreenshots:true
+3. browser_audit                  → "複数の viewport で問題ないか？"
+   - 編集ループ中: viewports:["desktop"], includeScreenshots:false
+   - 調査時: viewports:["desktop","mobile"], includeScreenshots:true
 ```
 
-**Stop at the lowest rung that gives you confidence.** Do not run `browser_audit` by reflex on every change — reserve it for: errors are occurring, the cause is unclear, or you suspect responsive/layout breakage.
+**確信が得られる最も低い段階で止める。** 変更のたびに反射的に `browser_audit` を実行しない — 次の場合に限って使用する：エラーが発生している、原因が不明、またはレスポンシブ/レイアウト崩れが疑われる。
 
-## Knob Policy (this skill sets them; the MCP only exposes them)
+## ノブポリシー（このスキルが設定する；MCP はそれを公開するだけ）
 
-| Situation | Tool + knobs |
+| 状況 | ツール + ノブ |
 |-----------|--------------|
-| Routine "does it look right" | `browser_screenshot` (use `selector` to scope) |
-| Fast diagnostic | `browser_observe` `{ includeScreenshot:false, maxElements:20 }` |
-| Need the visual + the data | `browser_observe` `{ includeScreenshot:true }` |
-| Edit-loop audit | `browser_audit` `{ viewports:["desktop"], includeScreenshots:false }` |
-| Investigate a real problem | `browser_audit` `{ viewports:["desktop","mobile"], includeScreenshots:true }` |
+| 通常の「見た目は正しいか」 | `browser_screenshot`（`selector` でスコープを絞る） |
+| 高速診断 | `browser_observe` `{ includeScreenshot:false, maxElements:20 }` |
+| 視覚とデータの両方が必要 | `browser_observe` `{ includeScreenshot:true }` |
+| 編集ループの audit | `browser_audit` `{ viewports:["desktop"], includeScreenshots:false }` |
+| 実際の問題を調査 | `browser_audit` `{ viewports:["desktop","mobile"], includeScreenshots:true }` |
 
-## Interpreting Results (judgment lives here)
+## 結果の解釈（判断はここに宿る）
 
-- **Layout-break candidates are candidates, not verdicts.** The MCP flags suspicious overflow/overlap/clipping heuristically. Confirm against the screenshot and the component's intent before calling it a bug — an intentional horizontal scroller is not "overflow."
-- **Console errors fail the check.** Treat any console/page error as "not done" unless you can explain why it's benign (e.g. a known third-party warning).
-- **Network failures matter by origin.** A failed request to your own API is a real defect; a blocked third-party beacon usually is not.
-- **State, not pixels, for behavior.** To verify an interaction worked, prefer reading state via `browser_extract` / `browser_evaluate` over eyeballing a screenshot.
+- **レイアウト崩れ候補は候補であり、確定ではない。** MCP はヒューリスティックに不審な overflow/overlap/clipping にフラグを立てる。バグと断定する前に、スクリーンショットとコンポーネントの意図に照らして確認すること — 意図的な横スクロールは「overflow」ではない。
+- **console エラーはチェック失敗を意味する。** console/page エラーはすべて「未完成」として扱う。ただし無害であると説明できる場合（例：既知のサードパーティ警告）を除く。
+- **ネットワーク失敗はオリジンによって重要度が異なる。** 自分の API へのリクエスト失敗は本物の欠陥；ブロックされたサードパーティのビーコンは通常そうではない。
+- **動作確認にはピクセルではなく状態を使う。** インタラクションが機能したかを確認するには、スクリーンショットを目視するより `browser_extract` / `browser_evaluate` で状態を読む方が好ましい。
 
-## Stable-Session Workflow
+## 安定セッションワークフロー
 
-The MCP holds one live browser session across calls. Exploit it:
+MCP は呼び出し間で1つのライブブラウザセッションを保持する。これを活用する：
 
-1. `browser_navigate` to the URL **once**. Re-navigating resets state (cookies/localStorage are kept until `browser_reset`).
-2. For subsequent observations, **omit `url`** so you observe the current state in place — passing `url` re-navigates (and `browser_audit` re-navigates per viewport).
-3. Prefer `browser_wait { type:"selector" }` on a completion marker over `networkidle` — polling/HMR apps make `networkidle` wait until timeout.
-4. Use `browser_clear_telemetry` (or the `clearTelemetry` knob) before an action when you want console/network results scoped to just that action.
+1. URL に `browser_navigate` するのは**一度だけ**。再ナビゲートは状態をリセットする（cookies/localStorage は `browser_reset` まで保持される）。
+2. 以降の観察では **`url` を省略**して、現在の状態をそのまま観察する — `url` を渡すと再ナビゲートされる（`browser_audit` も viewport ごとに再ナビゲートする）。
+3. `networkidle` よりも完了マーカーに対する `browser_wait { type:"selector" }` を優先する — polling/HMR アプリでは `networkidle` がタイムアウトまで待ち続ける。
+4. あるアクションに対してのみ console/network の結果をスコープしたい場合は、そのアクションの前に `browser_clear_telemetry`（または `clearTelemetry` ノブ）を使用する。
 
-## Anti-Patterns
+## アンチパターン
 
-❌ **Reflexive full audit** on every tiny change → slow, token-heavy. *Better*: screenshot first; audit only on a signal.
-❌ **Re-navigating before each observation** → throws away session state. *Better*: navigate once, then observe with no `url`.
-❌ **`networkidle` waits on live-reload apps** → times out. *Better*: wait on a selector that marks "ready."
-❌ **Treating a layout-break candidate as a confirmed bug** → false positives. *Better*: confirm against screenshot + intent.
-❌ **Reimplementing observation via `browser_evaluate`** → reinvents the MCP, loses structure. *Better*: use `browser_observe`.
-❌ **Declaring "done" without ever opening the browser** → the exact failure this MCP exists to prevent.
+❌ **些細な変更のたびに反射的なフル audit** → 遅く、トークン消費が多い。*改善策*: 最初はスクリーンショット；シグナルがあった時のみ audit。
+❌ **観察のたびに再ナビゲート** → セッション状態が失われる。*改善策*: 一度ナビゲートし、以降は `url` なしで観察する。
+❌ **ライブリロードアプリでの `networkidle` 待機** → タイムアウトする。*改善策*: 「準備完了」を示す selector で待機する。
+❌ **レイアウト崩れ候補を確定バグとして扱う** → 誤検知。*改善策*: スクリーンショットと意図に照らして確認する。
+❌ **`browser_evaluate` で観察を再実装** → MCP を再発明し、構造が失われる。*改善策*: `browser_observe` を使う。
+❌ **ブラウザを一度も開かずに「完成」と宣言** → まさにこの MCP が防ぐために存在する失敗。
 
-## Handoff to Durable Tests
+## 永続的なテストへの引き継ぎ
 
-This skill answers "is it OK *now*", not "will it *stay* OK". Once a flow is confirmed and stable, lock it in: hand off to the **playwright-testing** skill to author a durable regression test (unit/component/E2E/visual) that runs in CI. Both skills drive the same `browser-observer` MCP — this one for fast in-loop verification, playwright-testing for the permanent safety net. Confirm here first; codify there.
+このスキルは「*今*正常か」に答えるものであり、「*今後も*正常であり続けるか」には答えない。フローが確認され安定したら、定着させる：**playwright-testing** スキルに引き継いで CI で実行される永続的なリグレッションテスト（unit/component/E2E/visual）を作成する。両スキルは同じ `browser-observer` MCP を使う — このスキルは高速なインループ検証のため、playwright-testing は永続的なセーフティネットのため。まずここで確認し、そこで定式化する。
 
-## "Enough" Criteria
+## 「十分」の基準
 
-A frontend change is verified when:
-- [ ] The page was actually loaded in the browser (not assumed)
-- [ ] The changed component was seen (screenshot) **and** is free of console/page errors (`browser_observe`)
-- [ ] No own-origin network failures
-- [ ] If layout/responsive was in scope: `browser_audit` across the relevant viewports shows no confirmed breakage
+フロントエンドの変更が検証済みとなるのは：
+- [ ] ページが実際にブラウザに読み込まれた（想定ではなく）
+- [ ] 変更されたコンポーネントが確認された（スクリーンショット）**かつ** console/page エラーがない（`browser_observe`）
+- [ ] 自身のオリジンからのネットワーク失敗がない
+- [ ] レイアウト/レスポンシブが対象だった場合：関連する viewport にわたる `browser_audit` で確認済みの崩れがない
 
-## Security Note
+## セキュリティに関する注意
 
-The MCP blocks private/local addresses by default (incl. subresources). To verify a **local dev server**, it must be started with `BROWSER_OBSERVER_BLOCK_PRIVATE_IPS=false` in a trusted environment — otherwise navigation to `localhost`/RFC1918 is blocked by design.
+MCP はデフォルトでプライベート/ローカルアドレスをブロックする（サブリソースを含む）。**ローカル dev server** を検証するには、信頼できる環境で `BROWSER_OBSERVER_BLOCK_PRIVATE_IPS=false` を設定して起動する必要がある — そうでなければ `localhost`/RFC1918 へのナビゲートは設計上ブロックされる。
 
-## Tool Reference
+## ツールリファレンス
 
-All tools are exposed by the `browser-observer` MCP (fully-qualified as `mcp__browser-observer__<tool>`):
+すべてのツールは `browser-observer` MCP によって公開される（完全修飾名は `mcp__browser-observer__<tool>`）：
 
-- **Observe (the specialty):** `browser_observe`, `browser_audit`, `browser_screenshot`
-- **Drive:** `browser_navigate`, `browser_click`, `browser_type`, `browser_press_key`, `browser_scroll`, `browser_wait`
-- **Inspect:** `browser_extract`, `browser_evaluate`
-- **Session/output:** `browser_reset`, `browser_clear_telemetry`, `browser_pdf`
+- **観察（専門）:** `browser_observe`, `browser_audit`, `browser_screenshot`
+- **操作:** `browser_navigate`, `browser_click`, `browser_type`, `browser_press_key`, `browser_scroll`, `browser_wait`
+- **検査:** `browser_extract`, `browser_evaluate`
+- **セッション/出力:** `browser_reset`, `browser_clear_telemetry`, `browser_pdf`
 
-(`browser_press_key` dispatches real keydown/keyup — use it for keyboard-driven UI; `browser_type` only sets an input's value.)
+（`browser_press_key` は実際の keydown/keyup をディスパッチする — キーボード駆動の UI に使用；`browser_type` は input の値を設定するだけ。）
 
-## Remember
+## まとめ
 
-The MCP gives you eyes; this skill decides where to look. Lead with the lightest observation, escalate only on a signal, interpret candidates with judgment, and never declare a UI done without having actually observed it.
+MCP はあなたに目を与える；このスキルはどこを見るかを決める。最も軽い観察から始め、シグナルがあった時だけエスカレートし、候補を判断力をもって解釈し、実際に観察することなく UI が完成したと宣言しない。
