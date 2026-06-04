@@ -1,6 +1,6 @@
 ---
 name: x-api-builder
-description: Build production X API integrations across Posts, Users, Likes, Bookmarks, and Likes Streams with correct auth/scopes, field expansion strategy, stream partition handling, TypeScript XDK mapping, and pay-per-usage controls.
+description: "Posts、Users、Likes、Bookmarks、Likes Streams にまたがる本番向けのX API連携を構築する。適切な認証/スコープ、フィールド展開戦略、ストリームのパーティション処理、TypeScript XDK のマッピング、従量課金のコントロールを扱う。"
 metadata:
   short-description: "Production X API integration builder"
 ---

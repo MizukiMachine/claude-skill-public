@@ -1,6 +1,6 @@
 ---
 name: animated-spritesheets
-description: "Turn a single character reference image into an animated spritesheet with model prompting, full-sheet frame recovery, background cleanup, normalization, contact sheets, and GIF previews. Use for AI-generated 2D character animation pipelines."
+description: "1枚のキャラクター参照画像から、アニメーションスプライトシートを生成する。モデルへのプロンプト、シート全体からのフレーム復元、背景除去、正規化、コンタクトシート、GIFプレビューまでを行う。AI生成による2Dキャラクターアニメーションのパイプラインに使う。"
 metadata:
   short-description: "Reference image to animated spritesheet pipeline."
 ---

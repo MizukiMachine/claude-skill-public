@@ -1,6 +1,6 @@
 ---
 name: nano-banana-builder
-description: "Build full-stack web app features on top of Google Gemini's Nano Banana & Nano Banana Pro image models: image generators, conversational editors, avatar makers, style-transfer tools, galleries, and multi-image composition flows. Use when integrating gemini-2.5-flash-image or gemini-3-pro-image-preview into a Next.js/React app via the Vercel AI SDK, with server actions, API routes, storage, rate limiting, and production deployment patterns. For direct Gemini/Imagen image API or CLI usage without an app, use gemini-image instead."
+description: "Google Gemini の Nano Banana / Nano Banana Pro 画像モデルの上に、フルスタックWebアプリ機能を構築する。画像ジェネレーター、会話型エディター、アバターメーカー、スタイル変換ツール、ギャラリー、複数画像合成フローなどを扱う。Vercel AI SDK を使って gemini-2.5-flash-image や gemini-3-pro-image-preview を Next.js/React アプリに統合し、server actions、API routes、ストレージ、レート制限、本番デプロイのパターンを実装するときに使う。アプリなしで Gemini/Imagen 画像APIやCLIを直接使う場合は gemini-image を使う。"
 metadata:
   short-description: "Build Gemini image apps (Nano Banana)."
 ---

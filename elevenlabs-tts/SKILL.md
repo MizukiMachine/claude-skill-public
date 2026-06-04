@@ -1,6 +1,6 @@
 ---
 name: elevenlabs-tts
-description: "Build and troubleshoot ElevenLabs text-to-speech (TTS) integrations in Node/Python/web apps for spoken audio — voiceover, narration, character dialogue, and assistant speech: auth, voice/model selection (voice_id/model_id), streaming vs batch generation, latency, fallback handling, and secure API-key architecture. Use for turning text into a spoken voice; for non-speech sound effects use the sound-effects skill and for music use the music skill."
+description: "Node/Python/Webアプリで、ElevenLabsの音声合成（TTS）連携を構築・トラブルシュートする。ナレーション、キャラクターの台詞、アシスタントの発話など、認証、voice/model選択（voice_id/model_id）、ストリーミングとバッチ生成、レイテンシ、フォールバック処理、安全なAPIキー構成を扱う。テキストを話し声に変換するときに使う。発話以外の効果音は sound-effects、音楽は music スキルを使う。"
 metadata:
   short-description: "Pragmatic ElevenLabs TTS implementation framework."
 ---

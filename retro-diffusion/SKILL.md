@@ -1,6 +1,6 @@
 ---
 name: retro-diffusion
-description: "Use Retro Diffusion for pixel-art image generation, img2img edits, spritesheets, and animation experiments such as platformer walk cycles, turnarounds, and action sheets from reference images."
+description: "Retro Diffusion を使って、ピクセルアートの画像生成、img2img編集、スプライトシート、参照画像からのプラットフォーマー歩行サイクル・ターンアラウンド・アクションシートといったアニメーション実験を行う。"
 metadata:
   short-description: "Retro Diffusion image and animation workflows."
 ---
