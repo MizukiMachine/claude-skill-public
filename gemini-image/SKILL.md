@@ -1,6 +1,6 @@
 ---
 name: gemini-image
-description: "Call the Google Gemini/Imagen image API directly for one-off image generation and editing: model selection across Gemini 3 Pro Image, Gemini 3.1 Flash Image, and Gemini 2.5 Flash Image (Nano Banana), prompt construction, multi-turn editing, multi-image reference composition, character consistency, thinking-mode planning, Google Search-grounded visuals, and runnable generateContent CLI wrappers. Use when the task is generating or editing images at the API/CLI layer (not building an app); requires a Gemini/Google API key. For building full-stack web apps and product features on top of these models, use nano-banana-builder instead."
+description: "Google Gemini/Imagenの画像APIを直接呼び出して、単発の画像生成・編集を行う。Gemini 3 Pro Image、Gemini 3.1 Flash Image、Gemini 2.5 Flash Image（Nano Banana）のモデル選択、プロンプト構築、マルチターン編集、複数参照画像の合成、キャラクター一貫性、thinkingモードでの計画、Google Search由来のビジュアル、実行可能なgenerateContent CLIラッパーを扱う。アプリ構築ではなくAPI/CLIレイヤーで画像を生成・編集するときに使う。Gemini/Google APIキーが必要。これらのモデルの上にフルスタックWebアプリやプロダクト機能を作る場合は nano-banana-builder を使う。"
 metadata:
   short-description: "Gemini image generation + editing via generateContent, prompting, and API wrapper."
 ---

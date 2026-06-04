@@ -1,6 +1,6 @@
 ---
 name: gpt-image-2-0
-description: "Use OpenAI gpt-image-2 (the newer, higher-quality GPT Image model) for general-purpose image generation and editing: arbitrary-size outputs, prompt design, multi-image reference edits, product renders, concept art, and icons, backed by the Images API and the Responses API image_generation tool. Prefer this skill when the user wants the best or latest OpenAI image model, or needs large custom dimensions or multi-image edits; use gpt-image-1-5 instead when the user explicitly requests gpt-image-1.5 or needs transparent backgrounds (gpt-image-2 has no transparency). For Open Graph / social-share images specifically, use the dedicated og-image-ai skill instead."
+description: "OpenAI gpt-image-2（より新しく高品質なGPT Imageモデル）で汎用的な画像生成・編集を行う。任意サイズ出力、プロンプト設計、複数参照画像での編集、製品レンダリング、コンセプトアート、アイコンを、Images API および Responses API の image_generation ツールで扱う。最新・最高品質のOpenAI画像モデルが欲しいとき、大きなカスタム寸法や複数画像編集が必要なときに優先して使う。ユーザーが明示的に gpt-image-1.5 を指定したときや背景透過が必要なとき（gpt-image-2 は透過非対応）は gpt-image-1-5 を使う。Open Graph / SNS共有画像には専用の og-image-ai を使う。"
 metadata:
   short-description: "OpenAI GPT Image 2 generation, edits, prompting, and API wrappers."
 ---

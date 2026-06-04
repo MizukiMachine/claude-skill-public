@@ -1,6 +1,6 @@
 ---
 name: gpt-image-1-5
-description: "Use OpenAI gpt-image-1.5 for general-purpose image generation and editing: prompt design, transparent-background assets, style-controlled illustrations, concept art, icons, and sprite/animation consistency, backed by the Images API and the Responses API image_generation tool. Use when the user explicitly wants gpt-image-1.5, or when gpt-image-2 is unavailable; if the user just wants the best/latest OpenAI image model, prefer the gpt-image-2-0 skill. For Open Graph / social-share images specifically, use the dedicated og-image-ai skill instead."
+description: "OpenAI gpt-image-1.5 で汎用的な画像生成・編集を行う。プロンプト設計、背景透過アセット、スタイル制御イラスト、コンセプトアート、アイコン、スプライト/アニメーションの一貫性を、Images API および Responses API の image_generation ツールで扱う。ユーザーが明示的に gpt-image-1.5 を指定したとき、または gpt-image-2 が使えないときに使う。最新・最高品質のOpenAI画像モデルが欲しいだけなら gpt-image-2-0 を優先する。Open Graph / SNS共有画像には専用の og-image-ai を使う。"
 metadata:
   short-description: "OpenAI GPT Image 1.5 generation + prompting + API wrapper."
 ---

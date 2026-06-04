@@ -1,6 +1,6 @@
 ---
 name: frontend-observation
-description: "Verify frontend UI in a real browser by observing it, not guessing. Drives the browser-observer MCP (browser_observe / browser_audit / browser_screenshot) with an escalation decision tree: light screenshot first, structured observation when DOM/errors matter, full multi-viewport audit only when something is wrong. Use after a frontend change to confirm it actually renders/works, when console errors or network failures are suspected, or when responsive/layout breakage needs checking. Trigger: \"見た目を確認\", \"UI確認\", \"observe the page\", \"check the UI\", \"レイアウト崩れ\", \"audit\", \"browser_observe\"."
+description: "推測ではなく実ブラウザで観察してフロントエンドUIを検証する。browser-observer MCP（browser_observe / browser_audit / browser_screenshot）を、段階的な判断ツリーで使う。まず軽くスクリーンショット、DOMやエラーが問題になるなら構造的に観察、何か壊れているときだけ複数ビューポートでフル監査する。フロントエンド変更後に実際に描画・動作するか確認したいとき、コンソールエラーやネットワーク失敗が疑われるとき、レスポンシブ/レイアウト崩れを確認したいときに使う。トリガー: 「見た目を確認」「UI確認」「observe the page」「check the UI」「レイアウト崩れ」「audit」「browser_observe」。"
 metadata:
   short-description: "Real-browser UI verification via browser-observer; escalate screenshot→observe→audit."
   type: workflow

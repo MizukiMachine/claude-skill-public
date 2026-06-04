@@ -1,6 +1,6 @@
 ---
 name: playwright-testing
-description: "Plan, implement, and debug frontend tests: unit/integration/E2E/visual/a11y. Drives the browser-observer MCP (browser_* tools, Playwright-backed) for real-browser/E2E automation, plus Vitest/Jest/RTL, flaky test triage, CI stabilization, and canvas/WebGL games (Phaser) needing deterministic input plus screenshot/state assertions. Trigger: \"test\", \"E2E\", \"flaky\", \"visual regression\", \"Playwright\", \"game testing\"."
+description: "フロントエンドテスト（unit/integration/E2E/ビジュアル/a11y）を計画・実装・デバッグする。browser-observer MCP（Playwrightベースの browser_* ツール）で実ブラウザ/E2E自動化を行い、Vitest/Jest/RTL、flakyテストの切り分け、CIの安定化、決定的な入力とスクリーンショット/状態アサーションが必要な canvas/WebGL ゲーム（Phaser）にも対応する。トリガー: 「test」「E2E」「flaky」「visual regression」「Playwright」「game testing」。"
 metadata:
   short-description: "Frontend testing on the browser-observer MCP: E2E, Vitest, flaky triage, game testing."
 ---

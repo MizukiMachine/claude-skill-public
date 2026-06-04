@@ -1,6 +1,6 @@
 ---
 name: mcp-server-configurator
-description: "Configure MCP servers for Claude Code reliably. Maps upstream documentation (docs/URLs/config snippets) into correct `claude mcp add` commands and `.mcp.json` configurations, covering stdio/HTTP/SSE transports, authentication patterns, and multi-scope deployment (local/project/user)."
+description: "Claude Code 向けにMCPサーバーを確実に設定する。提供元のドキュメント（docs/URL/設定スニペット）を、正しい `claude mcp add` コマンドや `.mcp.json` 設定に落とし込む。stdio/HTTP/SSE トランスポート、認証パターン、複数スコープ（local/project/user）への展開に対応する。"
 metadata:
   short-description: "Configure MCP servers for Claude Code."
 ---
