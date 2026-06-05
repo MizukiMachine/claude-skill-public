@@ -8,7 +8,7 @@ Claude Code 用カスタムスキル集。`~/.claude/skills/` に配置して使
 |---|---|
 | **phaser-gamedev** | Phaser 3/4 の 2D ブラウザゲーム開発 |
 | **phaser4-gamedev** | Phaser 4 専用（レンダラ・シェーダ・マイグレーション） |
-| **threejs-builder** | Three.js / WebGL の 3D Web 体験構築 |
+| **webgl-threejs-scene** | Three.js / WebGL の 3D Web 体験構築 |
 | **blender-mcp-sprite-renderer** | Blender MCP でキャラクタアニメーションをスプライト PNG にレンダリング |
 | **sprite-sheet-maker** | フレーム PNG をスプライトシートにパック |
 | **spritefusion-pixel-snapper** | ラスタ画像をピクセルアート PNG に変換 |
@@ -17,12 +17,12 @@ Claude Code 用カスタムスキル集。`~/.claude/skills/` に配置して使
 
 | Skill | Description |
 |---|---|
-| **frontend-design** | 本番向け UI 構築 + ブラウザスクリーンショット QA |
+| **web-frontend-builder** | 本番向け UI 構築 + ブラウザスクリーンショット QA |
 | **playwright-testing** | フロントエンドテスト（Playwright MCP / Vitest / フレーキー対策 / ゲームテスト） |
 | **site-metadata-generator** | SEO meta / OGP / sitemap / Schema.org 自動生成 |
 | **og-image-creator** | OG 画像・SNS プレビュー画像生成 |
 | **og-image-ai** | OpenAI GPT Image + Pillow で AI OG 画像生成 |
-| **favicon-generator** | Favicon・PWA アイコン一式生成 |
+| **favicon-builder** | Favicon・PWA アイコン一式生成 |
 | **diagram** | コード解析からアーキテクチャ図生成（Mermaid） |
 | **sysviz** | アーキテクチャ図をプロジェクトディレクトリに保存 |
 | **flow-visualizer** | システムの全体像を詳細フロー図で説明 |
