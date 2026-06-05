@@ -75,26 +75,26 @@ metadata:
 browser-observer MCP 上で Phaser/canvas ゲームをテストするためのステップバイステップのシーケンス。`browser_evaluate` はJS の**式の文字列**（関数ではない）を受け取り、サンドボックス化されているため、準備完了はページ内 Promise ではなく DOM マーカーで待機します。
 
 ```
-1. browser_navigate { url: “http://localhost:3000?test=1&seed=42” }
+1. browser_navigate { url: "http://localhost:3000?test=1&seed=42" }
    (ナビゲーションは1回のみ。localhost が読み込まれるよう BROWSER_OBSERVER_BLOCK_PRIVATE_IPS=false で dev サーバーを起動すること。)
 
-2. browser_wait { selector: “[data-test-ready]” }
-   (シームに DOM ready マーカーをセットさせる。例: document.body.dataset.testReady = “1”
-    代替案: browser_evaluate { expression: “window.__TEST__?.ready === true” } をポーリングする。)
+2. browser_wait { selector: "[data-test-ready]" }
+   (シームに DOM ready マーカーをセットさせる。例: document.body.dataset.testReady = "1"
+    代替案: browser_evaluate { expression: "window.__TEST__?.ready === true" } をポーリングする。)
 
 3. browser_observe { includeScreenshot: false, maxElements: 20 }
    (1回の呼び出しでコンソールエラーとネットワーク障害の両方を返す。自ドメインのエラーがあれば失敗とする。)
 
-4. browser_click { selector: “button#start” }
+4. browser_click { selector: "button#start" }
    (CSS セレクターで操作する — この MCP には snapshot-ref モデルがない。)
 
-5. browser_evaluate { expression: “window.__TEST__.state()” }
+5. browser_evaluate { expression: "window.__TEST__.state()" }
    (ゲーム状態をアサートする。JSON シリアライズ可能なデータを返す必要がある; 式は1000文字以下。)
 
-6. browser_press_key { key: “ArrowRight” }
+6. browser_press_key { key: "ArrowRight" }
    (実際の keydown/keyup — 移動には WASD/矢印キー。)
 
-7. browser_evaluate { expression: “window.__TEST__.state().player.x” }
+7. browser_evaluate { expression: "window.__TEST__.state().player.x" }
    (移動が発生したことを検証する。)
 
 8. browser_screenshot

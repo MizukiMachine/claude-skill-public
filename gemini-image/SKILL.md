@@ -189,7 +189,7 @@ Use image 1 as the identity anchor and image 2 as the composition guide. Keep th
 
 トークンコストはサイズに比例して増加する。探索中は `1K` を維持し、ディテールが実質的に重要な場合にのみ `2K` または `4K` に上げる。
 
-### Thinking
+### Thinkingï¼æèã¢ã¼ãï¼
 
 - `thinkingLevel: "minimal"` — 最速、推論が最も弱い。
 - `thinkingLevel: "High"` — より強力なレイアウト計画、トークン消費が多い。
@@ -199,7 +199,7 @@ Use image 1 as the identity anchor and image 2 as the composition guide. Keep th
 
 thinkingトークンは `includeThoughts` の可視性に関わらず課金される。
 
-### Grounding
+### Groundingï¼ã°ã©ã¦ã³ãã£ã³ã°ï¼
 
 `tools: [{"google_search": {}}]` を追加すると、Google Search経由で取得した実世界の事実に基づいて画像を生成する。実在製品・最近のイベント・実在の場所・実在の公人の外見（慎重に）に有効。
 

@@ -108,37 +108,37 @@ asset index（manifest）は、ゲームのすべてのアートに対する単�
 
 ```json
 {
-  “meta”: {
-    “version”: 1,
-    “root”: “assets/game”,
-    “defaultFps”: 10
+  "meta": {
+    "version": 1,
+    "root": "assets/game",
+    "defaultFps": 10
   },
-  “backgrounds”: {
-    “clouds”: { “path”: “Backgrounds/clouds.png”, “width”: 256, “height”: 128 }
+  "backgrounds": {
+    "clouds": { "path": "Backgrounds/clouds.png", "width": 256, "height": 128 }
   },
-  “tilesets”: {
-    “desert”: {
-      “path”: “Tilesets/desert.png”,
-      “width”: 192, “height”: 96,
-      “tileWidth”: 16, “tileHeight”: 16,
-      “columns”: 12, “rows”: 6
+  "tilesets": {
+    "desert": {
+      "path": "Tilesets/desert.png",
+      "width": 192, "height": 96,
+      "tileWidth": 16, "tileHeight": 16,
+      "columns": 12, "rows": 6
     }
   },
-  “images”: {
-    “deco”: {
-      “bush”: { “path”: “Deco/bush.png”, “width”: 32, “height”: 16 }
+  "images": {
+    "deco": {
+      "bush": { "path": "Deco/bush.png", "width": 32, "height": 16 }
     }
   },
-  “spritesheets”: {
-    “enemies”: {
-      “chicken”: {
-        “path”: “Enemies/chicken.png”,
-        “width”: 224, “height”: 64,
-        “frameWidth”: 32, “frameHeight”: 32,
-        “columns”: 7, “rows”: 2,
-        “animations”: {
-          “idle”: { “fps”: 6, “frames”: [[0,0], [1,0]] },
-          “run”: { “fps”: 10, “frames”: [[0,1], [1,1], [2,1], [3,1]] }
+  "spritesheets": {
+    "enemies": {
+      "chicken": {
+        "path": "Enemies/chicken.png",
+        "width": 224, "height": 64,
+        "frameWidth": 32, "frameHeight": 32,
+        "columns": 7, "rows": 2,
+        "animations": {
+          "idle": { "fps": 6, "frames": [[0,0], [1,0]] },
+          "run": { "fps": 10, "frames": [[0,1], [1,1], [2,1], [3,1]] }
         }
       }
     }
@@ -238,7 +238,7 @@ uv run scripts/asset_tilemap_editor.py \
 # オプション: 背景色を設定してタイルの背後に矩形を塗りつぶす（コンセプトモックアップに有用）
 uv run scripts/asset_tilemap_editor.py \
   --manifest path/to/assets_index.json --map tmp/selftest.json \
-  --export-map-render tmp/selftest_bg.png --scale 6 --bg ‘#77cfd8’ --fill-rect ‘0,40,24,6,#12a7d5’
+  --export-map-render tmp/selftest_bg.png --scale 6 --bg '#77cfd8' --fill-rect '0,40,24,6,#12a7d5'
 ```
 
 操作方法:
@@ -296,19 +296,19 @@ uv run scripts/tile_tileset_ids.py \
 
 ```json
 {
-  “meta”: {
-    “gridWidth”: 18,
-    “gridHeight”: 11,
-    “tileOriginX”: 0,
-    “tileOriginY”: 0,
-    “canvasWidth”: 288,
-    “canvasHeight”: 180,
-    “layerOrder”: [“background”, “ground”, “foreground”]
+  "meta": {
+    "gridWidth": 18,
+    "gridHeight": 11,
+    "tileOriginX": 0,
+    "tileOriginY": 0,
+    "canvasWidth": 288,
+    "canvasHeight": 180,
+    "layerOrder": ["background", "ground", "foreground"]
   },
-  “layers”: {
-    “background”: [[0,0],[0,0]],
-    “ground”: [[0,0],[0,0]],
-    “foreground”: [[0,0],[0,0]]
+  "layers": {
+    "background": [[0,0],[0,0]],
+    "ground": [[0,0],[0,0]],
+    "foreground": [[0,0],[0,0]]
   }
 }
 ```
@@ -350,8 +350,8 @@ uv run scripts/tilemap_autofill_row.py \
 
 ```bash
 uv run scripts/make_gifs.py \
-  --frames ‘tmp/*step*_debug.png’ --out tmp/steps_debug.gif \
-  --diff-frames ‘tmp/*step*_diff.png’ --out-diff tmp/steps_diff.gif
+  --frames 'tmp/*step*_debug.png' --out tmp/steps_debug.gif \
+  --diff-frames 'tmp/*step*_diff.png' --out-diff tmp/steps_diff.gif
 ```
 
 ## タイルマップがない場合は? 参照画像から `tilemap.json` を生成する（ベストエフォート）

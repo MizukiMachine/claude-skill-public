@@ -152,7 +152,7 @@ Use image 1 as the identity anchor and image 2 as the composition guide. Keep th
 
 ## 重要な出力制御
 
-### Size
+### ãµã¤ãº
 
 OpenAI のガイドは `gpt-image-2` の明示的な `WIDTHxHEIGHT` サイズに対してこれらの制約を文書化している:
 
@@ -172,7 +172,7 @@ OpenAI のガイドは `gpt-image-2` の明示的な `WIDTHxHEIGHT` サイズに
 - `2160x3840`
 - `auto`
 
-### Quality
+### åè³ª
 
 - ドラフト、サムネイル、低コストなイテレーションには `low` を使う。
 - 通常のデザインイテレーションには `medium` を使う。
@@ -186,7 +186,7 @@ OpenAI のガイドは `gpt-image-2` の明示的な `WIDTHxHEIGHT` サイズに
 - `webp`: モダンなWeb配信で強力な圧縮が必要なときに適している。
 - `output_compression`: `jpeg` または `webp` のみで使用すること。
 
-### Background
+### èæ¯
 
 `gpt-image-2` では:
 
