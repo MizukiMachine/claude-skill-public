@@ -1,17 +1,17 @@
 ---
-name: playwright-testing
-description: "フロントエンドテスト（unit/integration/E2E/ビジュアル/a11y）を計画・実装・デバッグする。browser-observer MCP（Playwrightベースの browser_* ツール）で実ブラウザ/E2E自動化を行い、Vitest/Jest/RTL、flakyテストの切り分け、CIの安定化、決定的な入力とスクリーンショット/状態アサーションが必要な canvas/WebGL ゲーム（Phaser）にも対応する。トリガー: 「test」「E2E」「flaky」「visual regression」「Playwright」「game testing」。"
+name: playwright-e2e
+description: "フロントエンドテスト（unit/integration/E2E/ビジュアル/a11y）を計画・実装・デバッグする。mcp-browser-observer MCP（Playwrightベースの browser_* ツール）で実ブラウザ/E2E自動化を行い、Vitest/Jest/RTL、flakyテストの切り分け、CIの安定化、決定的な入力とスクリーンショット/状態アサーションが必要な canvas/WebGL ゲーム（Phaser）にも対応する。トリガー: 「test」「E2E」「flaky」「visual regression」「Playwright」「game testing」。"
 metadata:
-  short-description: "Frontend testing on the browser-observer MCP: E2E, Vitest, flaky triage, game testing."
+  short-description: "Frontend testing on the mcp-browser-observer MCP: E2E, Vitest, flaky triage, game testing."
 ---
 
 # フロントエンドテスト
 
 正しいテスト層を選び、アプリを観測可能にし、非決定性を排除することで、失敗を解析可能にしながら、素早く確実な信頼性を手に入れましょう。
 
-## 実行基盤: browser-observer
+## 実行基盤: mcp-browser-observer
 
-このスキルは、実ブラウザ層として **browser-observer** MCP（ツール名プレフィックス `browser_`、完全修飾名 `mcp__browser-observer__browser_*`）を駆動します。この MCP は Playwright（Chromium）をバックエンドに持ち、ケイパビリティのみを提供します。テストの方法論はこのスキルが担います。
+このスキルは、実ブラウザ層として **mcp-browser-observer** MCP（ツール名プレフィックス `browser_`、完全修飾名 `mcp__mcp-browser-observer__browser_*`）を駆動します。この MCP は Playwright（Chromium）をバックエンドに持ち、ケイパビリティのみを提供します。テストの方法論はこのスキルが担います。
 
 2つの層、1つの基盤:
 - **ブラウザ操作ステップ**（E2E、ゲームフロー、ビジュアルキャプチャ）は `browser_*` ツールを使用します。
@@ -66,13 +66,13 @@ metadata:
 
 1. **クリティカルフローを1つ定義する**: 「ページが読み込まれる → ユーザーが開始できる → 1つのキーアクションが機能する」
 2. **テストシーム**をアプリに追加する（下記参照）
-3. **ランナーを選択する**: E2E には browser-observer MCP（`browser_*`）、ロジックには unit テスト（Vitest/Jest）
+3. **ランナーを選択する**: E2E には mcp-browser-observer MCP（`browser_*`）、ロジックには unit テスト（Vitest/Jest）
 4. **大きく失敗させる**: コンソールエラーと失敗リクエストをテストの失敗として扱う
 5. **安定化する**: RNG シード固定、時間を凍結、viewport を固定、アニメーションを無効化
 
 ## 具体的な MCP ワークフロー: ゲームのテスト
 
-browser-observer MCP 上で Phaser/canvas ゲームをテストするためのステップバイステップのシーケンス。`browser_evaluate` はJS の**式の文字列**（関数ではない）を受け取り、サンドボックス化されているため、準備完了はページ内 Promise ではなく DOM マーカーで待機します。
+mcp-browser-observer MCP 上で Phaser/canvas ゲームをテストするためのステップバイステップのシーケンス。`browser_evaluate` はJS の**式の文字列**（関数ではない）を受け取り、サンドボックス化されているため、準備完了はページ内 Promise ではなく DOM マーカーで待機します。
 
 ```
 1. browser_navigate { url: "http://localhost:3000?test=1&seed=42" }
