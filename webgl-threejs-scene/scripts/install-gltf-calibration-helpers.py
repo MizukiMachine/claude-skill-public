@@ -9,7 +9,7 @@ import sys
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Install the threejs-builder GLTF calibration helper module into a project folder.",
+        description="Install the webgl-threejs-scene GLTF calibration helper module into a project folder.",
     )
     parser.add_argument(
         "--out",
