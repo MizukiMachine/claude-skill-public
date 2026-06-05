@@ -1,14 +1,14 @@
 ---
 name: frontend-observation
-description: "推測ではなく実ブラウザで観察してフロントエンドUIを検証する。browser-observer MCP（browser_observe / browser_audit / browser_screenshot）を、段階的な判断ツリーで使う。まず軽くスクリーンショット、DOMやエラーが問題になるなら構造的に観察、何か壊れているときだけ複数ビューポートでフル監査する。フロントエンド変更後に実際に描画・動作するか確認したいとき、コンソールエラーやネットワーク失敗が疑われるとき、レスポンシブ/レイアウト崩れを確認したいときに使う。トリガー: 「見た目を確認」「UI確認」「observe the page」「check the UI」「レイアウト崩れ」「audit」「browser_observe」。"
+description: "推測ではなく実ブラウザで観察してフロントエンドUIを検証する。mcp-browser-observer MCP（browser_observe / browser_audit / browser_screenshot）を、段階的な判断ツリーで使う。まず軽くスクリーンショット、DOMやエラーが問題になるなら構造的に観察、何か壊れているときだけ複数ビューポートでフル監査する。フロントエンド変更後に実際に描画・動作するか確認したいとき、コンソールエラーやネットワーク失敗が疑われるとき、レスポンシブ/レイアウト崩れを確認したいときに使う。トリガー: 「見た目を確認」「UI確認」「observe the page」「check the UI」「レイアウト崩れ」「audit」「browser_observe」。"
 metadata:
-  short-description: "Real-browser UI verification via browser-observer; escalate screenshot→observe→audit."
+  short-description: "Real-browser UI verification via mcp-browser-observer; escalate screenshot→observe→audit."
   type: workflow
 ---
 
 # Frontend Observation
 
-コードだけを見て「完成した」と宣言する代わりに、**実際のブラウザで観察**してフロントエンドが正しくレンダリングされ動作することを確認する。このスキルは*判断*を担う — どの深さで確認するか。一方、`browser-observer` MCP は*能力*を担う（ブラウザの操作、DOM/console/network のキャプチャ、レイアウト候補のフラグ付け）。
+コードだけを見て「完成した」と宣言する代わりに、**実際のブラウザで観察**してフロントエンドが正しくレンダリングされ動作することを確認する。このスキルは*判断*を担う — どの深さで確認するか。一方、`mcp-browser-observer` MCP は*能力*を担う（ブラウザの操作、DOM/console/network のキャプチャ、レイアウト候補のフラグ付け）。
 
 ## 責任分担
 
@@ -84,7 +84,7 @@ MCP は呼び出し間で1つのライブブラウザセッションを保持す
 
 ## 永続的なテストへの引き継ぎ
 
-このスキルは「*今*正常か」に答えるものであり、「*今後も*正常であり続けるか」には答えない。フローが確認され安定したら、定着させる：**playwright-testing** スキルに引き継いで CI で実行される永続的なリグレッションテスト（unit/component/E2E/visual）を作成する。両スキルは同じ `browser-observer` MCP を使う — このスキルは高速なインループ検証のため、playwright-testing は永続的なセーフティネットのため。まずここで確認し、そこで定式化する。
+このスキルは「*今*正常か」に答えるものであり、「*今後も*正常であり続けるか」には答えない。フローが確認され安定したら、定着させる：**playwright-e2e** スキルに引き継いで CI で実行される永続的なリグレッションテスト（unit/component/E2E/visual）を作成する。両スキルは同じ `mcp-browser-observer` MCP を使う — このスキルは高速なインループ検証のため、playwright-e2e は永続的なセーフティネットのため。まずここで確認し、そこで定式化する。
 
 ## 「十分」の基準
 
@@ -100,7 +100,7 @@ MCP はデフォルトでプライベート/ローカルアドレスをブロッ
 
 ## ツールリファレンス
 
-すべてのツールは `browser-observer` MCP によって公開される（完全修飾名は `mcp__browser-observer__<tool>`）：
+すべてのツールは `mcp-browser-observer` MCP によって公開される（完全修飾名は `mcp__mcp-browser-observer__<tool>`）：
 
 - **観察（専門）:** `browser_observe`, `browser_audit`, `browser_screenshot`
 - **操作:** `browser_navigate`, `browser_click`, `browser_type`, `browser_press_key`, `browser_scroll`, `browser_wait`
