@@ -1,5 +1,5 @@
 ---
-name: threejs-builder
+name: webgl-threejs-scene
 description: "Three.jsとWebGLのWeb体験を構築、デバッグ、改善、レビューする。3D scene、product viewer、GLTF/GLB model loading、animation mixer、OrbitControls、lighting/material、post-processing、shader、responsive renderer、シンプルな3Dゲームを含む。Three.jsコードの作成/修正、空白canvasや壊れたimportの診断、model scale/orientation/anchorの修正、3D interaction追加、canvasベースWebアプリの視覚検証が必要なときに使う。"
 ---
 
@@ -102,7 +102,7 @@ CDN/static HTMLの場合は、import mapを使い、すべてのThree.js URLを�
 GTLFキャリブレーションは、ヘルパーをターゲットプロジェクトにインストールする:
 
 ```bash
-python3 /home/mizuki2/.claude/skills/threejs-builder/scripts/install-gltf-calibration-helpers.py \
+python3 /home/mizuki2/.claude/skills/webgl-threejs-scene/scripts/install-gltf-calibration-helpers.py \
   --out ./gltf-calibration-helpers.mjs
 ```
 

@@ -56,7 +56,7 @@ Keep mesh-forward fixes separate from gameplay heading. Do not change input vect
 Use the bundled helper when useful:
 
 ```bash
-python3 /home/mizuki2/.claude/skills/threejs-builder/scripts/install-gltf-calibration-helpers.py \
+python3 /home/mizuki2/.claude/skills/webgl-threejs-scene/scripts/install-gltf-calibration-helpers.py \
   --out ./gltf-calibration-helpers.mjs
 ```
 
