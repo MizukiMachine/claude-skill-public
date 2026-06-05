@@ -159,7 +159,7 @@ Constraints: visible pixels, limited palette, stepped shading, no glossy renderi
 ```bash
 OPENAI_API_KEY=... \
 python3 scripts/gpt_image_generate.py \
-  --prompt “Isometric potion shop icon, transparent background, polished game asset” \
+  --prompt "Isometric potion shop icon, transparent background, polished game asset" \
   --out-dir tmp/potion_shop --quality high --size 1024x1024 --output-format png
 ```
 
