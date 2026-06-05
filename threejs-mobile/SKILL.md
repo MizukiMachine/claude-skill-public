@@ -1,5 +1,5 @@
 ---
-name: threejs-capacitor
+name: threejs-mobile
 description: "Vite を使って、Capacitor の iOS / Android ネイティブシェル上で Three.js アプリを構築・リリースする。GLTF読み込み、assets_index によるアニメーションUI、OrbitControls のマウス/タッチ対応、WKWebView/Android System WebView ライフサイクル、iOS の SPM/Xcode、Android の Gradle/ADB/WSL2 エミュレータ、sync/run/署名のトラブルシュートを扱う。"
 ---
 
