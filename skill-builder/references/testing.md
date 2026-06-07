@@ -123,9 +123,9 @@ keywords particularly for technical terms
 
 ---
 
-## Using the skill-creator for Testing
+## Using the skill-builder for Testing
 
-The skill-creator skill can help you test and iterate on skills:
+The skill-builder skill can help you test and iterate on skills:
 
 **Creating skills:**
 - Generate skills from natural language descriptions
@@ -139,9 +139,9 @@ The skill-creator skill can help you test and iterate on skills:
 
 **Iterative improvement:**
 - After using your skill and encountering edge cases or failures, bring those
-  examples back to skill-creator
+  examples back to skill-builder
 - Example: "Use the issues & solution identified in this chat to improve how the
   skill handles [specific edge case]"
 
-**Note:** skill-creator helps you design and refine skills but does not execute
+**Note:** skill-builder helps you design and refine skills but does not execute
 automated test suites or produce quantitative evaluation results.
