@@ -1,11 +1,11 @@
 ---
-name: skill-creator-plus
-description: "高品質なClaude Codeスキルを作成するための拡張ガイド。哲学から設計すること、明確なwhat/why/deliverables、アンチパターン防止、バリエーション指針、検証、progressive disclosureを重視する。新規スキル作成、既存スキル更新、スキル品質改善、チェックリスト的なスキルを本番利用できる再利用可能ワークフローへ変える依頼で使う。"
+name: skill-builder
+description: "高品質なClaude Codeスキルを作成・更新するための包括ガイド。哲学から設計すること、明確なwhat/why/deliverables、アンチパターン防止、バリエーション指針、検証、パッケージング、progressive disclosureを重視する。新規スキル作成、既存スキル更新、スキル品質改善、チェックリスト的なスキルを本番利用できる再利用可能ワークフローへ変える依頼で使う。スキル作成は常にこのスキルを使う（旧 skill-creator の後継）。"
 metadata:
   short-description: "高品質なスキルを作成"
 ---
 
-# Skill Creator Plus
+# Skill Builder
 
 このスキルは、高品質で再利用可能なスキルを作成するためのガイダンスを提供する。
 
@@ -226,6 +226,19 @@ SKILL.md を小さく保ちながら深い資料を発見可能にするため�
 - **例を学習リソースとして扱うこと** - アノテーション付きの例・before/after変換・パターンのデモンストレーションは、出力アセットやプラットフォームがサポートするサンプルリソースでない限り、`references/` に置くこと。デフォルトではトップレベルの `examples/` ディレクトリを作成しないこと。
 - **品質を向上させる際は高パフォーマンスパターンを研究すること** - 複雑なスキルを作成する場合、弱いチェックリスト的なスキルをアップグレードする場合、または別のスキルコレクションから教訓を取り込む場合は、`references/high-performing-skill-patterns.md` を読むこと。
 
+### 同梱リファレンス
+
+このスキルには、必要に応じてオンデマンドで読み込む実証済みのリファレンスを同梱している。SKILL.md 本文をスリムに保つため、該当する場面でのみ読むこと。
+
+| トピック | ファイル | 使用場面 |
+|---|---|---|
+| 高パフォーマンスパターン | `references/high-performing-skill-patterns.md` | 複雑なスキル設計・弱いスキルのアップグレード |
+| 設計パターン | `references/patterns.md` | 実証済みの 5 つのスキルパターン |
+| 複数ステップのプロセス | `references/workflows.md` | 順次ワークフロー、条件ロジック |
+| アウトプット形式 | `references/output-patterns.md` | テンプレート、例のパターン |
+| テスト | `references/testing.md` | テスト方法論・フォワードテスト |
+| トラブルシューティング | `references/troubleshooting.md` | スキルの問題のデバッグ |
+
 ## スキル作成プロセス
 
 スキルの作成は以下のステップからなる：
@@ -403,6 +416,12 @@ scripts/quick_validate.py <path/to/skill-folder>
 ```
 
 この検証スクリプトは YAML frontmatter の形式・必須フィールド・命名ルールをチェックする。検証が失敗した場合は、報告された問題を修正してコマンドを再実行すること。
+
+配布用に `.zip` などへまとめる必要がある場合は、パッケージングスクリプトを使う：
+
+```bash
+scripts/package_skill.py <path/to/skill-folder>
+```
 
 ### ステップ6：反復する
 
