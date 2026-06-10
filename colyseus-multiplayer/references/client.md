@@ -106,6 +106,39 @@ Bad inputs:
 - trusted damage amounts
 - direct inventory mutation
 
+## Browser Lifecycle and Transient Feedback
+
+Treat SFX, particles, hit flashes, camera shake, and other one-shot presentation as cosmetic. They should usually be skipped, not queued, while the browser tab/window is inactive.
+
+Useful gate:
+
+```ts
+function canPlayTransientFeedback() {
+  const doc = globalThis.document;
+  return !doc || (!doc.hidden && doc.hasFocus());
+}
+
+room.onMessage("hit", (message) => {
+  if (!canPlayTransientFeedback()) {
+    return;
+  }
+
+  playHitSfx(message);
+  showHitFlash(message);
+});
+```
+
+On `visibilitychange` or focus return, read the latest room state and update durable presentation such as HP, phase, winner, positions, and connection UI. Do not replay every missed cosmetic event unless the design explicitly needs replay-grade event history.
+
+When diagnosing "late" or "too loud" effects, distinguish:
+
+- a real Colyseus reconnect/drop problem
+- delayed server event ordering
+- duplicated room/message listeners
+- browser lifecycle/audio resume behavior from an inactive tab
+
+Log the event type, room ID, session ID, local player ID, phase, result/winner state, timestamp, document visibility/focus state, cue/volume, and whether the effect was played or skipped. This usually exposes whether the network event was late or only the cosmetic playback was deferred.
+
 ## Reconnection
 
 Persist the reconnection token and try resume first.
@@ -162,10 +195,12 @@ For turn-based, card, social, or relaxed co-op games, skip this complexity until
 - Log join success, `roomId`, and `sessionId`
 - Attach `room.onError`, `room.onLeave`, and `room.onMessage("*", ...)` during bring-up
 - Test with at least two tabs; three is better
+- Test two browser windows/tabs where one is inactive while combat or other transient events happen
+- Log `document.hidden` and `document.hasFocus()` when debugging delayed SFX/VFX or focus-return bursts
 - Simulate latency instead of assuming localhost behavior generalizes
 - Confirm the client is reading env-configured URLs rather than hardcoded localhost values
 
-### Verifying multiplayer in Claude Code
+### Verifying multiplayer with real concurrent sessions
 
 Multiplayer bugs only show up with concurrent clients, so verify with real sessions rather than reasoning alone. When a headless-browser MCP (e.g. `phantom_*` navigate/click/type/evaluate/screenshot) is available:
 
@@ -183,3 +218,4 @@ If no browser MCP is available, fall back to two manually opened tabs and report
 - Mutating the local mirror of `room.state`
 - Creating multiple active room sessions accidentally during scene or route changes
 - Skipping visible reconnect and error UI, leaving the game to appear frozen
+- Queueing non-durable SFX/VFX while inactive and replaying them all on focus return
