@@ -43,7 +43,6 @@ Claude Code 用カスタムスキル集。`~/.claude/skills/` に配置して使
 | Skill | Description |
 |---|---|
 | **skill-builder** | スキル作成・更新の包括ガイド（品質・アンチパターン防止・検証・パッケージング重視） |
-| **skill-creator** | （旧版）skill-builder に統合・移行済み |
 
 ## Git & Workflow
 
