@@ -1,96 +1,86 @@
 ---
 name: gmerge
-description: >
-  ブランチをdevelopに--no-ffマージする。developがなければ作成。
-  main/masterへのマージはブロック。
-  トリガー: "gm", "マージして", "developにマージ", "git merge", "ブランチをマージ".
+description: "現在の作業ブランチをdevelopへ --no-ff でマージする。gm、$gm、ブランチのマージ、developへのマージを頼まれたときに使う。main/masterへの直接マージは止める。"
 allowed-tools: Bash, Read, Grep, Glob
 ---
 
 # Git Merge Skill
 
-## 手順
+source branch を `develop` へ `--no-ff` で merge する。`main` / `master` への直接 merge は止め、push は行わない。
 
-### 1. 事前チェック
+## ワークフロー
 
-```bash
-git branch --show-current
-git status --short
-```
+1. source branch を確認する。
 
-- **未コミットの変更がある場合** → マージを始めず、先に commit / stash するかユーザーに確認する。無関係な作業の上にマージを重ねない。
-- 現在のブランチが `main` または `master` の場合 → **エラーでブロック**:
+   ```bash
+   git branch --show-current
+   git status --short
+   ```
 
-  ```
-  エラー: main/master への直接マージは禁止されています。
-  release ブランチ等を経由してください。
-  ```
+   working tree に未 commit 変更がある場合は止まり、commit/stash するかユーザーに確認する。無関係な未 commit 変更の上で merge を始めない。
 
-- 現在のブランチが `develop` の場合 → どのブランチをマージ元にするかユーザーに確認する。
+2. 危険な source 状態を止める。
+   - current branch が `main` または `master` の場合は、次のエラーで止まる
 
-### 2. マージ先ブランチの確認
+   ```text
+   エラー: main/master からの直接マージ運用は禁止されています。release ブランチ等を経由してください。
+   ```
 
-マージ先は `develop` とする。
+   - current branch が `develop` の場合は、どの source branch を merge するか確認する
 
-```bash
-git branch --list develop
-```
+3. `develop` が存在するか確認する。
 
-- `develop` が存在する → ステップ3へ
-- `develop` が存在しない → 現在のブランチから `develop` を作成:
+   ```bash
+   git branch --list develop
+   ```
 
-```bash
-git branch develop
-```
+   存在しない場合は current branch から作成する。
 
-作成後、ユーザーに「develop ブランチを作成しました」と通知。
+   ```bash
+   git branch develop
+   ```
 
-### 3. developに切り替え
+   `develop` を作成したことをユーザーに伝える。
 
-現在のブランチが `develop` でなければ切り替え:
+4. `develop` へ切り替える。
 
-```bash
-git checkout develop
-```
+   ```bash
+   git checkout develop
+   ```
 
-### 4. マージ実行
+5. `--no-ff` で merge する。
 
-```bash
-git merge --no-ff <source-branch>
-```
+   ```bash
+   git merge --no-ff <source-branch> -m "merge: <source-branch> into develop"
+   ```
 
-マージメッセージはユーザー指定があればそれを使用、なければ自動生成:
+   ユーザーが merge message を指定した場合はそれを使う。
 
-```bash
-git merge --no-ff <source-branch> -m "merge: <source-branch> into develop"
-```
+6. 検証して報告する。
 
-### 5. 結果確認
+   ```bash
+   git log --oneline -5
+   git branch --show-current
+   git status --short
+   ```
 
-```bash
-git log --oneline -5
-git branch --show-current
-git status --short
-```
+   コマンド出力はユーザーに自動表示されないため、current branch、merge commit、recent log entries、final status を要約する。
 
-> 注: コマンド出力はユーザーに自動表示されない。最終応答で**現在のブランチ・マージコミット・直近のログ・最終ステータス**を要約して提示する。
+## Conflict Handling
 
-## マージコンフリクト時
+conflict が起きた場合、自動で abort しない。conflicted files を報告し、リポジトリは merge-conflict 状態のまま残す。
 
-コンフリクトが発生した場合はマージを中止せず、ユーザーに報告:
-
-```
+```text
 マージコンフリクトが発生しました:
-- <ファイル名>
-手動で解決してください。
-```
+- <file>
 
-ユーザーが解決後に `git add` + `git commit` で完了、または `git merge --abort` で中止。
+解決後に git add と git commit で完了するか、git merge --abort で中止してください。
+```
 
 ## 禁止事項
 
-- `main` / `master` へのマージはブロック
-- `git merge` に `--ff` や `--ff-only` は使用しない（必ず `--no-ff`）
-- `git push` はこのスキルの範囲外。ユーザーが明示的に依頼しない限り push しない
-- コンフリクト発生時、ユーザーが明示的に依頼しない限り `git merge --abort` で中止しない
-- 結果の省略・スキップ・要約は禁止
+- `main` または `master` へ merge しない
+- `--ff` や `--ff-only` を使わない。常に `--no-ff`
+- ユーザーが明示しない限り push しない
+- ユーザーが明示しない限り conflicted merge を abort しない
+- final branch、recent log、status report を省略しない

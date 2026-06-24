@@ -1,148 +1,113 @@
 ---
 name: gcommit
-description: >
-  作業ツリーの変更差分を分析し、新ブランチを作成してコミットする。
-  変更が多い場合は意味単位で分割コミットする。
-  トリガー: "gc", "コミットして", "変更をコミット", "git commit", "ブランチ切ってコミット".
+description: "Git作業ツリーを確認し、新しいブランチを切って安全にコミットする。gc、$gc、コミット、ブランチ作成とコミットを頼まれたときに使う。"
 allowed-tools: Bash, Read, Grep, Glob
 ---
 
 # Git Commit Skill
 
-## 手順
+現在の作業ツリーから、安全で意図のはっきりした Git commit を作る。広い file set を不用意に stage しない。
 
-### 1. 変更の把握
+## ワークフロー
 
-```bash
-git status --short
-git diff --stat
-git diff --name-only
-git ls-files --others --exclude-standard
-```
+1. 変更を確認する。
 
-### 2. 安全性チェック（必須）
-
-ステージング前に、全変更ファイルを以下の基準でスキャンする。
-**該当ファイルが1つでもあれば、コミット前にユーザーに確認すること。**
-
-#### 機密情報パターン（即確認）
-
-| パターン | 例 |
-|---|---|
-| 環境変数ファイル | `.env`, `.env.*`（ただし `*.example`・`*.template`・`*.schema`・`*.d.ts` は許可リストとして除外）, `.envrc` |
-| 認証情報 | `credentials.json`, `*.pem`, `*.key`, `*.p12`, `id_rsa`（`.pub`を除く）, `*.ppk` |
-| APIキー・トークン | `./*token*`, `./*secret*`, `./*apikey*`（`src/`等ソースコード配下を除く） |
-| クラウド設定 | `service-account*.json`, `*.gpg`, `*.kubeconfig` |
-| CI/CD秘匿値 | `*.tfstate`, `*.tfstate.backup` |
-
-#### 一般的にコミットすべきでないファイル（即確認）
-
-| パターン | 例 |
-|---|---|
-| 大型バイナリ | `*.exe`, `*.dll`, `*.so`, `*.dylib`, `*.zip`, `*.tar.gz` |
-| ビルド成果物 | `dist/`, `build/`, `target/`, `node_modules/` |
-| IDE/エディタ設定 | `.idea/`, `.vscode/settings.json`（共有設定以外） |
-| OS生成ファイル | `.DS_Store`, `Thumbs.db`, `desktop.ini` |
-| ログファイル | `*.log` |
-
-#### 実装
-
-1. `git diff --name-only` と `git ls-files --others --exclude-standard` の出力から、許可リスト（例: `.env.example`, `.env.production.example`, `.env.template`, `.env.schema`, `.env.d.ts`）に該当するファイルを先に除外
-2. 残ったファイルを上記パターンと照合
-3. 該当ファイルがあれば、**コミット実行前に** ユーザーに一覧を提示:
+   ```bash
+   git status --short
+   git diff --stat
+   git diff --name-only
+   git ls-files --others --exclude-standard
    ```
-   ⚠ 以下のファイルに機密情報・非推奨ファイルの可能性があります:
-   - .env.local (環境変数ファイル)
-   - secrets/token.json (認証情報)
-   コミットに含めますか？
+
+2. stage 前に diff を読む。
+   - 変更済み tracked files をすべて確認する
+   - commit 対象になりそうな untracked files を確認する
+   - 無関係なユーザー変更は保持する。tree をきれいにする目的で戻さない
+
+3. stage 前に safety check を実行する。
+   - path-based sensitive pattern に照合する前に allowlist を適用する
+   - 残った candidate files を sensitive / discouraged patterns と照合する
+   - 該当 file があれば止まり、含めるかユーザーに確認する
+   - ユーザーが拒否した file は除外する
+
+4. branch を作る。
+   - 変更全体から短い Conventional Commits の type と scope を推測する
+   - `<type>/<short-summary>` を使う。例: `feat/skill-cleanup`, `fix/auth-validation`, `chore/config-update`
+   - branch name はおおむね30文字以内にする
+   - すでに適切な task branch にいる場合、切り替えが危険または意外なときだけ確認する
+
+5. commit を分ける。
+   - candidate files が10個以下で1つの論理単位なら1 commit にする
+   - 11個以上なら directory、change type、logical feature で分ける
+   - commit message は Conventional Commits にする
+
+   ```text
+   <type>(<scope>): <summary>
    ```
-4. ユーザーが拒否したファイルはステージング対象から除外
-5. ユーザーが承認したファイルのみステージング
 
-> 注: 許可リストで除外したファイルでも、**diff の中身に実際の秘密値（APIキー・トークン・パスワード等）が含まれていれば秘匿扱いとし、コミット前に確認する**。パス名だけで安全と判断しない。
+6. 明示 path だけを stage する。
 
-### 3. ブランチ名の生成
+   ```bash
+   git add <file1> <file2>
+   git commit -m "<type>(<scope>): <summary>"
+   ```
 
-変更内容全体から Conventional Commits の scope と要約を推測し、ブランチ名を生成:
+7. 検証して報告する。
 
-```
-<type>/<短い要約>
-```
+   ```bash
+   git log --oneline -<N>
+   git status --short
+   ```
 
-例:
-- `feat/skill-cleanup` — スキルの追加・整理
-- `fix/auth-validation` — バグ修正
-- `refactor/command-simplify` — リファクタリング
-- `chore/config-update` — 設定変更
+   コマンド出力はユーザーに自動表示されないため、最終回答では branch name、commit hash/message、最終 status を要約する。
 
-ブランチ名は30文字以内に収める。
+## Safety Check
 
-### 4. 変更のグループ化
+次に該当する file は commit 前に必ず確認する。
 
-ファイル数が **10個以下** なら1つのコミットにまとめる。
+path-based sensitive-file matching の前に、この allowlist を適用する。
 
-ファイル数が **11個以上** の場合、以下の基準でグループ化して分割コミット:
+- 環境変数テンプレートと schema は path だけでは sensitive とみなさない: `.env.example`, `.env.*.example`, `.env.template`, `.env.schema`, `.env.sample`, `.env.d.ts`
+- allowlisted environment template/schema files は `.env.*` に一致するだけでは flag しない
+- allowlisted file の diff に実 secret value が含まれる場合、その内容は sensitive として扱い、確認する
 
-| 優先度 | グループ条件 | 例 |
-|---|---|---|
-| 1 | 同じディレクトリ内のファイル | `skills/*/SKILL.md` の一括変更 |
-| 2 | 同じ変更種別（追加/修正/削除） | スキル削除ファイル一式 |
-| 3 | 論理的な関連性 | commands/ 配下の修正一式 |
+Sensitive files:
 
-各コミットメッセージは Conventional Commits 形式:
-
-```
-<type>(<scope>): <要約>
-```
-
-### 5. 実行
-
-```bash
-# 新ブランチ作成
-git checkout -b <branch-name>
-
-# グループごとにステージング & コミット
-git add <file1> <file2> ...
-git commit -m "<type>(<scope>): <要約>
-
-Co-Authored-By: Claude <noreply@anthropic.com>"
-
-# 次のグループ
-git add <file3> <file4> ...
-git commit -m "<type>(<scope>): <要約>
-
-Co-Authored-By: Claude <noreply@anthropic.com>"
-```
-
-### 6. 確認
-
-全コミット完了後:
-
-```bash
-git log --oneline -<N>
-git status
-```
-
-> 注: コマンド出力はユーザーに自動表示されない。最終応答で**ブランチ名・各コミットのハッシュ/メッセージ・最終ステータス**を要約して提示する。
-
-## コミットメッセージの type
-
-| type | 用途 |
+| Pattern | Examples |
 |---|---|
-| `feat` | 新機能・新規追加 |
+| Environment files | `.env`, `.env.*` except allowlisted templates/schemas, `.envrc` |
+| Credentials | `credentials.json`, `*.pem`, `*.key`, `*.p12`, `id_rsa*`, `*.ppk` |
+| Tokens/secrets | `*-token*`, `*-secret*`, `*-apikey*` |
+| Cloud credentials | `service-account*.json`, `*.gpg`, `*.kubeconfig` |
+| Terraform state | `*.tfstate`, `*.tfstate.backup` |
+
+通常は避ける files:
+
+| Pattern | Examples |
+|---|---|
+| Large binaries | `*.exe`, `*.dll`, `*.so`, `*.dylib`, `*.zip`, `*.tar.gz` |
+| Build output | `dist/`, `build/`, `target/`, `node_modules/` |
+| Local editor settings | `.idea/`, `.vscode/settings.json` unless intentionally shared |
+| OS files | `.DS_Store`, `Thumbs.db`, `desktop.ini` |
+| Logs | `*.log`, `npm-debug.log*` |
+
+## Commit Types
+
+| Type | Use |
+|---|---|
+| `feat` | 新機能または新しい capability |
 | `fix` | バグ修正 |
-| `refactor` | 挙動を変えない構成変更 |
+| `refactor` | 挙動を変えないコード整理 |
 | `docs` | ドキュメントのみ |
-| `chore` | 設定・メタデータ・クリーンアップ |
-| `style` | フォーマット・空白・リネーム |
-| `test` | テストのみ・テスト基盤 |
+| `chore` | 設定、metadata、cleanup、maintenance |
+| `style` | formatting、whitespace、naming-only changes |
+| `test` | tests only または test infrastructure |
 
 ## 禁止事項
 
-- `git add .` は禁止。対象ファイルを明示的に指定する
-- `git add -A` も禁止
-- `git commit --amend` は禁止
-- `git commit --no-verify` は禁止。フックをスキップしない
-- `git push` はこのスキルの範囲外。ユーザーが明示的に依頼しない限り push しない
-- 結果の省略・スキップ・要約は禁止。全ての出力をユーザーに提示する
-- 機密情報・非推奨ファイルの扱いは手順2（安全性チェック）に従う
+- `git add .` を使わない
+- `git add -A` を使わない
+- ユーザーが明示しない限り `git commit --amend` しない
+- explicit approval なしに sensitive または discouraged files を commit しない
+- ユーザーが明示しない限り push しない
+- 最終 branch、commit list、status report を省略しない

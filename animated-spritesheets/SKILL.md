@@ -1,261 +1,263 @@
 ---
 name: animated-spritesheets
-description: "1枚のキャラクター参照画像から、アニメーションスプライトシートを生成する。モデルへのプロンプト、シート全体からのフレーム復元、背景除去、正規化、コンタクトシート、GIFプレビューまでを行う。AI生成による2Dキャラクターアニメーションのパイプラインに使う。"
+description: "1枚のキャラクター参照画像からAI生成向けのアニメーションスプライトシートを作る。プロンプト、フレーム復元、背景除去、正規化、プレビュー生成で使う。"
 metadata:
-  short-description: "Reference image to animated spritesheet pipeline."
+  short-description: "参照画像からアニメーションスプライトシートを作る"
 ---
 
 # Animated Spritesheets
 
-このスキルは、ユーザーが1枚のキャラクターリファレンス画像（通常は高解像度の `1024x1024` sprite-like image）から始めて、使えるアニメーションspritesheetと、contact sheetやGIFといったレビュー用成果物まで仕上げたいときに使用する。
+1枚の character reference image、多くは `1024x1024` の high-resolution sprite-like image から、usable animated spritesheet と review artifacts (contact sheets / GIFs) を作る。
 
-使用するケース:
-- 承認済みリファレンススプライト1枚から方向別アンカーやアクションシートを生成する
-- ポーズが暗黙のフームセルからはみ出したAI生成シートをサルベージする
-- ゲームチームが実際に確認できるレビュー成果物を作成する
+使う場面:
 
-使用しないケース:
-- 最終ピクセルアートのフレームを手作業で1枚ずつ描く
-- タイルマップ、環境シート、UIアイコンセット
-- すべてのソースピクセルがすでに正確であることが前提の、厳密な小ピクセルワークフロー
+- approved reference sprite から directional anchors / action sheets を作る
+- poses が implied frame cells から drift した AI-generated sheets を salvage する
+- game team が実際に inspect できる review artifacts を作る
 
-典型的な入力:
-- `1` 枚の承認済みリファレンス画像（多くは `1024x1024`）
-- `512x1280` の交互ピクセルcontact sheetのようなシートガイド（任意）
-- 方向・アクション・フレーム順序を記述した1つのpromptファイル
+使わない場面:
 
-典型的な出力:
-- 生成済みシートまたは方向別アンカー
-- 復元済みコンポーネントのcrop
-- 背景除去済みcrop（任意）
-- 正規化済みランタイムフレーム
-- ラベル付きcontact sheet
-- 選択シーケンスGIF
+- final pixel art を frame-by-frame で手描きする
+- tilemaps、environment sheets、UI icon sets
+- source pixel が厳密に正しい strict tiny-pixel workflows
 
-## 哲学: Spritesheetを2つの問題として扱う
+典型的な inputs:
 
-AIスプライトワークフローの多くは、タスク全体を「フレームを生成する」として扱うため失敗する。
+- approved reference image 1枚
+- optional sheet guide。例: `512x1280` alternating-pixel contact sheet
+- direction、action、frame ordering を書いた prompt file
 
-実際には、これは**2つの異なる問題**である:
+典型的な outputs:
 
-1. **Generation（生成）**: モデルに正しいキャラクター・方向・アクションを出力させること。
-2. **Registration（位置合わせ）**: その出力を安定したエンジン向けフレームに変換すること。
+- generated sheet / directional anchor
+- recovered component crops
+- optional no-background crops
+- normalized runtime frames
+- labeled contact sheet
+- selected-sequence GIF
 
-2番目の問題の方が、通常は難しい。
+## 考え方: Spritesheet は2つの問題
 
-**着手前に確認すること**:
-- ユーザーが求めているのは厳密な小ピクセルアートか、「高解像度ピクセル調」アートか？
-- リファレンス画像はすでに承認済みのゲーム内アイデンティティか、単なるコンセプトアートか？
-- 納品物は単一のアンカーフレームか、完全なspritesheetか、完成済みGIFプレビューか？
-- モデルが不可視のセル境界をまたいだ場合、正解の根拠はセルか、シート全体か？
+AI sprite workflow は「frames を生成する」だけとして扱うと失敗しやすい。実際には2つの別問題。
 
-**コア原則**:
-1. **アイデンティティアンカー優先**: 可能な限り、上流のコンセプトアートではなく承認済みのゲーム内スプライトを使用する。
-2. **ポリッシュ前にリカバリー**: パレットやエッジのクリーンアップより先に、欠落したシルエットとフレーミングを修正する。
-3. **シーケンスごとに1つのアンカー**: ソースが真に別の扱いを必要とする場合を除き、すべてのフレームを1つの共有センター/ボトムルールに正規化する。
-4. **レビュー成果物は重要**: contact sheetとGIFはパイプラインの一部であり、任意の付加物ではない。
+1. **Generation**: 正しい character、direction、action を出す
+2. **Registration**: それを stable engine-style frames に変換する
+
+多くの場合、2つ目の方が難しい。
+
+作業前に確認すること:
+
+- strict tiny-pixel art か high-resolution pixelated art か
+- reference は approved in-game identity か concept art か
+- deliverable は single anchor、full spritesheet、finished GIF preview のどれか
+- model が invisible cell boundaries をまたいだ場合、source of truth は cells か full sheet か
+
+基本原則:
+
+1. approved in-game sprite を identity anchor にする
+2. polishing 前に recovery。missing silhouette / framing を先に直す
+3. sequence につき one shared anchor。shared center/bottom rule で normalize する
+4. contact sheets と GIFs は pipeline の一部
 
 ## ワークフロー
 
-### 1. 適切な入力リファレンスを選ぶ
+### 1. input reference を選ぶ
 
-優先するもの:
-- 承認済みのsprite-likeリファレンス1枚（多くは `1024x1024`）
-- 複数の相反するアートソースではなく、1つの明確なアイデンティティ画像
+approved sprite-like reference 1枚を優先する。conflicting art sources を複数混ぜない。gameplay-facing sprite がない場合だけ concept art を使う。
 
-承認済みのゲームプレイ向けスプライトが存在しない場合にのみ、コンセプトアートを使用する。
+### 2. sheet guide を作る
 
-### 2. シートガイドを作成する
+multi-frame generation では sheet-sized guide を先に作る。
 
-マルチフレーム生成の場合、先にシートサイズのガイド画像を作成する。
+`scripts/make_alternating_sheet.py` は次に使う。
 
-`scripts/make_alternating_sheet.py` を使用して:
-- ニュートラルな交互ピクセル背景
-- `512x1280` のような任意サイズ
-- 可視のグリッドラインを追加せずにピクセルテクスチャを促すガイド
+- neutral alternating-pixel background
+- `512x1280` など arbitrary sizes
+- visible grid lines なしで pixel texture を促す guide
 
-このガイドは**スタイル/コンポジションのヒント**であり、モデルが厳密なフレームセルに従うことを保証するものではない。
+これは style/composition hint であり、strict frame cells を model が守る保証ではない。
 
-### 2b. ビデオ由来のウォークサイクルにはニュートラルプレートを使用する
+### 2b. video-derived walk cycles では neutral plates
 
-image-to-videoモデルを使用してウォークサイクルのソースモーションを作成する場合、開始画像の背景にチェッカーボード・交互ピクセルシート・可視グリッドを**使用しないこと**。
+image-to-video models で walk-cycle source motion を作る場合、checkerboard、alternating-pixel sheet、visible grid を start background にしない。video model が floor、room、horizon、perspective grid と解釈し、camera drift や scene motion を作るため。
 
-これらのガイドは静止画のspritesheet生成には機能するが、videoモデルはそれらをフロア・部屋・地平線・透視グリッドとして解釈することが多い。これによりカメラドリフト・キャラクターの向き変化・シーンモーションが発生し、きれいなその場ウォークにならない。
+direction-specific neutral plate:
 
-ウォークサイクルのビデオパスには、方向別のニュートラルプレートを作成する:
-- `1280x720` キャンバス
-- フラットなニュートラルグレー背景
-- 足が見える状態でセンタリングした1枚の承認済み方向アンカー
-- チェッカー/グリッド/フロア/地平線/矢印/ラベルなし
-- ボビングや布の揺れに十分なパディング
+- `1280x720` canvas
+- flat neutral gray background
+- approved direction anchor を中央に置き、feet visible
+- checker/grid/floor/horizon/arrows/labels なし
+- bobbing / cloth sway 用 padding
 
-videoモデルに以下をロックするよう指示する:
-- 向きの方向
-- カメラとフレーミング
-- フラット背景
-- その場でのウォークモーション
-- シーン・小道具・エフェクトなし
+prompt は facing direction、camera/framing、flat background、in-place walk、no scene/props/effects を lock する。template は `references/prompt-patterns.md`。
 
-`references/prompt-patterns.md` のimage-to-videoウォークサイクルテンプレートを使用する。
+video は motion reference としてだけ使う。raw frames を extract し、contact sheets / GIFs を作り、team が curate した frame だけ background removal / normalization する。
 
-ビデオはモーションリファレンスとしてのみ扱う。生フレームを抽出し、contact sheetとGIFを作成し、チームにフレームをキュレーションさせ、選択したフレームのみ背景除去・正規化を行う。
+### 3. whole sheet 用 prompt
 
-### 3. シート全体についてpromptする
+production brief のように構造化する。
 
-productionブリーフのようにpromptを構成する:
-- 用途
-- 画像の役割
-- 被写体と方向
-- 順序付けられたフレームシーケンス
-- 外観・レンダリングの制約
-- コンポジションの制約
-- 明示的な禁止リスト
+- intended use
+- image roles
+- subject and direction
+- ordered frame sequence
+- look/rendering constraints
+- composition constraints
+- explicit avoid list
 
-フレームリストは具体的に保つ。例:
+frame list は具体的にする。例:
+
 - `Frame 1: ready idle`
 - `Frame 5: first shot muzzle flash`
 - `Frame 10: return to idle`
 
-`references/prompt-patterns.md` のpromptパターンを使用する。
+patterns は `references/prompt-patterns.md`。
 
-### 4. 単純なセルクロップを盲目的に信頼しない
+### 4. naive cell crops を信用しない
 
-出力サイズがまったく正確であっても、モデルは帽子・コート・足・マズルフラッシュを暗黙のセル境界からはみ出させることがある。
+output size が正しくても hats、coats、feet、muzzle flashes が implied cell boundaries をまたぐ場合がある。
 
-まず**シート全体**に対して `scripts/recover_component_frames.py` を使用する:
-- 主要な前景コンポーネントを検出する
-- それらを意図したグリッドに戻してバケット分類する
-- タイトに復元したフレームcropを保存する
+まず full sheet に `scripts/recover_component_frames.py` を使う。
 
-これが本来の正解の根拠であることが多い。
+- dominant foreground components を detect
+- intended grid へ bucket back
+- tight recovered frame crops を保存
 
-### 5. シルエット復元後に背景を除去する
+これが実際の source of truth になることが多い。
 
-よりきれいなエッジが必要な場合は、元の固定セルcropではなく、復元済みコンポーネントcropに対して背景除去を実行する。
+### 5. silhouette recovery 後に background removal
 
-`scripts/remove_bg_batch.py` を remove.bg 用に使用する。
+cleaner edges が必要な場合、original rigid cell crops ではなく recovered component crops に background removal をかける。
+
+remove.bg batch は `scripts/remove_bg_batch.py`。
 
 理由:
-- 生のセルcropはすでに誤っている可能性がある
-- シート全体の背景除去は元のジオメトリを壊すことが多い
-- コンポーネントごとの除去により復元済みシルエットが保たれる
 
-### 6. すべてのフレームを1つの共有アンカーに正規化する
+- raw cell crops は既に間違っている可能性がある
+- whole-sheet background removal は元の geometry を壊すことが多い
+- per-component removal は recover した silhouette を保持する
 
-`scripts/normalize_frames.py` を使用して、すべての復元済み/クリーン済みcropを固定のランタイムフレームに配置する。例:
-- キャンバス `256x256`
-- センター `x = 128`
-- ボトム `y = 255`
+### 6. one shared anchor に normalize
 
-これが横方向のドリフトや偽の「スケーティング」を防ぐ。
+`scripts/normalize_frames.py` で recovered/cleaned crops を fixed runtime frame に置く。例:
 
-生成済みセルが透明cropではなく**不透明なフラット背景crop**の場合、それらのセルから直接GIFを構築しないこと。まず `scripts/normalize_flat_bg_frames.py` を使用して、接続されたコーナー背景をflood-fillし、実際の前景をcropし、すべてのフレームを同じセンター/ボトムアンカーに正規化する。これにより、モデルが各名目上の `256x256` セル内でキャラクターを異なるx/yオフセットに配置するという、アイドルシートの一般的な失敗を修正できる。
+- canvas `256x256`
+- center `x = 128`
+- bottom `y = 255`
 
-### 6b. ランタイムエクスポート前に可視フットベースラインを確認する
+これで sideways drift と fake skating を防ぐ。
 
-正規化後、最終エンジンフレーム内の**可視**alpha範囲を確認する。
+生成された cell が transparent crops ではなく **opaque flat-background crops** の場合は、それらの cell から直接 GIF を作ってはいけない。まず `scripts/normalize_flat_bg_frames.py` を使い、connected corner background を flood-fill し、実際の foreground を crop し、すべての frame を same center/bottom anchor へ normalize する。これは、model が各 nominal `256x256` cell 内でキャラクターを異なる x/y offset に置いてしまう、よくある idle-sheet failure を修正する。
 
-これは画像キャンバスサイズとは別の話である。フレームが `256x256` であっても、足が `y = 215` で終わり、その下に40pxの透明パディングがあれば誤りとなる。Phaserのようなエンジンでは、スプライトのオリジンとシャドウは通常、可視ピクセルではなくフレームの全矩形に適用されるため、一貫性のないボトムパディングによりキャラクターがシャドウより浮いて見える。
+### 6b. visible foot baseline を audit
 
-ランタイムシートをエクスポートする前に:
-- すべてのフレームのalphaバウンディングボックスを確認する
-- 最も低い非透明ピクセルが意図したベースラインに来るよう確認する（`256x256` の場合は通常 `bottomY = 255`）
-- 1つのアニメーション内のフレームだけでなく、同じキャラクターのすべての方向を比較する
-- レビューキャンバスがランタイムより大きい場合は、ダウンスケール後にリベースラインするか、意図的にランタイムフレームにcrop/パディングする
+normalization 後、final engine frames 内の **visible** alpha bounds を確認する。
 
-`gamedev-assets` スキルを使用している場合は、`asset_sprite_baseline.py` を実行してベースラインを確認し、必要に応じてベースライン修正済みシートを書き出す。
+これは image canvas size とは別の話である。`256x256` frame でも feet が `y = 215` で終わり下に 40px transparent padding があると、frame は依然として間違っている。Phaser のような engine では sprite origin と shadow は通常、visible pixels ではなく full frame rectangle に対して適用されるため、bottom padding が frame ごとに不揃いだとキャラクターが shadow の上に浮いて見える。
 
-### 7. レビュー成果物を作成する
+runtime sheet export 前:
 
-以下を使用する:
-- `scripts/build_contact_sheet.py` でラベル付きレビューシート
-- `scripts/build_sequence_gif.py` でフルループまたはキュレーション済みシーケンス
+- 各 frame の alpha bounding box を inspect
+- lowest non-transparent pixel が intended baseline、例 `bottomY = 255`、にあるか確認
+- 同じ character の全 directions / states を比較
+- runtime より大きな review canvas を downscale/crop/pad した後は再 baseline
 
-最低限レビューするもの:
-- 生成済みシート
-- 復元済みフレームcrop
-- 正規化済みcontact sheet
-- 選択シーケンスGIF
+`gamedev-assets` skill の `asset_sprite_baseline.py` で audit / correction できる。
 
-## 避けるべきアンチパターン
+### 7. review artifacts を作る
 
-❌ **アンチパターン: 不可視グリッドを信頼する**
-問題点: キャンバスサイズが正確でも、モデルはセルをまたいでコンポジションすることがある。
-改善策: フレーム境界を確定する前に、シート全体からコンポーネントを復元する。
+- `scripts/build_contact_sheet.py`: labeled review sheets
+- `scripts/build_sequence_gif.py`: loops / curated sequences
 
-❌ **アンチパターン: シート全体の背景除去**
-問題点: remove.bgのようなツールは前景全体の範囲でcropすることが多く、シートのジオメトリを壊す。
-改善策: 復元済みコンポーネントcropごとに背景を除去する。
+少なくとも generated sheet、recovered crops、normalized contact sheet、selected-sequence GIF を review する。
 
-❌ **アンチパターン: フレームごとにゼロからリセンタリング**
-問題点: ドリフトや偽のモーションが発生する。
-改善策: すべてのフレームを1つの共有センター/ボトムアンカーに正規化する。
+## 避けること
 
-❌ **アンチパターン: フレームサイズを足の位置合わせの証拠として扱う**
-問題点: `256x256` シートでも足の下に40pxの透明パディングが含まれる可能性があり、エンジン内でシャドウ/オリジンのバグを引き起こす。
-改善策: alphaの範囲を確認し、ランタイムエクスポート前に可視フットベースラインを正規化する。
+**invisible grid を信用する**
 
-❌ **アンチパターン: image-to-videoウォークサイクルにチェッカー/グリッド背景を使用する**
-問題点: videoモデルはそれらを物理的なシーンとして解釈し、透視・地平線・カメラドリフト・キャラクターの向き変化を加える。
-改善策: ニュートラルな `1280x720` フラット背景の方向プレートを使用し、抽出後に選択したフレームをキュレーションして正規化する。
+問題: canvas size が正しくても、model は cells をまたいで compose することがある。
+改善: frame boundaries を確定する前に full sheet から components を recover する。
 
-❌ **アンチパターン: 復元前にポリッシュする**
-問題点: エッジクリーンアップでは欠落した足やスライスされたコートを復元できない。
-改善策: まず完全なシルエットを復元し、その後エッジをクリーンアップする。
+**whole sheet に background removal**
 
-❌ **アンチパターン: 「ピクセルパーフェクト」ツールが常に役立つと思い込む**
-問題点: 一部のpixel-snappingツールは高解像度ピクセル調スプライトを過剰に量子化して縮小させる。
-改善策: 復元と正規化の後でのみテストし、読みやすさが向上する場合にのみ使用する。
+問題: remove.bg などは全体 foreground bounds へ crop し、sheet geometry を壊しやすい。
+改善: recovered component crop ごとに background removal する。
 
-## バリエーションガイダンス
+**per-frame recentering**
 
-**重要**: すべてのspritesheetを同じ見た目に強制しないこと。
+問題: frame ごとの独立 recentering は drift と fake motion を生む。
+改善: sequence 全体を one shared center/bottom anchor に normalize する。
 
-以下に基づいてパイプラインを変える:
-- ターゲットの外観: 厳密なレトロピクセルアート vs 高解像度ピクセル調アート
-- 方向セット: 南のみ、西/東、北、4方向、8方向
-- アクションの種類: walk、idle、attack、hurt、death
-- シートレイアウト: 単一フレーム、ストリップ、`2x5`、`4x4` など
+**frame size を foot alignment の証明とみなす**
 
-シーケンス内で安定させるべきもの:
-- アイデンティティソース
-- 共有アンカールール
-- フレームキャンバスサイズ
-- 最終ランタイムフレーム内の可視フットベースライン
-- 最終GIFの選択ロジック
+問題: `256x256` frame でも feet の下に transparent padding があると、engine 上で shadow/origin bugs が出る。
+改善: runtime export 前に alpha bounds を audit し、visible foot baseline を揃える。
+
+**walk-cycle video に checker/grid backgrounds**
+
+問題: video models は grid を physical scene と解釈し、perspective、horizon、camera drift、character turns を足すことがある。
+改善: neutral `1280x720` flat-background direction plate を使い、extraction 後に selected frames を curate / normalize する。
+
+**recovery 前に polish**
+
+問題: edge cleanup では missing feet や sliced coats は復元できない。
+改善: full silhouette を recover してから edge cleanup する。
+
+**pixel-perfect tools を常に有効とみなす**
+
+問題: 一部の pixel-snapping tools は high-resolution pixelated sprites を過剰 quantize したり縮めたりする。
+改善: recovery / normalization 後に試し、readability が上がる場合だけ採用する。
+
+## Variation Guidance
+
+**IMPORTANT**: すべての spritesheet を同じ aesthetic に押し込めないこと。
+
+pipeline は以下に応じて変える:
+
+- target look: strict retro pixel art と high-resolution pixelated art
+- direction set: south-only、west/east、north、4-direction、8-direction
+- action type: walk、idle、attack、hurt、death
+- sheet layout: single frame、strip、`2x5`、`4x4` など
+
+sequence 内で stable にするもの:
+
+- identity source
+- shared anchor rule
+- frame canvas size
+- final runtime frame 内の visible foot baseline
+- final GIF の selection logic
 
 変えてよいもの:
-- アクションと方向によるpromptの言い回し
-- 選択したフレームの順序
-- パレットクリーンアップ戦略
-- 背景除去がそもそも必要かどうか
 
-## 適応ルール
+- action / direction ごとの prompt wording
+- selected frame order
+- palette cleanup strategy
+- background removal の有無
 
-ワークフローは厳格な手順書ではなく、ツールキットとして使用する。
+## Adaptation Rules
 
-- モデルがすでに分離されたクリーンなフレームを出力している場合は、復元をスキップして正規化に直接進む。
-- シートのジオメトリが信頼できない場合は、名目上のセル計算よりシート全体の復元を信頼する。
-- 背景除去が重要なエッジを損傷する場合は、不透明なcropをそのまま保持してそれを正規化する。
-- 出力が単一の方向別アンカーである場合は、ユーザーが明示的にシートを求めない限り、生成とレビュー後に停止する。
-- ワンショットランナーが過剰な場合は、個別のスクリプトを直接呼び出し、重要な成果物のみを保持する。
-- 正規化済みレビューフレームをダウンスケールまたはランタイムシートに変換した場合は、最終ランタイムPNGを再度確認する。レビューアンカーはリサイズ後も自動的に正しいとは限らない。
+- model が clean isolated frames を返すなら recovery を skip して normalization
+- sheet geometry が unreliable なら nominal cell math より full-sheet recovery
+- background removal が edges を壊すなら opaque crop を normalize
+- single directional anchor なら generation + review で止める
+- one-shot runner が大げさなら individual scripts を直接使う
+- normalized review frames から runtime sheets に downscale/convert したら final PNGs を再 audit
 
-## リソース
+## Resources
 
-- ワークフローリファレンス: `references/pipeline.md`
-- Promptのスキャフォールド: `references/prompt-patterns.md`
-- ガイドシートジェネレーター: `scripts/make_alternating_sheet.py`
-- ワンショットパイプラインランナー: `scripts/run_pipeline.py`
-- シート全体のコンポーネント復元: `scripts/recover_component_frames.py`
-- remove.bg バッチ処理: `scripts/remove_bg_batch.py`
-- フレーム正規化: `scripts/normalize_frames.py`
-- Contact sheetビルダー: `scripts/build_contact_sheet.py`
-- GIFビルダー: `scripts/build_sequence_gif.py`
+- Workflow reference: `references/pipeline.md`
+- Prompt scaffolds: `references/prompt-patterns.md`
+- Guide sheet generator: `scripts/make_alternating_sheet.py`
+- One-shot pipeline runner: `scripts/run_pipeline.py`
+- Full-sheet component recovery: `scripts/recover_component_frames.py`
+- remove.bg batching: `scripts/remove_bg_batch.py`
+- Frame normalization: `scripts/normalize_frames.py`
+- Contact sheet builder: `scripts/build_contact_sheet.py`
+- GIF builder: `scripts/build_sequence_gif.py`
 
-## クイックスタート
+## Quick Start
 
-ユーザーが1つのスクリプトではなくパイプライン全体を必要とする場合にランナーを使用する:
+whole pipeline が必要な場合は runner を使う。
 
 ```bash
 uv run scripts/run_pipeline.py \
@@ -276,12 +278,8 @@ uv run scripts/run_pipeline.py \
   --flat-bg '#f0f0f0'
 ```
 
-ランナーはデフォルトで生成に兄弟スキル `gpt-image-2-0` を使用する。インストールのレイアウトが異なる場合は `--gpt-image-edit-script` または `ANIMATED_SPRITESHEETS_GPT_IMAGE_EDIT` で上書きする。
+runner は既定で sibling `gpt-image-2-0` skill を generation に使う。layout が違う場合は `--gpt-image-edit-script` または `ANIMATED_SPRITESHEETS_GPT_IMAGE_EDIT` で上書きする。
 
-## まとめ
+## 覚えておくこと
 
-AIのspritesheetで難しいのは、「モデルにキャラクターを描かせること」ではない。
-
-難しいのは、有望なシートから安定した・読みやすい・エンジン向けのフレームにたどり着くことである。
-
-まずシルエットを復元する。次にエッジをクリーンアップする。3番目に正規化する。最後にモーションをキュレーションする。
+AI spritesheets の難所は character を描かせることではなく、有望な sheet から stable、readable、engine-style frames へ持っていくこと。silhouette recovery、edge cleanup、normalization、motion curation の順で進める。

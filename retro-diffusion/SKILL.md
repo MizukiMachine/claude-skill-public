@@ -1,57 +1,59 @@
 ---
 name: retro-diffusion
-description: "Retro Diffusion を使って、ピクセルアートの画像生成、img2img編集、スプライトシート、参照画像からのプラットフォーマー歩行サイクル・ターンアラウンド・アクションシートといったアニメーション実験を行う。"
+description: "Retro Diffusionでピクセルアート画像やスプライトシートを生成・編集する。参照画像から歩行サイクルやターンアラウンドなどのアニメーション素材を試すときに使う。"
 metadata:
-  short-description: "Retro Diffusion image and animation workflows."
+  short-description: "Retro Diffusionの画像・アニメーションワークフロー"
 ---
 
 # Retro Diffusion
 
-このスキルは、ユーザーが Retro Diffusion を通じてピクセルアート画像やアニメーションシートを生成したいときに使用します。特に、横スクロールプラットフォーマーのウォーク、ターンアラウンド、アクションサイクルなど、参照画像を起点としたキャラクター制作タスクに適しています。
+Retro Diffusion で pixel-art images や animation sheets を生成する場合に使う。特に side-view platformer walks、turnarounds、action cycles など reference-image-driven character work に向く。
 
-## 方針: スタイルとアセット契約を一致させる
+## 考え方: Style を Asset Contract に合わせる
 
-Retro Diffusion は fal のようなプロバイダ非依存のモデルマーケットプレイスを提供していません。重要な制御パラメータは `prompt_style` であり、各スタイルは特定のアセット契約を意味します。
+Retro Diffusion は fal のような provider-agnostic model marketplace ではない。重要な control は `prompt_style` で、style ごとに asset contract が違う。
 
-- 汎用画像モデルのスタイル
-- スプライトシート向けのスタイル
-- 固定サイズのアニメーション生成スタイル
-- 入力フレームが必要で、ニュートラルなポーズからのみうまく動作するスタイル
+- general image models
+- spritesheet-oriented styles
+- fixed-size animation generators
+- input frame を必要とし、neutral poses から強い styles
 
-Retro Diffusion の正しい使い方は次のとおりです。
+正しい使い方:
 
-- 欲しいアセットの形状に合ったスタイルを選ぶ
-- スタイルのサイズ契約を守る
-- `input_image` を使用するときはきれいな RGB 参照画像を渡す
-- コスト確認と出力キャプチャをワークフローの最重要ステップとして扱う
+- 欲しい asset shape に合う style を選ぶ
+- style の size contract を守る
+- `input_image` には clean RGB reference を渡す
+- cost checks と output capture を workflow の first-class step として扱う
 
 **生成前に確認すること:**
-- 単一画像・スプライトシート・アニメーションのどれを作るか？
-- フリーフォームな prompt・参照画像を使った編集・開始フレームのアニメーション、どれか？
-- 選択した `prompt_style` は固定フレームサイズを要求するか？
-- GIF プレビュー・PNG スプライトシート、あるいは両方が必要か？
 
-**基本原則**:
-1. **スタイル優先、prompt 次**: Retro Diffusion では `prompt_style` は単なるフレーバー調整ではなくモードセレクタ。
-2. **サイズ契約を守る**: `animation__four_angle_walking` は `48x48`、`animation__8_dir_rotation` は `80x80`、advanced animation は開始フレームのサイズに合わせる。
-3. **参照画像の品質が重要**: `input_image` は透過なしの RGB である必要があり、prompt は参照内容を説明すること——API がすべてを推測してくれると思わないこと。
-4. **プレビューだけでなくシートをキャプチャする**: スプライト作業では `return_spritesheet: true` を優先し、後続の分析が確定的になるようにする。
-5. **prompt は思ったより短くする**: advanced animation では prompt を極めて簡潔に保つこと。サービスはアクションテキストを内部で展開するため、raw prompt が一見まともでも長いと server-side で失敗することがある。
-6. **完了判断はアーティファクト基準で行う（CLI メッセージ基準ではない）**: ローカルのラッパーがタイムアウト・最終レスポンス欠落・クリーンな完了メッセージ未出力でも、実行が成功している場合がある。
+- single image、spritesheet、animation のどれか
+- freeform prompt、reference-driven edit、starting-frame animation のどれか
+- selected `prompt_style` に fixed frame size があるか
+- GIF preview、PNG spritesheet、または両方が必要か
 
-## このスキルが提供するもの
+**基本原則**
 
-- スキルに同梱されたポータブルな Retro Diffusion ハーネス:
+1. **style first, prompt second**: `prompt_style` は flavor ではなく mode selector
+2. **size contracts を守る**: `animation__four_angle_walking` は `48x48`、`animation__8_dir_rotation` は `80x80`、advanced animations は starting frame size に合わせる
+3. **reference cleanliness matters**: `input_image` は transparency なしの RGB。prompt で reference を説明する
+4. **preview だけでなく sheet を capture**: sprite work では `return_spritesheet: true`
+5. **prompt は短く**: advanced animations は prompt を極めて簡潔に保つ。service が action text を内部展開するため、raw prompt が妥当に見えても長い prompt は server-side で失敗し得る
+6. **completion は CLI message ではなく artifact で判断**: local wrapper が timeout する、final response を drop する、clean completion message を一切出力しない場合でも run は成功している場合がある
+
+## 提供するもの
+
+- portable Retro Diffusion harness:
   - text-to-image
-  - `input_image` を使った img2img スタイルの実行
-  - `reference_images` を使ったマルチ参照実行
-  - 固定スタイルのアニメーションおよびスプライトシート生成
-- 汎用 inference ランナー:
-  - `POST https://api.retrodiffusion.ai/v1/inferences` にリクエストを送信
-  - `check_cost: true` によるコスト確認専用モードをサポート
-  - 正規化された実行マニフェストとデコード済み出力を書き出す
-- 繰り返し実験設定のためのバッチランナー
-- よく使われる Retro Diffusion モードのモデル/スタイルプリセット:
+  - `input_image` による img2img-style runs
+  - `reference_images` による multi-reference runs
+  - fixed-style animation / spritesheet generation
+- generic inference runner:
+  - `POST https://api.retrodiffusion.ai/v1/inferences`
+  - `check_cost: true` による cost-only checks
+  - normalized run manifests と decoded outputs の書き出し
+- repeatable experiment configs 用 batch runner
+- useful presets:
   - `rd-pro-platformer`
   - `rd-pro-edit`
   - `rd-pro-spritesheet`
@@ -64,222 +66,213 @@ Retro Diffusion の正しい使い方は次のとおりです。
   - `rd-advanced-animation-idle`
   - `rd-advanced-animation-attack`
 
-## Retro Diffusion の使い方
+## Working With Retro Diffusion
 
-### API の形式
+### API Shape
 
 - Endpoint: `POST https://api.retrodiffusion.ai/v1/inferences`
-- 認証ヘッダー: `X-RD-Token: YOUR_API_KEY`
+- Auth header: `X-RD-Token: YOUR_API_KEY`
 
-出力に含まれる可能性があるもの:
+outputs:
 
 - `base64_images`
 - `output_urls`
 - `balance_cost`
 - `remaining_balance`
 
-重要な運用ルール:
+operational rule:
 
-- ターミナルプロセスが最終的な成功行を返さなかっただけで実行が失敗したと判断しない
-- Retro Diffusion の実行は、ローカル呼び出し側が不確定な状態を報告している間に完了していることがある
-- 再試行前に、意図した出力フォルダを確認する:
-  - 新しい画像アーティファクト
-  - 実行メタデータ JSON
-  - 実行開始より新しいファイル更新時刻
-- stdout が欠落しているだけで失敗と判断せず、アーティファクトの検証後にのみ失敗とみなす
+- terminal process に final success line がないだけで失敗と決めない
+- local caller が indeterminate state を返しても、Retro Diffusion run は完了している場合がある
+- retry 前に output folder を確認する
+  - new image artifacts
+  - run metadata JSON
+  - run start より新しい file modification times
+- missing stdout ではなく artifact verification 後に failed と判断する
 
-アニメーションは通常、透過 GIF として返ってきます。PNG シートが必要な場合は `return_spritesheet: true` を追加してください。
+animations は通常 transparent GIFs で返る。PNG sheet が必要なら `return_spritesheet: true` を付ける。
 
-### 参照画像とアニメーションのガイダンス
+### Reference And Animation Guidance
 
-`input_image` について:
+`input_image`:
 
-- まず RGB に変換する
-- 透過を除去する
-- `data:image/png;base64,` プレフィックスを含めない
-- prompt で参照画像の内容を説明する
-- RGBA からの暗黙の黒変換に頼らず、明示的に準備した RGB 参照画像を使う
+- 先に RGB へ変換する
+- transparency を除去する
+- `data:image/png;base64,` prefix は含めない
+- prompt で reference が何かを書く
+- silent RGBA-to-black conversion より explicit prepared RGB reference image を使う
 
-横スクロールプラットフォーマーのウォークについて:
+side-view platformer walks:
 
-- ニュートラルな開始フレームがある場合は `rd_advanced_animation__walking` を優先する
-- `width` と `height` は開始フレームと同じ値に保つ
-- デフォルトに任せず `frames_duration` を意図的に指定する
-- 移動するキャラクターではなく抽出可能なフレームが欲しい場合は、その場ロコモーションを要求する
-- 大きいアンカーが不安定な場合は、コンパクトな正方形の参照画像を先に準備して再試行する
-- `return_spritesheet: true` を設定した場合、advanced walking の成功実行では GIF ではなく透過スプライトシート PNG が返ってきた
+- neutral starting frame があるなら `rd_advanced_animation__walking` を先に試す
+- `width` と `height` は starting frame と合わせる
+- `frames_duration` を意図して指定する
+- extractable frames が必要なら in-place locomotion を求める
+- large anchor が不安定なら compact square reference を準備して retry
+- `return_spritesheet: true` では transparent spritesheet PNG が返った実績がある
 
-多方向ウォークプリセットについて:
+multi-direction walking presets:
 
-- `animation__four_angle_walking` と `animation__walking_and_idle` は `48x48` ワークフロー
-- 広範な探索には有用だが、既存の `64x64` アンカーとの直接比較には適さない
+- `animation__four_angle_walking` と `animation__walking_and_idle` は `48x48` workflows
+- broad exploration には有用だが、既存 `64x64` anchor との直接比較には向かない
 
-8方向ターンアラウンド実験について:
+eight-direction turnaround:
 
-- ワンショットの方向シートが欲しい場合はまず `animation__8_dir_rotation` を試す
-- 固定サイズ `80x80` であることを覚えておく
-- 最初の実験として扱い、方向の正確性を保証するものではない
-- `animation__8_dir_rotation` がサーバーエラーを返したり方向が弱い場合は、即座に staged `rd_pro__edit` ワークフローにフォールバックする
-- 信頼性の高い staged フォールバックは:
-  - まず isometric アンカーから基本4方向
-  - 次に同じアンカーと基本4方向シートを `reference_images` として使い斜め方向
+- one-shot directional sheet が欲しいときは `animation__8_dir_rotation` を先に試す
+- fixed `80x80` であることを忘れない
+- guaranteed な directional truth ではなく first experiment として扱う
+- server errors や weak directions が出たら、即座に staged `rd_pro__edit` workflow へ切り替える
+- dependable fallback:
+  - isometric anchor から cardinals を先に作る
+  - same anchor + cardinal sheet を `reference_images` として diagonals を作る
 
-### prompt のガイダンス
+### Prompting Guidance
 
-コンセプトアートのコピーではなく、アニメーション指示として prompt を書く:
+concept art copy ではなく animation direction として書く。
 
-- キャラクターが誰か
-- 向いている方向
-- 意図する動き
-- 安定させるべきもの
-- あってはならないもの
+- character は誰か
+- facing direction
+- intended motion
+- 何を stable に保つか
+- 何を避けるか
 
-キャラクターアニメーション用の良い Retro Diffusion prompt の構成要素:
+良い components:
 
-- identity（同一性）: コンパクトな冒険者、同じ衣装の色、同じシルエットとプロポーション
-- facing（向き）: side-facing、profile view、facing right
-- motion（動き）: その場でのウォークサイクル、読みやすいステップのリズム、交互の腕の振り
-- stability（安定性）: フレーム間でシルエットと衣装を一貫して保つ
-- exclusions（除外）: no camera movement、no perspective rotation、no extra props、no background
+- identity: compact adventurer、same costume colors、same silhouette and proportions
+- facing: side-facing、profile view、facing right
+- motion: walk cycle in place、readable step rhythm、alternating arm swing
+- stability: keep silhouette and costume consistent frame to frame
+- exclusions: no camera movement、no perspective rotation、no extra props、no background
 
-advanced animation の prompt に関して特に:
+advanced animation prompts:
 
-- 1〜2文の短い文を使う
-- 長い説明文は避ける
-- identity の詳細を必要以上に繰り返さない
-- 全体の prompt はできれば `300` 文字以内に収める
+- 1-2 short sentences
+- long descriptive prose を避ける
+- identity details を過剰に繰り返さない
+- 可能なら full prompt を `300` characters 未満に保つ
 
-実際の使用における重要なニュアンス:
+実運用上の注意:
 
-- 「短い」と「良い」は同じではない
-- キャラクターの identity をうまく保持できた実行結果があった場合、どの節が安全に削除できるかわかるまで積極的に prompt を簡略化しない
-- 出力をロックするために必要不可欠なガードレールを保持する:
-  - `side-facing` のような向き/カメラの向き
-  - `same costume and silhouette` のような identity 保持
-  - `bow-butt melee attack` のようなアクションの曖昧さ解消
-  - `no background clutter` のようなクリーンアップ制約
-- これらのガードレールを削除すると、開始フレームと参照画像が正しくても Retro Diffusion が全く別のモーションファミリーに漂流することがある
+- "shorter" は "better" と同じではない
+- character identity をよく保つ run が得られたら、どの clause を安全に消せるか分かっている場合を除き、prompt を過度に単純化しない
+- output を lock する譲れない guardrails は残す:
+  - `side-facing` などの facing / camera orientation
+  - `same costume and silhouette` などの identity preservation
+  - `bow-butt melee attack` などの action disambiguation
+  - `no background clutter` などの cleanup constraints
+- これらの guardrails を外すと、starting frame と references が正しくても Retro Diffusion が全く別の move family に drift しうる
 
-## スクリプト
+## Scripts
 
-- `scripts/retro_inference_run.py`
-  - 1回の Retro Diffusion 実行
-  - 画像・編集・アニメーション/スプライトシート
-  - コスト確認専用モードをサポート
-- `scripts/retro_experiment_matrix.py`
-  - JSON で定義された実験バッチを実行
-  - 同じソーススプライトに対して Retro Diffusion のスタイルを横断比較するのに便利
-- `scripts/prepare_reference_image.py`
-  - ローカルの PNG から明示的な RGB 参照入力を準備
-  - 指定したマットに透過をフラット化
-  - 最近傍スケーリングで目標サイズの正方形にオプションリサイズ
+- `scripts/retro_inference_run.py`: one run、image/edit/animation/spritesheet、cost-only mode
+- `scripts/retro_experiment_matrix.py`: JSON-defined experiment batch
+- `scripts/prepare_reference_image.py`: local PNG から RGB reference を準備、matte flatten、nearest-neighbor square resize
 
-## ポータブルワークフロー
+## Portable Workflow
 
-プロジェクト固有のアーティファクトは、スキルディレクトリ内ではなくユーザーの作業プロジェクト内に保存する。
+project-specific artifacts は skill directory ではなく user's working project に置く。
 
-推奨するデフォルトレイアウト:
+default layout:
 
-- バージョン管理された実験設定は `experiments/retro-diffusion/configs/` のようなパスに配置
-- 生成物はプロジェクト管理の `outputs/`・`artifacts/`・アセットステージングディレクトリに配置
-- プロジェクトが使用している場合は、実験ドキュメントの隣に人間が読める prompt・メモ・学習結果を配置
+- checked-in experiment contracts: `experiments/retro-diffusion/configs/`
+- generated outputs: project-owned `outputs/`、`artifacts/`、asset-staging directory
+- prompts、notes、learnings は project が使う experiment docs の隣に置く
 
-重要なルール:
+skill は scripts、references、presets を提供し、prompts/configs/manifests/generated images の置き場所は user project が決める。
 
-- スキルはスクリプト・参照・プリセットを提供する
-- prompt・設定・マニフェスト・生成画像の保存場所はユーザーのプロジェクトが決定する
+## Run Verification Workflow
 
-## 実行確認ワークフロー
+run が stall、timeout、ambiguous result に見える場合:
 
-Retro Diffusion の実行が止まっているように見える、タイムアウトした、または結果が曖昧な場合:
+1. start 前に intended output directory を記録する
+2. run を1回だけ launch
+3. wrapper が clean completion を出さない場合、まず output directory を inspect
+4. expected filenames、non-empty PNG/GIF、run JSON / response JSON、new timestamps を確認
+5. artifacts があれば completed と扱い、sheet quality を評価する
+6. retry は no new artifacts、または returned artifact が明らかに corrupt / incomplete の場合だけ
 
-1. 実行開始前に意図した出力ディレクトリを記録する。
-2. 実行を1回起動する。
-3. ラッパーがクリーンな完了を報告しない場合、他の何かをする前に出力ディレクトリを確認する。
-4. 以下を確認する:
-   - 期待する出力ファイル名
-   - 空でない PNG / GIF アーティファクト
-   - ハーネスが書き込んだ実行 JSON またはレスポンス JSON
-   - 実行開始より新しいタイムスタンプ
-5. アーティファクトが存在する場合は実行完了とみなし、返ってきたシートから品質を評価する。
-6. 再試行するのは以下の場合のみ:
-   - 新しいアーティファクトが生成されていない、または
-   - 返ってきたアーティファクトがタスクに対して明らかに破損/不完全な場合。
+practical rule: ambiguous transport state は model failure ではない。files first、retry second。
 
-実践的なルール:
+## 避けること
 
-- 転送状態が曖昧なことはモデルの失敗と同じではない
-- まずファイルを確認し、次に再試行する
+**incompatible animation styles を同一 task として比較する**
 
-## 避けるべきアンチパターン
+問題: fixed `48x48` four-angle walker と reference-driven advanced walking sheet は equivalent な outputs ではない。
+改善: 同じ contract ではなく、異なる Retro Diffusion strategies として比較する。
 
-❌ **アンチパターン: 互換性のないアニメーションスタイルを同じタスクとして比較する**
-なぜ悪いか: 固定サイズ `48x48` の4方向ウォーカーと参照画像駆動の advanced walking シートは同等の出力ではない。
-改善策: 同じ契約としてではなく、異なる Retro Diffusion の戦略として比較する。
+**transparent RGBA sprites を直接 `input_image` に渡す**
 
-❌ **アンチパターン: 透過 RGBA スプライトをそのまま `input_image` に渡す**
-なぜ悪いか: ドキュメントには `input_image` は透過なしの RGB であるべきと記載されている。
-改善策: 入力を先に RGB に変換し、対象をきれいなフラットな背景に配置する。
+問題: docs によれば `input_image` は transparency なしの RGB であるべき。
+改善: input を先に RGB へ変換し、subject を clean flat background 上に保つ。
 
-❌ **アンチパターン: GIF かスプライトシートかを指定せずに「ウォークアニメーション」を要求する**
-なぜ悪いか: 後続で分析しにくいプレビュー形式で返ってくる可能性がある。
-改善策: 抽出やフレーム比較が目的の場合は `return_spritesheet: true` を要求する。
+**GIF か spritesheet かを指定せず walk animation を頼む**
 
-❌ **アンチパターン: advanced animation モードで冗長な prompt を使う**
-なぜ悪いか: バックエンドがアクションテキストを内部展開して、隠れた `500` 文字のバリデーション制限に達する可能性がある。
-改善策: advanced animation の prompt は最小限かつリテラルに保つ。
+問題: downstream で解析しづらい preview format が返ることがある。
+改善: extraction や frame comparison が目的なら `return_spritesheet: true` を要求する。
 
-❌ **アンチパターン: 良い実行結果が出た後に prompt を過度に簡略化する**
-なぜ悪いか: 「余分な言葉」を削除すると、モデルをスタイルに留めていた identity とモーションの制約が削除されることが多い。
-改善策: 慎重に短縮しつつ、向き・シルエット・アクションタイプ・背景の振る舞いをロックしている節は保持する。
+**advanced animation modes で verbose prompts**
 
-❌ **アンチパターン: ラッパーがクリーンな成功メッセージを出力しなかったからといってすぐに再試行する**
-なぜ悪いか: Retro Diffusion がすでに出力シートを生成しており、不要な再試行は時間とコストを無駄にし、正解ソースの選択を混乱させる。
-改善策: まず対象の出力ディレクトリと実行アーティファクトを確認し、それから2回目の実行が本当に必要かどうか判断する。
+問題: backend が action text を内部で展開し、隠れた `500` 文字の validation limit に達することがある。
+改善: advanced-animation prompt は最小限かつ literal に保つ。
 
-❌ **アンチパターン: 参照画像だけでスタイルが保持されると仮定する**
-なぜ悪いか: prompt が向きとアクションのセマンティクスを強化しなくなると `animation__any_animation` は別のモーションファミリーに漂流したり、一貫性のないエフェクトを追加することがある。
-改善策: 開始フレームと参照画像に加えて、向き・identity・アクションの読みやすさを保持するコンパクトで明示的な prompt を組み合わせる。
+**良い run の後に prompt を単純化しすぎる**
 
-❌ **アンチパターン: より大きい isometric アンカーの方が良く機能すると仮定する**
-なぜ悪いか: 特に advanced animation モードでは、大きい参照画像はコンパクトに準備したアンカーよりも安定性が低いことがある。
-改善策: まず承認済みのアンカーをコンパクトな正方形にダウンスケールしてから、advanced walking を試す。
+問題: "余分な単語" を消すと、model を on-style に保っていた exact な identity / motion constraints まで消してしまうことが多い。
+改善: 慎重に短くしつつ、facing、silhouette、action type、background behavior を lock する clauses は残す。
 
-❌ **アンチパターン: `animation__8_dir_rotation` を正規のターンアラウンドパスとして信頼する**
-なぜ悪いか: ドキュメントに記載された `80x80` サイズでもサーバーサイドで失敗したり、方向の分離が弱くなることがある。
-改善策: 安価な最初の探索としてのみ使用し、信頼性の高いターンアラウンドワークフローが必要な場合は staged `rd_pro__edit` に頼る。
+**wrapper の success message なしで即 retry**
 
-❌ **アンチパターン: 組み込みのフレームサイズ契約を無視する**
-なぜ悪いか: 一部のスタイルは要求したサイズを暗黙的にクランプまたは無視する。
-改善策: サイズ/出力形式がタスクに合っているからそのスタイルを選ぶ。
+問題: Retro Diffusion は既に output sheet を生成済みのことがあり、不要な retry は time、money を浪費し source-of-truth の選択を混乱させる。
+改善: まず target output directory と run artifacts を inspect し、本当に second run が必要かを判断する。
 
-❌ **アンチパターン: Retro Diffusion を汎用ビデオモデルとして扱う**
-なぜ悪いか: この API はピクセルアートの画像とアニメーションシート生成のためであり、フリーカメラビデオのためではない。
-改善策: スプライトネイティブな出力に使用し、後で動画由来のワークフローと比較する。
+**reference image だけで style が保たれると仮定する**
 
-## バリエーションのガイダンス
+問題: prompt が orientation と action semantics を補強しなくなると、`animation__any_animation` でも wrong move family に drift したり inconsistent effects を加えたりしうる。
+改善: starting frame と references に、orientation、identity、action read を保つ compact だが explicit な prompt を組み合わせる。
 
-**重要**: すべてのスプライトタスクに1つの Retro Diffusion モードを使い続けない。
+**larger isometric anchor が常に良いと仮定する**
 
-- アセット契約に基づいて `RD_PRO`・`RD_FAST`・advanced animation スタイルを使い分ける
-- 短い攻撃と長いウォークのテストで `frames_duration` を意図的に変える
-- 下流のニーズに応じて GIF プレビューを返すか、スプライトシートを返すかを変える
-- プラットフォーマーウォーク用の最良の prompt がターンアラウンドやアイドルにも最良だと仮定しない
+問題: larger references は、特に advanced animation modes で compact prepared anchors より不安定になりうる。
+改善: 承認済み anchor を compact square に downscale してから advanced walking を試す。
 
-## 参考資料
+**`animation__8_dir_rotation` を canonical turnaround path とみなす**
 
-- API とスタイルの注記: `references/api-and-styles.md`
-- アニメーション戦略の注記: `references/animation-workflows.md`
-- プリセット: `assets/model-presets.json`
-- prompt スターター: `assets/prompt-profiles/`
+問題: documented な `80x80` size でも server-side で失敗したり、weak directional separation を生じることがある。
+改善: cheap な first probe としてのみ扱い、dependable な turnaround workflow が必要なときは staged `rd_pro__edit` に頼る。
 
-## まとめ
+**frame-size contracts を無視する**
 
-Retro Diffusion は、その作法に従って使うときに最も力を発揮します:
+問題: 一部の style は requested size を silently に clamp / ignore する。
+改善: size / output format が task に合うことを理由に style を選ぶ。
 
-- 正しい組み込みスタイルを選ぶ
-- きれいな参照画像を渡す
-- 必要な正確なスプライトアーティファクトを要求する
-- advanced animation の prompt は極力短くする
-- 信頼性の高い isometric ターンアラウンド作業には staged `RD Pro Edit` を使う
-- そして結果を一発の prompt ではなく、実験として追跡する
+**general-purpose video model として扱う**
+
+問題: この API は pixel-art image と animation sheet generation のためのもので、free-camera video のためではない。
+改善: sprite-native outputs に使い、それを後で video-derived workflows と比較する。
+
+## Variation Guidance
+
+**IMPORTANT**: すべての sprite task で同一の Retro Diffusion mode に収束しないこと。
+
+- asset contract に応じて `RD_PRO`、`RD_FAST`、advanced animation styles を使い分ける
+- short attack と longer walk tests で `frames_duration` を変える
+- downstream need に応じて GIF preview / spritesheet を選ぶ
+- platformer walking の best prompt が turnarounds / idles にも最適とは仮定しない
+
+## 参照
+
+- API and style notes: `references/api-and-styles.md`
+- Animation strategy notes: `references/animation-workflows.md`
+- Presets: `assets/model-presets.json`
+- Prompt starters: `assets/prompt-profiles/`
+
+## 覚えておくこと
+
+Retro Diffusion は、こちらが Retro Diffusion 自身の流儀で扱ったときに最も強い:
+
+- 正しい built-in style を選ぶ
+- clean reference を渡す
+- 必要な sprite artifact を正確に求める
+- advanced-animation prompts は極端に短く保つ
+- 信頼できる isometric turnaround 作業には staged `RD Pro Edit` を優先する
+- 結果を one-off prompt ではなく experiment として追跡する

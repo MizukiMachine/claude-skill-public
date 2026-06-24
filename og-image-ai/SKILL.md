@@ -1,6 +1,6 @@
 ---
 name: og-image-ai
-description: "OpenAI GPT ImageモデルによるAIイラストと、Pillowによる決定的なテキスト合成を組み合わせて、Open Graph画像やSNSプレビュー画像を生成する。創造的/テーマ性のあるOG画像、イラスト入りブログ/記事カード、製品/ランディングページのSNSカード、`og-analysis.json` からのバッチ生成、または決定的な `og-image-creator` パイプラインのAI生成版が必要なときに使う。"
+description: "AIイラストとPillowのテキスト合成でOpen Graph画像を生成する。記事カード、製品ページ、SNSプレビュー、og-analysis.jsonの一括処理で使う。"
 metadata:
   short-description: "AIイラストのOG画像を生成"
 ---
@@ -9,117 +9,117 @@ metadata:
 
 ## 目的
 
-AIが生成したビジュアル背景と鮮明な決定的テキストオーバーレイを組み合わせた、1200x630のOpen Graph画像を生成する。`og-image-creator` のクリエイティブな補完ツールとして使用し、ルート探索・メタデータ統合・プレビュー検証の代替として使用しないこと。
+AI-generated visual backgrounds と、Pillow による crisp / deterministic text overlays を組み合わせて 1200x630 Open Graph images を生成する。`og-image-creator` の creative companion として使い、route discovery、metadata integration、preview verification の代替にはしない。
 
-## 運用モデル
+## 基本方針
 
-AIによるOG画像は、依然としてページのメタデータ契約の一部である。AIはテーマ・雰囲気・ビジュアルの具体性を担い、スクリプトはテキスト・セーフエリア・サイズ・ファイル名・manifest・プレビューページを管理する。
+AI OG image も page metadata contract の一部。AI は theme、mood、visual specificity を担当し、script は text、safe area、dimensions、filenames、manifests、preview pages を管理する。
 
 優先順位:
 
-1. 正確なルートメタデータ、publicな画像パス、フレームワークネイティブな統合。
-2. SNSプレビューのサムネイルサイズでも読めるテキスト。
-3. 実際のプロジェクトに基づいたブランドとページタイプへの適合。
-4. dry runと小さなバッチを先に行い、コストと反復を管理する。
+1. 正しい route metadata、public image paths、framework-native integration
+2. social-preview thumbnail size でも読める text
+3. 実 project に基づく brand and page-type fit
+4. dry runs と small batches による controlled cost and iteration
 
-生成前に以下を確認する:
+生成前に確認すること:
 
-- フレームワーク、ルーティングモデル、現在のメタデータの管理主体。
-- 正規サイトURLとpublic/staticアセットディレクトリ。
-- ブランドカラー、タイポグラフィ、ロゴの使い方、ビジュアルトーン、既存のOG画像。
-- 安定したルートと、具体的なslugデータが必要な動的ルートパターンの区別。
-- このプロジェクトにAI画像が適切かどうか、または決定的な `og-image-creator` カードがブランドに合っているかどうか。
+- framework、routing model、current metadata owner
+- canonical site URL と public/static asset directory
+- brand colors、typography、logo usage、visual tone、existing OG images
+- stable routes と、concrete slug data が必要な dynamic route patterns
+- AI imagery がこの project に望ましいか、deterministic `og-image-creator` cards の方が brand に合うか
 
 ## 使い分け
 
-| シナリオ | og-image-ai を使う | og-image-creator を使う |
+| Scenario | Use og-image-ai | Use og-image-creator |
 |----------|-----------------|----------------------|
-| イラストや雰囲気のあるSNSカード背景 | Yes | No |
-| 記事や製品ページごとのユニークなビジュアル | Yes | Maybe |
-| 大規模でデザインシステムの一貫性が必要 | No | Yes |
-| APIコストなし・完全に決定的な出力が必要 | No | Yes |
-| メタデータ監査またはフレームワーク統合のみ | Maybe | Yes |
-| 大量のルートセットの初回生成 | 小規模なキャリブレーションバッチの後のみ | Yes |
+| illustrated / atmospheric social card background | Yes | No |
+| article/product page ごとの unique thematic visual | Yes | Maybe |
+| strict design-system consistency at scale | No | Yes |
+| API spend なし、または fully deterministic output required | No | Yes |
+| metadata audit or framework integration only | Maybe | Yes |
+| large route set の first pass | small calibration batch 後のみ | Yes |
 
-## 機能
+## Capabilities
 
-- `og-image-creator` の `og-analysis.json` を再利用して、ルートを考慮したバッチ生成が可能。
-- ページタイプとブランドカラーのpromptガイダンスを用いたGPT Image背景を生成。
-- Pillowでタイトル・説明文・アクセントバー・オプションのサイト名を合成。
-- デフォルトで動的ルートパターンをスキップし、`[slug]` カードを最終的なページ画像と誤認しない。
-- 視覚的な確認用に `manifest.json` と `preview.html` を生成。
+- `og-image-creator` の `og-analysis.json` を再利用し、route-aware batch generation を行う
+- page-type と brand-color prompt guidance 付きで GPT Image backgrounds を生成する
+- title、description、accent bar、optional site name を Pillow で composite する
+- `[slug]` cards を final per-page images と誤解しないよう、dynamic route patterns は既定で skip する
+- visual review 用の `manifest.json` と `preview.html` を作る
 
 ## 成果物
 
-- `public/og/*.png`、またはプロジェクトに対応するpublicアセットパス。
-- ルート・ファイル・サイズ・altテキストのレコードを含む `public/og/manifest.json`。
-- SNSカードの比率で確認できる `public/og/preview.html`。
-- ユーザーが統合を求めた場合のフレームワークネイティブなメタデータ更新。
-- 生成したアセット・メタデータの編集・実施した検証の簡潔な最終サマリー。
+- `public/og/*.png` または project equivalent public asset path
+- route、file、dimensions、alt text records を含む `public/og/manifest.json`
+- social-card proportions で確認する `public/og/preview.html`
+- integration 依頼時の framework-native metadata updates
+- generated assets、metadata edits、verification の短い最終要約
 
 ## 参照ファイル
 
-| トピック | ファイル | 使用場面 |
+| Topic | File | Use When |
 |-------|------|----------|
-| Prompt設計 | [references/prompt-design.md](references/prompt-design.md) | スタイルプリセット・ページタイプヒント・カスタムprompt・テキスト禁止の指示を選ぶ場合 |
-| 生成スクリプト | [scripts/generate_og_ai.py](scripts/generate_og_ai.py) | 単体画像の生成・dry-runのprompt確認・`og-analysis.json` からのバッチ生成 |
+| Prompt design | [references/prompt-design.md](references/prompt-design.md) | style presets、page-type hints、custom prompts、anti-text instructions を選ぶ |
+| Generator script | [scripts/generate_og_ai.py](scripts/generate_og_ai.py) | single images、dry-run prompts、`og-analysis.json` からの batches |
 
-フレームワーク固有のメタデータ統合については、`og-image-creator` も使用し、その `references/framework-workflows.md` と `references/og-specifications.md` を参照すること。
+framework-specific metadata integration では `og-image-creator` も使い、`references/framework-workflows.md` と `references/og-specifications.md` を読む。
 
-## 依存関係
+## Dependencies
 
-可能であればターゲットプロジェクトの環境を使用する:
+可能なら target project の environment を使う。
 
 ```bash
 python3 -m pip install openai Pillow
 ```
 
-プロジェクトにインストールせずに実行する場合:
+project に install せず実行する場合:
 
 ```bash
 uv run --with openai --with Pillow python scripts/generate_og_ai.py --help
 ```
 
-生成には `OPENAI_API_KEY` が必要。スクリプトのデフォルトは `gpt-image-2`・`1536x1024`・`medium` qualityで、1200x630にクロップする。調整には `--model`・`--size`・`--quality low|medium|high|auto` を使用。正確なコストを見積もる前にOpenAIの最新料金を確認すること。
+generation には `OPENAI_API_KEY` が必要。script は既定で `gpt-image-2`、`1536x1024`、`medium` quality を使い、1200x630 へ crop する。`--model`、`--size`、`--quality low|medium|high|auto` で調整する。正確な cost を言う前には current OpenAI pricing を確認する。
 
 ## ワークフロー
 
-### 1. 既存の状態を調査する
+### 1. 既存状態を調べる
 
-`og-image-creator` の決定的アナライザーから開始する:
+`og-image-creator` の deterministic analyzer から始める。
 
 ```bash
-OG_CREATOR_ROOT="${CLAUDE_HOME:-$HOME/.claude}/skills/og-image-creator"
+OG_CREATOR_ROOT="$HOME/.claude/skills/og-image-creator"
 python3 "$OG_CREATOR_ROOT/scripts/analyze_codebase.py" /path/to/project
 ```
 
-生成前に `/path/to/project/og-analysis.json` を確認する。ルート・メタデータ・カラー・サイト名に誤りがあれば、プロジェクトを調査して分析結果を修正してから使用すること。
+generation 前に `/path/to/project/og-analysis.json` を review する。routes、metadata、colors、site name が違う場合は project を調べ、analysis を修正してから使う。
 
-調査対象:
+Discovery targets:
 
-- `package.json`・フレームワーク設定・ルートファイル・SEOコンポーネント・レイアウト・MD/MDX frontmatter。
-- 既存の `metadata`・`generateMetadata`・`<Head>`・Helmet・静的 `<meta>`・CMSによる管理。
-- CSS変数・Tailwind/テーマ設定・フォント・favicon・アプリアイコン・ロゴファイル・既存のOGアセット。
-- 動的ルート用の実データ。具体的なコンテンツなしに `[slug]`・`:id`・`*` パターンの最終カードを生成しないこと。
+- `package.json`、framework config、route files、SEO components、layouts、MD/MDX frontmatter
+- 既存 `metadata`、`generateMetadata`、`<Head>`、Helmet、static `<meta>`、CMS ownership
+- CSS variables、Tailwind/theme config、fonts、favicons、app icons、logo files、existing OG assets
+- dynamic routes の real data。concrete content なしに `[slug]`、`:id`、`*` の final cards を生成しない
 
-### 2. ビジュアル戦略を決める
+### 2. visual strategy を決める
 
-コンテンツが雰囲気・メタファー・イラストから恩恵を受ける場合にAI背景を使う。プロジェクトが正確なブランドトークン・繰り返しのコーポレートカード・非常に低コスト・決定的な再生成を必要とする場合は `og-image-creator` を優先する。
+content が atmosphere、metaphor、illustration から利益を得る場合は AI backgrounds を使う。exact brand tokens、repeated corporate cards、very low cost、deterministic regeneration が重要なら `og-image-creator` を優先する。
 
-プロジェクトのコンテキストからスタイルとコンテンツ入力を選ぶ:
+project context から style と content input を選ぶ。
 
-- ランディングページ: 製品カテゴリ・オファー・ターゲット・ブランドカラー。
-- 記事: トピック・カテゴリ・日付またはシリーズ（あれば）・ビジュアルメタファー。
-- 製品: 実際の製品の表面・機能ドメイン・ワークフローの手がかり。
-- ドキュメント: 控えめな技術的テクスチャと高いテキストの明瞭さ。
-- 会社概要: 偽のロゴやテキストなしに、アイデンティティ・ミッション・チーム・ロケーションの手がかり。
+- Landing: product category、offer、audience、brand colors
+- Article: topic、category、date/series、visual metaphor
+- Product: actual product surface、feature domain、workflow cue
+- Documentation: restrained technical texture と high text clarity
+- About/company: identity、mission、team、location cues。fake logos/text は避ける
 
-### 3. Dry-Run Prompt
+### 3. dry-run prompts
 
-単体画像:
+Single image:
 
 ```bash
-SKILL_ROOT="${CLAUDE_HOME:-$HOME/.claude}/skills/og-image-ai"
+SKILL_ROOT="$HOME/.claude/skills/og-image-ai"
 python3 "$SKILL_ROOT/scripts/generate_og_ai.py" \
   --title "Building Scalable APIs" \
   --description "A guide to API design patterns" \
@@ -129,10 +129,10 @@ python3 "$SKILL_ROOT/scripts/generate_og_ai.py" \
   --dry-run
 ```
 
-バッチのprompt確認:
+Batch prompt review:
 
 ```bash
-SKILL_ROOT="${CLAUDE_HOME:-$HOME/.claude}/skills/og-image-ai"
+SKILL_ROOT="$HOME/.claude/skills/og-image-ai"
 python3 "$SKILL_ROOT/scripts/generate_og_ai.py" \
   --analysis ./og-analysis.json \
   --output ./public/og \
@@ -140,14 +140,14 @@ python3 "$SKILL_ROOT/scripts/generate_og_ai.py" \
   --dry-run
 ```
 
-APIコールを使う前に、dry-run出力でありきたりな画像・ブランドの手がかりの欠落・テキスト描画リクエストの有無・ページタイプの不一致を確認する。
+API call 前に generic imagery、missing brand cues、forbidden text requests、page-type mismatch を dry-run output で確認する。
 
-### 4. キャリブレーションセットを生成する
+### 4. calibration set を生成する
 
-まず1〜3枚の画像を生成する:
+最初は1-3枚だけ生成する。
 
 ```bash
-SKILL_ROOT="${CLAUDE_HOME:-$HOME/.claude}/skills/og-image-ai"
+SKILL_ROOT="$HOME/.claude/skills/og-image-ai"
 python3 "$SKILL_ROOT/scripts/generate_og_ai.py" \
   --analysis ./og-analysis.json \
   --output ./public/og \
@@ -156,17 +156,16 @@ python3 "$SKILL_ROOT/scripts/generate_og_ai.py" \
   --limit 3
 ```
 
-プロジェクト固有の追加コンテキストには `--theme-hint` を使用する。`--custom-prompt` はプリセットでビジュアルの方向性を表現できない場合にのみ使用し、テキストなし・クリアゾーンの制約は維持すること。
-`--brand-colors` を `--custom-prompt` と併用した場合、スクリプトはカスタムpromptの後にブランドパレットのガイダンスを追記する。
+project-specific context は `--theme-hint` で足す。`--custom-prompt` は preset では表現できない visual direction のときだけ使い、no-text と clear-zone constraints を保つ。`--brand-colors` と `--custom-prompt` を併用すると、script は custom prompt の後に brand palette guidance を追加する。
 
-### 5. 確認と反復
+### 5. review and iterate
 
-`public/og/preview.html` を開くか、生成されたPNGを確認する。背景がテキストと干渉する・ありきたりに見える・ブランドが無視されている・不要なテキストが含まれる・オーバーレイで重要なビジュアルが隠れている場合は、キャリブレーションセットを再生成する。
+`public/og/preview.html` を開くか generated PNGs を確認する。背景が text と競合する、generic、brand 無視、unwanted text を含む、overlay に重要な detail が隠れる場合は calibration set を再生成する。
 
-スタイルが機能することを確認してから、安定したルートセット全体を生成する:
+style が固まった後だけ stable route set 全体を生成する。
 
 ```bash
-SKILL_ROOT="${CLAUDE_HOME:-$HOME/.claude}/skills/og-image-ai"
+SKILL_ROOT="$HOME/.claude/skills/og-image-ai"
 python3 "$SKILL_ROOT/scripts/generate_og_ai.py" \
   --analysis ./og-analysis.json \
   --output ./public/og \
@@ -174,60 +173,52 @@ python3 "$SKILL_ROOT/scripts/generate_og_ai.py" \
   --quality medium
 ```
 
-動的ルートはデフォルトでスキップされる。`--include-dynamic` はルートパターンの意図的なフォールバック画像を作成する場合にのみ使用する。最終的なslugごとのプレビューには、CMSまたはコンテンツデータから具体的なルートレコードを追加すること。
-バッチ生成中に1つ以上のルートが失敗した場合、スクリプトは成功したルートのmanifestとpreviewを書き込み、失敗したルートのリストとともにnonzeroで終了する。
+dynamic routes は既定で skip される。route pattern の fallback image を意図的に作る場合だけ `--include-dynamic` を使う。final per-slug previews では CMS や content data から concrete route records を追加する。batch generation 中に route failure があっても、成功分の manifest と preview は書かれ、failed route list 付きで nonzero exit する。
 
-### 6. メタデータを統合する
+### 6. metadata に統合する
 
-ユーザーが統合を求める場合は、既存のフレームワークのメタデータパターンを使用する。ワンオフのタグブロックよりも既存のSEOヘルパーと共有レイアウトを優先する。
+ユーザーが integration を求めた場合、既存 framework metadata pattern を使う。one-off tag blocks より既存 SEO helpers や shared layouts を優先する。
 
-以下の不変条件を維持すること:
+invariants:
 
-- 最終画像はpublicアセットディレクトリにある1200x630のPNG。
-- `og:image` と `twitter:image` は、デプロイ済みのpublic URLまたはフレームワークで解決されるpublicパスに解決される。
-- フレームワークがサポートする場合は幅・高さ・有用なaltテキストを含める。
-- ソーステンプレートまたはレイアウトがメタデータを管理している場合は、生成された `dist/` やビルド出力を編集しない。
+- final images は public asset directory 内の 1200x630 PNG
+- `og:image` と `twitter:image` は deployed public URLs、または framework-resolved public paths に resolve する
+- framework が support するなら width、height、useful alt text を含める
+- metadata owner が source template / layout にある場合、generated `dist/` や build output を編集しない
 
-## アンチパターン
+## 避けること
 
-**調査前に生成する**
+**discovery 前に生成する**
 
-問題点: 画像が誤ったルート・メタデータ管理主体・カラー・アセットパスを使用する可能性がある。
+問題: routes、metadata owner、colors、asset path を外しやすい。
+改善: `og-analysis.json` を確認し、route contract と brand sources を把握してから生成する。
 
-改善策: `og-analysis.json` を実行または再利用し、不足点を確認してから生成する。
+**model に title を描かせる**
 
-**モデルにタイトルを描かせるようpromptする**
+問題: image model の text は不正確になり得る。
+改善: background には text なしを求め、typography は Pillow が composite する。
 
-問題点: 画像モデルはテキストを誤ってレンダリングする可能性があり、SNSカードのテキストは正確でなければならない。
+**初回から full-site batch generation**
 
-改善策: 背景にテキストなしと指示し、すべてのタイポグラフィはPillowで合成する。
+問題: cost が膨らみ、style inconsistency も見つけにくくなる。
+改善: dry-run と calibration set で prompt、layout、brand treatment を固定してから batch する。
 
-**初回から全サイトのバッチ生成を行う**
+**dynamic route patterns を final pages として扱う**
 
-問題点: コストとスタイルの不一致がすぐに積み重なる。
+問題: `/blog/[slug]` は real content の preview ではなく、title や image facts が存在しない。
+改善: actual content route / slug data から OG inputs を作る。
 
-改善策: dry-run promptを行い、小さなキャリブレーションセットを生成してからスケールする。
+**precise brand system を generic AI art に置き換える**
 
-**動的ルートパターンを最終ページとして扱う**
-
-問題点: `/blog/[slug]` のカードは、実際のコンテンツの完成したプレビューではない。
-
-改善策: 意図的なフォールバックを作成する場合を除き動的ルートをスキップし、実データから具体的なslugごとのカードを生成する。
-
-**正確なブランドシステムをありきたりなAIアートで置き換える**
-
-問題点: ブランド認知が弱まり、製品から乖離した印象を与える可能性がある。
-
-改善策: 決定的な `og-image-creator` カードを使用するか、AI画像をさりげないブランドに合った背景に限定する。
+問題: brand recognition を弱め、既存 site と乖離する。
+改善: brand precision が重要なら deterministic `og-image-creator` cards を使う。
 
 ## 検証
 
-完了前に確認すること:
-
-- 生成ファイルが1200x630であることを確認する。
-- `preview.html` を600x315以下のサイズで確認し、タイトルと説明文が読めることを確かめる。
-- ラテン文字以外のタイトルの場合、選択したシステムフォントが代替ボックスではなく正しいグリフをレンダリングしていることを確認する。
-- AI生成テキスト・偽のロゴ・重要な隠れた詳細が背景に含まれていないことを確認する。
-- `manifest.json` のルート・ファイル名・サイズ・altテキストが正確であることを確認する。
-- 統合を行った場合は、レンダリング済みまたはデプロイ済みのHTMLでメタデータを検証する。
-- ファイルサイズがSNS共有に適切であることを確認し、大きすぎる場合は最適化または戦略を変更する。
+- generated files が 1200x630 か確認する
+- `preview.html` を 600x315 以下で確認し、title/description が読めるか見る
+- non-Latin titles では font が fallback boxes ではなく glyphs を描くか確認する
+- AI-generated text、fake logos、重要 detail の隠れがないか確認する
+- `manifest.json` の routes、filenames、dimensions、alt text を確認する
+- integration した場合は rendered/deployed HTML の metadata を確認する
+- social sharing に対して file sizes が合理的か確認し、大きすぎる場合は optimize または strategy を変える
