@@ -1,298 +1,295 @@
 ---
 name: grounded-agent-design
-description: >-
-  LLMプロダクトで「秘密を漏らさない」「事実でないことを言わせない」を、プロンプトの注意書きではなく
-  コードの仕組みで実現・レビューする。相手ごとに見せてよい情報だけを渡す情報境界(設計時)と、
-  生成を Direct(使ってよい事実を先に決める)→Censor(出力を事実と照合し捏造・漏洩・空回り・繰り返しを検出)
-  →Correct(違反を伝えて作り直し、ダメなら安全な定型へ)で囲む制御ループ(実行時)の2層で作る。
-  使う場面: 権限付きRAG・社内検索・マルチエージェントRAG・サポート/法務/医療/HRのAI・
-  AI NPC・人狼など正体隠匿ゲーム・TRPG・推理ゲーム・交渉/会議シミュレーション・チュータリング・
-  非公開情報を持つアシスタントなど、相手ごとに見せる情報や目的が違い、
-  出力が嘘や漏洩なく止まらず結論を出すべきプロダクト。
-  トリガー: 情報境界／権限付きRAG／役割ごとに見える情報を変えたい／ハルシネーション対策／
-  redaction・出力契約・漏洩検証／根拠ベース回答・faithfulnessチェック／見ていない文脈を引用させない／
-  起きていないことをモデルが作る／ちゃんと結論を出させたい／修正ループ／プロンプトインジェクション対策。
+description: "情報境界を持つLLMシステムを設計・レビューする。権限付きRAG、非公開状態、役割別の可視情報、fresh call / restricted sub-agent / scoped worker による生成分離、根拠確認、漏洩・幻覚対策の制御ループで使う。"
 ---
 
-# Grounded Agent Design（根拠に基づくエージェント設計）
+# Grounded Agent Design
 
 ## 目的
 
-次の2つを同時に満たすLLMシステムを作る。(a) 相手(actor)ごとに見える情報が
-違ってよい。(b) どの生成も、根拠に接地し・脱線せず・境界の内側にとどまる。
-この仕事は、切り離せない2つの層からなる。
+異なる actor が異なる情報だけを見られ、各 generation が grounded / on-task / within bounds に保たれる LLM system を作る。仕事は inseparable な2 layers。
 
-- **境界層(設計時 / Boundary)** — 各アクターを、*許可された文脈だけ*から
-  行動させる。単一の正本(authoritative state)を、ビューアーごとに投影して渡す。
-  これはプロンプトの指示ではなく、プロダクト(コード)の層である。
-- **制御ループ(実行時 / Control loop)** — 各確率的生成を、決定論的な
-  **Direct → Censor → Correct** ループで囲み、境界と忠実性(faithfulness)を強制する。
-  失敗時はハングや捏造の出荷ではなく、安全な出力にフォールバックする。
+- **Boundary (design-time)**: viewer ごとに single authoritative state を projection し、actor が許可された context だけから行動するようにする。これは prompt instruction ではなく product layer
+- **Control loop (run-time)**: 各 stochastic generation を deterministic **Direct -> Censor -> Correct** loop で包み、boundary と faithfulness を enforce し、失敗時は safe output に fallback する
 
-境界は*前提条件*、制御ループは*強制*である。境界が「今ターン何が真実で何が見えるか」
-を決め、ループがその出力を*まさにそれ*と照合し、外れたら修正する。
+boundary は precondition、control loop は enforcement。boundary はその turn で何が true / visible かを決め、loop は output をその projection と照合して修正する。
 
-適用対象: 権限付きRAG、社内検索、サポート/法務/医療/HRボット、
-マルチエージェントRAG(planner/retriever/verifier/redactor/answerer)、AI NPC、TRPG、
-正体隠匿・交渉ゲーム、会議/シミュレーションエージェント、チュータリングのターン、
-そして非公開メモ・隠し役職・文書ACL・非対称な目的を持つあらゆるアシスタント。
+適用先: permissioned RAG、enterprise search、support/legal/medical/HR bots、multi-agent RAG、AI NPC、TRPG、social-deduction / negotiation games、meeting/simulation agents、tutoring、private notes、hidden roles、document ACLs、asymmetric objectives を持つ assistant。
 
-## 中核原則
+## Core Principle
 
-全知のLLM 1体に真実の全部を持たせて「気をつけてね」と頼んではいけない。
-確率的な生成器は指示を*確率的に*破る。ターンを重ねれば、*いつか必ず*漏らすか捏造する。
-「気をつける」を置き換える2手はこれだ。
+one all-knowing LLM に全 truth を渡して "be careful" と頼まない。stochastic generator は probabilistically に leak / fabricate する。置き換える手段は2つ。
 
-1. **システムを情報境界としてモデル化する。** *誰が行動しているか*、
-   *何を知っているか*、*何を明かしてよいか*、*何を最適化するか*、
-   *プロダクトが安全に消費できる出力契約はどれか*、*出力がユーザーや他エージェントに
-   届く前に通すべき検査はどれか*——を分離する。各アクターの文脈は、許可リスト化された
-   データからコードで組み立てる。「Xを知らないフリをして」に頼らない。
-2. **品質をプロンプトではなくループの性質にする。** LLMは、速くて流暢だが
-   **信用できない**生成器として扱う。生成前に決定論的なプランを計算し、生成後に
-   出力を ground truth と照合し、*破られた不変条件*を具体的な修正ヒントとして戻す。
-   有界に。そして最後はフォールバックする。
+1. **information boundaries として system を model 化する**
+   - who is acting、what they know、what they may reveal、what they optimize、safe output contract、required checks を分ける
+   - actor context は code から allowlisted data で render し、"pretend you don't know X" に頼らない
+2. **quality を prompt ではなく loop の property にする**
+   - LLM を fast / fluent / unreliable generator として扱う
+   - generation 前に deterministic plan を作り、output 後に ground truth と比較し、specific violated invariant を revision hint として返す
+   - attempts を bound し、fallback する
 
-**屋台骨となる不変条件:** *モデルは、見えている文脈にあるものだけを現実として
-扱ってよい。* 境界層がその「見える文脈」を*構築*し、censor が出力をそれと*照合*する。
-ほとんどの失敗はこの1ルールの違反だ——境界(ビューアーごとの投影)と
-プラン(`allowedFacts` の許可リスト)で強制し、censor(根拠のある参照)で検査せよ。
+**load-bearing invariant:** model は visible context にあるものだけを real として扱える。boundary layer が visible context を作り、censor が output を check する。
 
-**トレードオフが衝突したときの優先順位:** 正しさ/忠実性/非漏洩 >
-脱線しない > 文体/声色 > レイテンシ。退屈だが真実のフォールバックは、
-流暢な捏造に勝つ。redact された回答は、漏洩に勝つ。
+**generation isolation invariant:** hidden / forbidden / cross-actor private state
+を見た model invocation で、actor-limited / public free text を生成しない。
+orchestrator は full state を持ってよいが、speaker / answerer / downstream
+agent は projection だけを受け取る fresh model call、restricted sub-agent、
+または scoped worker として実行する。sub-agent を使っても、unrestricted
+files / DB / RAG / memory / logs / tools を読めるなら boundary ではない。
 
-実装の前に、次を確定せよ。
+tradeoff priority: correctness / faithfulness / no-leak > staying on-task > style/voice > latency。fluent fabrication より dull-but-true fallback、leak より redacted answer。
 
-- **正本(authoritative state)は何で、各ビューアーの投影は何か？**
-  どのコードパスが何を削るか言えないなら、境界は存在しない。
-- **今ターンの ground truth は何か？** 出力が参照してよい正確な事実/会話
-  (= 投影 + このアクターの非公開スライス)。列挙できないなら censor できない。
-- **何を隠し続けるべきか？** 非公開状態、他アクターの秘密、システムルール、
-  ツールトレース、検索の内部情報。
-- **文脈はコールド(cold)か？** 初ターン / 履歴が空 / 新規スレッド。そうなら、
-  確定した一手を**強制してはいけない**——捏造された埋め草の最大の原因がこれだ。
-- **安全なフォールバック出力は何か？** 修正が失敗したときに使う決定論的な
-  一行/決定。常に妥当で、退屈で、漏洩しないものでなければならない。
+実装前に確認すること:
 
-## 2つの層
+- authoritative state と各 viewer projection は何か。どの code path が何を strip するか
+- actor-limited / public output はどの isolated generation boundary（fresh call、restricted sub-agent、scoped worker）で作るか。その境界で tool / retrieval / memory / filesystem access は同じ scope に絞られているか
+- この turn の ground truth は何か。output が参照できる facts/transcript は何か
+- hidden にすべき private state、other actors' secrets、system rules、tool traces、retrieval internals は何か
+- cold context か。first turn / empty history なら committed move を強制しない
+- safe fallback output は何か。常に valid、boring、leak-free
 
-```
-正本(サーバの真実)
-  └─ ビューアーごとの投影 / redaction          ← 境界(前提)
-       └─ そのターンの各アクターについて:
-            definePlan(state) → renderPlan      ← Direct
+## Two Layers
+
+```text
+authoritative state (server source of truth)
+  └─ per-viewer projection / redaction        ← BOUNDARY (precondition)
+       └─ for each actor whose turn it is:
+            definePlan(projection) → renderPlan ← DIRECT
             runRevisionLoop(generate, validate, fallback)
-                 generate: callModel(prompt + hint)
-                 validate: runValidators(...)    ← Censor
-                 fallback: safe deterministic    ← Correct
-            受理した出力を state にコミット
-            構造化シグナルを抽出(round-trip)    ← 反復防止に供給
-       └─ クライアント/次エージェントへ出す前にビュー別 redaction ← 境界(出口)
+                 generate: isolated call / restricted sub-agent / scoped worker
+                 validate: runValidators(...)    ← CENSOR
+                 fallback: safe deterministic    ← CORRECT
+            commit accepted output to state
+            extract structured signals (round-trip) ← feeds anti-repetition
+       └─ view-specific redaction before client / next agent ← BOUNDARY (egress)
 ```
 
-`allowedFacts` は手書きしない。投影から*こぼれ落ちてくる*ものだ。生成ごとに
-ループは同期的に保つ——アクター/ターン間の並行性は別のレイテンシ実行系に属する
-(`references/architecture.md` 参照)。
+`allowedFacts` は手書きせず projection から導く。generation loop は per generation で synchronous に保つ。actors/turns の concurrency は別 latency runtime に分ける。
 
 ## ワークフロー
 
-**フェーズA — 境界を設計する** (`references/boundary-design.md`):
+**Phase A: Boundary を設計する** (`references/boundary-design.md`):
 
-1. **アクターとスコープを洗い出す。** ユーザー、エージェント、ツール、文書、メモリ、
-   システムプロセス、外部ビューアー。各々について: 役割、目的、許可される入力、
-   禁止される入力、許可される出力、下流の消費者。隠し役職、非公開メモリ、公開履歴、
-   観戦ビュー(ゲーム)、認証、ACL、引用、ツールトレース(RAG)も含める。
-2. **情報を分類する。** 小さな感度ラティス
-   (`public / user_provided / confidential / secret / forbidden`)上で。
-   検索結果・要約・メモリ・診断情報も、無害なテキストではなく、固有の感度を持つ
-   データとして扱う。
-3. **アクセス行列を作る。** プロンプトを書く前に。denylist より allowlist を選ぶ。
-   役割が見る文脈は、プロンプト文ではなくコードからレンダリングする。
-4. **リスクで出力契約を選ぶ。** 自然さが価値になる箇所だけ自由テキスト。
-   アクション・対象選択・検索プラン・認可判断・安全ゲートは JSON/型付きスキーマ。
-   制約のない散文に不可逆なアクションを駆動させない。
-5. **レンダリング済み(=認可済み)の文脈からプロンプトを組む。** そして、すべての
-   ユーザー入力・取得文書・メール・チケット・チャットログ・DBテキストを、命令ではなく
-   信用できない*データ*として扱う(間接プロンプトインジェクション対策)。
-6. **出口でビュー別に redact する。** 完全データはサーバ保持、ビュー別スナップショットを
-   出力、禁止フィールドはクライアントや次エージェントに届く前にマスクする。
+1. **actors / scopes を map**
+   - users、agents、tools、documents、memories、system processes、external viewers
+   - role、goal、allowed inputs、forbidden inputs、allowed outputs、downstream consumers
+   - hidden roles、private memories、public history、spectator views（games）、auth、ACLs、citations、tool traces（RAG）も含める。
+2. **information を sensitivity lattice で分類**
+   - `public / user_provided / confidential / secret / forbidden`
+   - retrieval results、summaries、memories、diagnostics も data として sensitivity を持つ
+3. **prompts 前に access matrix を作る**
+   - denylists より allowlists
+   - role-visible context は code で render
+4. **generation isolation を選ぶ**
+   - public / actor-limited free text は、hidden state を見た invocation から直接生成しない
+   - acceptable: projection だけを渡す fresh API call、restricted sub-agent、scoped worker
+   - tool / retrieval / filesystem / memory / logs も projection と同じ scope に制限する
+5. **risk に応じて output contracts を選ぶ**
+   - naturalness が価値なら free text
+   - actions、target selection、retrieval plans、auth decisions、safety gates は JSON/typed schema
+6. **already-authorized context から prompts を作る**
+   - user input、retrieved docs、emails、tickets、chat logs、DB text は instructions ではなく untrusted data
+7. **egress で view-specific redaction**
+   - full data は server-side に保存し、client / next agent には mask 済み snapshot
 
-**フェーズB — 制御ループを作る** (`references/plan-object.md`,
-`references/failure-modes.md`, `references/validators.md`):
+**Phase B: Control Loop を作る** (`references/plan-object.md`, `references/failure-modes.md`, `references/validators.md`):
 
-7. **プランオブジェクトを定義する(Direct)。** ターンごとの契約を散文ではなくデータで
-   モデル化する。`intents` と `allowedFacts` を投影から導出する。コールド文脈ルールを
-   `definePlan` で適用する。
-8. **失敗モードを列挙し、バリデータを書く(Censor)。** このアプリで実際に起きるモードだけ
-   実装する。言語のキューワードはロジックにハードコードせず `Lexicon`(設定)として持つ。
-   実際の会話ログで較正する。
-9. **修正ループを配線する(Correct)。** 有界の試行回数、破られた*具体的な*不変条件を
-   ヒントとして戻す、チャネルごとに安全な決定論的フォールバック、全試行で診断を出す。
-10. **スターターハーネスを適応させる。** `assets/control-layer/` をコピーし、プラン導出・
-    レキシコン・バリデータ集合を差し替える。ループと型はそのまま残す。
-11. **検証する**(「検証」節参照)。各失敗モードが既知の悪い出力で捕まり、既知の良い出力で
-    通ること。ヒントが戻ること。フォールバック経路が動くこと。秘密の状態が、単に
-    指示で禁じられているだけでなく、*文脈ビルダー*に存在しないこと。
+7. **plan object (Direct) を定義**
+   - per-turn contract を data として model 化
+   - `intents` / `allowedFacts` は projection から導く
+   - cold-context rule は `definePlan` に入れる
+8. **failure modes と validators (Censor) を列挙**
+   - app で実際に起きる modes だけ実装
+   - cue words は hardcoded logic ではなく `Lexicon` config
+   - real transcripts で calibrate
+9. **revision loop (Correct) を wire**
+   - bounded attempts
+   - specific violated invariant を hint として返す
+   - channel ごとの safe deterministic fallback
+   - attempt diagnostics
+10. **starter harness を adapt**
+    - `assets/control-layer/` を copy し、plan derivation、lexicon、validator set を差し替える
+    - loop と types は保つ
+11. **verify**
+    - known-bad / known-good outputs
+    - hint feedback
+    - fallback path
+    - secret state が context builder に入っていないこと
 
-## リファレンスファイル
+## 参照ファイル
 
-| トピック | ファイル | 使うとき |
+| Topic | File | Use When |
 |-------|------|----------|
-| 情報境界の設計 | [boundary-design.md](references/boundary-design.md) | アクター/スコープの洗い出し、感度ラティス、アクセス行列、ビュー別 redaction、出力契約、プロンプトインジェクション対策、RAG・ゲームのパターン、プロンプト境界テンプレート |
-| プラン/ディレクタ層 | [plan-object.md](references/plan-object.md) | プランに何を入れるか、intents、事実の許可リスト、前進、コールド文脈、2つの出力チャネル |
-| 忠実性の失敗分類 | [failure-modes.md](references/failure-modes.md) | どのハルシネーション/品質失敗を検出するか、各々の修正ヒント |
-| バリデータのパターンと落とし穴 | [validators.md](references/validators.md) | 検出器の実装、設定としてのパターン、メタデータの round-trip、反復防止 |
-| 横断的アーキテクチャ | [architecture.md](references/architecture.md) | ループの差し込み位置、有界試行+フォールバック、診断、レイテンシ実行系との関係 |
+| Information-boundary design | [boundary-design.md](references/boundary-design.md) | actors/scopes、sensitivity、access matrix、redaction、prompt-injection defense |
+| Plan / director layer | [plan-object.md](references/plan-object.md) | plan、intents、fact whitelist、cold-context、output channels |
+| Failure taxonomy | [failure-modes.md](references/failure-modes.md) | hallucination / quality failures と revision hints |
+| Validator patterns | [validators.md](references/validators.md) | detectors、patterns-as-config、metadata round-trip、anti-repetition |
+| Architecture | [architecture.md](references/architecture.md) | loop の接続位置、fallback、diagnostics、latency runtime |
 
-## スターターハーネス (assets/control-layer/)
+## Starter Harness
 
-依存ゼロ・型付き・実行可能な、制御ループの参照実装。コピーして適応させる。
+`assets/control-layer/` は dependency-free typed runnable reference implementation。そのままコピーして適応させる。
 
-| ファイル | 役割 |
+| File | Role |
 |------|------|
-| `plan.ts` | Direct: `ControlPlan` 型、`definePlan`(コールド文脈の不変条件を内蔵)、`renderPlan` |
+| `plan.ts` | Direct: `ControlPlan`、`definePlan`、`renderPlan` |
 | `validators.ts` | Censor: `Validator` 型、`groundedReferences`、`noBoundaryLeak`、`hasForwardSubstance`、`notRepetitive`、`runValidators` |
-| `revisionLoop.ts` | Correct: `runRevisionLoop`(有界試行、ヒントの戻し、安全なフォールバック、診断フック) |
-| `lexicons/en.yaml`, `lexicons/ja.yaml` | キューワード本体——**ここ(コード不要)を編集して言語/ドメインごとに検出を調整**。単一の真実源 |
-| `loadLexicon.ts` | レキシコンYAMLを `Lexicon` に読み込む(依存ゼロ; `loadLexicon("en")` またはパス) |
-| `lexicons.ts` | YAMLから `englishLexicon` / `japaneseLexicon` を露出する薄いローダ |
-| `index.ts` | バレルエクスポート |
-| `demo.ts` | 実行可能な自己チェック(自己修正する擬似生成器、APIキー不要) |
+| `revisionLoop.ts` | Correct: bounded attempts、hint feedback、safe fallback、diagnostics |
+| `lexicons/en.yaml`, `lexicons/ja.yaml` | detection cue words。domain/language 調整はここ |
+| `loadLexicon.ts` | lexicon YAML を `Lexicon` に読み込む（dependency-free; `loadLexicon("en")` またはパス指定） |
+| `lexicons.ts` | YAML から `englishLexicon` / `japaneseLexicon` を公開する薄い loader |
+| `index.ts` | barrel export |
+| `demo.ts` | API key 不要の self-check |
 
-検出の*戦略*はコード(`validators.ts`)に、*パターン*(キューワード)はYAMLに置く。
-非プログラマがテキストエディタで調整できるようにするためだ。言語追加は
-`lexicons/<lang>.yaml` を置いて `loadLexicon("<lang>")` を呼ぶだけ。
+detection strategy は code、patterns は YAML。新 language は `lexicons/<lang>.yaml` を追加し `loadLexicon("<lang>")`。
 
-ハーネスの動作確認: `node --import tsx assets/control-layer/demo.ts`
-(`ALL PASS` を期待)。`tsx` が解決できるプロジェクトから実行する。なければ
-`npm i -D tsx` を先に(ハーネス自体は依存ゼロ; `tsx` はTSランナーにすぎない)。
+verify:
 
-## パターンと例
+```bash
+node --import tsx assets/control-layer/demo.ts
+```
 
-**制御ループの形:**
+期待値は `ALL PASS`。`tsx` が resolve できる project から実行する。なければ `npm i -D tsx`（harness 自体は dependency-free で、`tsx` は TS runner にすぎない）。
+
+## Patterns
+
+control loop の形:
 
 ```ts
 const plan = definePlan({ hasPriorContext, intents, allowedFacts, mustNotReveal, wantsForwardMove });
 const validators = [groundedReferences(lexicon), noBoundaryLeak, hasForwardSubstance(lexicon)];
 const { value, accepted, usedFallback } = await runRevisionLoop({
-  generate: (hint) => callModel(buildPrompt(renderPlan(plan), hint)),   // Direct (+ 再試行時のヒント)
-  validate: (out) => runValidators({ output: out, visibleFacts, entities, plan }, validators), // Censor
-  fallback: () => safeDeterministicLine(plan),                          // Correct: 決してハングさせない
+  generate: (hint) => callIsolatedGenerator({
+    context: projectedContext,
+    prompt: buildPrompt(renderPlan(plan), hint),
+    tools: scopedToolsForActor(actorId)
+  }),
+  validate: (out) => runValidators({ output: out, visibleFacts, entities, plan }, validators),
+  fallback: () => safeDeterministicLine(plan),
   maxAttempts: 3,
   onAttempt: (info) => telemetry.record(info)
 });
 ```
 
-**コールド文脈ルール(苦労して得た知見):**
+cold-context rule:
 
 ```ts
-// 初ターン: 履歴は存在しない。「立場を確定せよ」と強制すると、モデルは反応する相手を
-// でっち上げる。代わりに開く——ただし中身は要求する。
+// first turn: history が存在しない。「commit to a position」を強制すると、model は反応する
+// ための history を捏造する。代わりに open する — ただし substance は要求し続ける。
 const plan = definePlan({ hasPriorContext: false, intents: [openingIntent], wantsForwardMove: true });
-// plan.requiresForwardMove === false  (definePlan がコールド文脈で上書きする)
+// plan.requiresForwardMove === false  (cold context では definePlan が override する)
 ```
 
-**RAGパターン(境界+ループ):** 生成の*前*に文書をACLフィルタし(境界)、
-`allowedFacts` = 取得チャンクとし、censor が「どのチャンクにもたどれない主張」を
-拒否し、出口で内部フィールド/スコアを redact する。
-全パイプライン+ハードルール: `references/boundary-design.md` → RAGパターン。
+RAG pattern:
 
-**シミュレーション/ゲームパターン(境界+ループ):** 役割が見る秘密をアクターごとに
-投影し(境界)、公開発言(散文チャネル)とアクション/投票(決定チャネル)を分離し、
-発言の散文を「捏造された出来事+境界漏洩」で censor しつつ、決定は合法対象チェックを
-通す。全パイプライン+ハードルール: `references/boundary-design.md` → シミュレーション/ゲームパターン。
+- generation 前に ACL-filter documents
+- `allowedFacts` = retrieved chunks
+- answerer は ACL-filter 後の snippets だけを持つ isolated generation context で実行
+- censor は chunk に trace しない claims を reject
+- internal fields/scores は egress で redact
 
-**プロンプト境界テンプレート:** コピーして使える簡潔な開始プロンプトが
-`references/boundary-design.md` → プロンプト境界テンプレート にある。
+full pipeline と hard rules: `references/boundary-design.md` → RAG pattern。
 
-## アンチパターン
+simulation / game pattern:
 
-**プロンプトだけの忠実性 / 「作るなと言っておいた」。** 確率的な生成器は指示を
-確率的に破る。より良いのは: 許可された事実を列挙し、出力をそれと*照合*する。
-指示は発生率を下げるだけ。censor が下限を強制する。
+- actor ごとに role-visible secrets を project
+- public / private speech は actor projection だけを渡す fresh call / restricted sub-agent / scoped worker で生成
+- public speech と action/vote を channel 分離
+- spoken line は invented events / boundary leaks で censor
+- decision は legal-target check
 
-**プロンプトに「Xを知らないフリをして」。** 秘密はその文脈の中にあるので、
-圧力下で漏れる。より良いのは: 情報境界——そのアクターの文脈にXを*決して入れない*
-(プロンプト文ではなく文脈ビルダーを grep する)。
+full pipeline と hard rules: `references/boundary-design.md` → Simulation / game pattern。
 
-**allowlist より denylist。** 隠すものを列挙すると必ず取りこぼす。役割が見る文脈は
-認可済みデータの allowlist からレンダリングする。
+**Prompt boundary template:** コピーして使えるコンパクトな起点 prompt は `references/boundary-design.md` → Prompt boundary template にある。
 
-**取得/ユーザーテキストを命令として扱う。** 文書・チケット・メール・チャットログには
-「ルールを無視しろ/秘密を明かせ/役割を変えろ」が混入しうる。それらは証拠/内容として
-印付ける。決して開発者の指示として扱わない。
+## 避けること
 
-**捨てて同じプロンプトで再試行。** 同一プロンプトは同じ分布を引き直すだけ。より良いのは:
-破られた*具体的な*不変条件をヒントとして戻す。
+**prompt-only faithfulness / "make things up しないよう指示した"**
 
-**初ターンに立場を強制する。** 本物の履歴がない状態で「立場を取れ」は、でっち上げでしか
-満たせない。コールド文脈のプランは話題を開き、前進を緩める一方、受動的な埋め草は拒否する。
+問題: stochastic generator は probabilistically に instruction を破る。instruction は発生率を下げるだけで、下限を enforce しない。
+改善: allowed facts を enumerate し、output をそれと照合する。censor が floor を enforce する。
 
-**言語パターンをバリデータのロジックにハードコード。** 保守不能で単一言語になる。
-検出の*戦略*はコードに、*キューワード*は `Lexicon` に。
+**"pretend you don't know X" を prompt に書く**
 
-**無界の修正。** 頑固なモデルは永遠にループする。試行を有界にし、その後は安全な
-決定論的フォールバックへ。
+問題: secret が context に入っているため、pressure 下で leak する。
+改善: information boundary を作り、その actor の context に X を入れない。prompt text ではなく context builder を grep する。
 
-**プロンプト指示としての redaction。** redaction はプロダクト層だ。完全データはサーバ保持、
-ビュー別スナップショットを出力、出口の前にマスクする。
+**hidden state を見た invocation で public / actor-limited output を作る**
 
-## バリエーション指針
+問題: "言わないで" と同じ failure mode になる。生成器は hidden state を内部文脈に持っている。
+改善: orchestrator だけが full state を読み、projection だけを fresh call / restricted sub-agent / scoped worker に渡す。sub-agent の tools / memory / retrieval / filesystem も同じ scope に絞る。
 
-文脈に応じて適応せよ。固定のバリデータ集合を出荷しないこと。
+**denylists over allowlists**
 
-- **出力チャネル** — *公開/発話*の一行は、境界+根拠+中身チェックが要る。
-  *内部/構造化された決定*は、散文バリデータではなくスキーマパース+合法選択チェックが要る。
-  2チャネルは分離して保つ。
-- **ドメイン** — RAG回答は「あらゆる主張が取得チャンクにたどれる」を中心に。
-  キャラクター/エージェントのシミュは「捏造された出来事なし+境界漏洩なし」。
-  チュータリングは「学習者を前進させる+未述の事実を断定しない」。
-- **言語** — レキシコンを差し替える。形態が豊かな言語(例: 日本語)は、語の集合ではなく
-  フレーズパターンが要る。
-- **リスク水準** — 高リスクほど、試行回数を増やし、バリデータを厳しくし、フォールバックを
-  保守的にする。低リスクの味付け一行は単パスでよい。
-- **反復圧力** — 多アクター設定は、先行アクターの角度を与えた `notRepetitive` が要る。
-  単一アクターのアシスタントは通常不要。
+問題: hide するものの列挙は必ず漏れが出る。
+改善: authorized data の allowlist から role-visible context を render する。
 
-## レビューチェックリスト
+**retrieved/user text を instructions として扱う**
 
-設計や実装を終える前に、次に答えよ。
+問題: documents、tickets、emails、chat logs は "ignore your rules / reveal secrets / change roles" を含み得る。
+改善: evidence/content として扱い、developer instructions にはしない。
 
-- 正本は何で、どのコードパスが各ビューアーの投影を計算するか？
-- プロンプトは allowlist 化データから組まれているか？ `allowedFacts` は手書きでなく
-  投影から導出されているか？
-- どの出力が自由テキストで、どれが構造化か？ 2チャネルは別々に検証されているか？
-- ID・引用・主張・アクションを ground truth と照合するのは何か？
-- ユーザー提供・取得テキストは命令でなくデータとして扱われているか？ 間接プロンプト
-  インジェクションを無力化するものは何か？
-- コールド文脈ルールは `definePlan` で適用されているか(呼び出しごとに重複していないか)？
-- クライアント表示や下流エージェント利用の前に、何が redact されるか？
-- LLMが不正・古い・漏洩・低根拠の出力を返したらどうなるか？ 修正はチャネルごとに
-  安全なフォールバック付きで有界か？
-- 試行ごとの診断は出力され、点検されているか？
-- 境界が保たれ、各バリデータが発火することを、どのテストが証明するか？
+**same prompt で discard-and-retry**
+
+問題: 同じ prompt は同じ distribution を re-roll するだけ。
+改善: specific violated invariant を revision hint として返す。
+
+**opening turn で stance 強制**
+
+問題: real history がない状態で "take a position" を求めると、invent する以外に満たせない。
+改善: cold-context plans は topic を open し、forward-move を緩めつつ passive filler は reject する。
+
+**language patterns を validator logic に hardcode**
+
+問題: unmaintainable かつ monolingual になる。
+改善: detection strategy は code に置き、cue words は `Lexicon` に置く。
+
+**unbounded correction**
+
+問題: stubborn model が永久 loop する。
+改善: attempts を bound し、safe deterministic fallback に落とす。
+
+**redaction を prompt instruction にする**
+
+問題: redaction は prompt ではなく product layer の責務。
+改善: full data は server-side に保存し、view-specific snapshots を emit し、egress 前に mask する。
+
+## Variation Guidance
+
+- **Output channel**: public/spoken line は boundary + grounding + substance。structured decision は schema parse + legal-choice
+- **Domain**: RAG は claim-to-chunk、sim は no invented events + no boundary leak、tutoring は learner を進めつつ unstated facts を assert しない
+- **Language**: lexicon を swap。Japanese は word membership より phrase patterns
+- **Risk level**: high-stakes では attempts と validators を厳しくし、fallback を保守的に
+- **Repetition pressure**: multi-actor では `notRepetitive` を prior angles で feed
+
+## Review Checklist
+
+- authoritative state と viewer projection の code path は何か
+- actor-limited / public generation は hidden state を見ていない fresh/scoped context で実行されるか
+- sub-agent / worker を使う場合、その tools、memory、retrieval、filesystem、logs は projection と同じ scope に制限されているか
+- prompts は allowlisted data から作られているか
+- `allowedFacts` は projection から導かれているか
+- free text / structured outputs は分離され、別々に validation されているか
+- IDs、citations、claims、actions を ground truth と照合しているか
+- user/retrieved text は data として扱われているか
+- cold-context rule は `definePlan` にあるか
+- client / downstream agent 前に何を redact しているか
+- malformed/stale/leaking/low-evidence output の correction/fallback は bounded か
+- diagnostics と tests があるか
 
 ## 検証
 
-- `node --import tsx assets/control-layer/demo.ts` を実行 → `ALL PASS`。
-- 実装した各失敗モードについて: 既知の悪い出力1つで対応バリデータが違反を返すこと、
-  既知の良い出力1つで通ることをアサートする。
-- 再試行時に修正ヒントが生成器へ届くことをアサートする(demoが確認している)。
-- 全試行が失敗したとき、フォールバック経路が安全な出力を返すことをアサートする。
-- 隠し状態が、単に指示で禁じられているのではなく、アクターの*文脈構築*に存在しないことを
-  確認する(プロンプト文ではなくプロンプトビルダーを grep)。
-- 境界テスト: 未認可文書が決してプロンプト文脈に入らない。アクターが不正な
-  対象/文書/アクションIDを選べない。公開出力が隠し状態を露出しない。ビューアー別 redaction が
-  非公開イベントフィールドを除去する。
+- `node --import tsx assets/control-layer/demo.ts` -> `ALL PASS`
+- 各 failure mode で known-bad が violation、known-good が pass
+- retry 時に revision hint が generator に届く
+- all attempts fail 時に fallback が safe output を返す
+- hidden state が prompt builder ではなく context construction に入っていないことを grep
+- boundary tests: unauthorized document が prompt context に入らない、illegal target/document/action ID を選べない、public output が hidden state を露出しない、isolated generator / sub-agent が unrestricted tools or memory にアクセスできない、view-specific redaction が private fields を remove
 
-## ポートフォリオでの言い回し
+## Portfolio Framing
 
-このスキルで作った仕事を説明するとき:
+説明例:
 
-> 単一の全知プロンプトではなく情報境界を中心にシステムを設計し、各生成を決定論的な
-> Direct→Censor→Correct 制御ループで囲んだ。各エージェントは認可された文脈だけを受け取り、
-> 自由形式の言語と構造化された決定を分離し、ユーザー向けの各ビューは正本から redact し、
-> 各ターンを列挙済みの ground truth と、有界の修正ループと安全なフォールバック付きで検証する。
-> これによりLLMの表現力を保ちつつ、権限・隠し状態・引用・根拠・ワークフローのアクションを
-> 制御可能かつテスト可能に保つ。
+```text
+I designed the system around information boundaries rather than a single all-knowing prompt, then wrapped each generation in a deterministic Direct->Censor->Correct control loop. Each agent receives only the context it is authorized to see, free-form language is separated from structured decisions, every user-facing view is redacted from authoritative state, and every turn is validated against enumerated ground truth with a bounded revision loop and a safe fallback. This keeps the LLM expressive while keeping permissions, hidden state, citations, grounding, and workflow actions controllable and testable.
+```

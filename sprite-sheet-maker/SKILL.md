@@ -1,76 +1,76 @@
 ---
 name: sprite-sheet-maker
-description: "フレームPNG画像のディレクトリを、ゲーム用スプライトシートPNGにまとめる。アニメーションフレーム、番号付きスプライトフレーム、ピクセルアートフレーム、キャラクターアクションフレーム、2Dゲーム用アセット列をスプライトシートへパックする必要があるときに使う。特に16フレームのフォルダを4x4シートにする場合に使う。"
+description: "複数のフレームPNGをゲーム用スプライトシートにまとめる。番号付きフレーム、ピクセルアート、キャラクターアクション列、4x4配置などで使う。"
 ---
 
 # Sprite Sheet Maker
 
 ## 目的
 
-同梱の `scripts/make_spritesheet.py` スクリプトを使って、PNGアニメーションフレームを1枚のスプライトシートにまとめる。スクリプトは純粋なPythonで書かれており、Pillow・ImageMagick・npmパッケージは不要。
+同梱の `scripts/make_spritesheet.py` で、複数の PNG アニメーションフレームを1枚のスプライトシートへまとめる。スクリプトは pure Python で、Pillow、ImageMagick、npm package は不要。
 
 ## ワークフロー
 
-1. 指定された入力ディレクトリと出力パスを使用する。いずれかが不明または曖昧な場合のみ確認する。
-2. デフォルトでは自然順ファイル名ソートを行うため、`frame_2.png` は `frame_10.png` より前に並ぶ。
-3. ユーザーがレイアウトを指定しない限り、デフォルトの正方形に近いグリッドを使用する。16フレームのディレクトリは `4x4` になる。
-4. デフォルトで透明度を維持し、透明背景を使用する。
-5. サイズが可変なキャラクターフレームには、アニメーションの足元/ベースラインのジッターを抑えるためにデフォルトの `--align bottom-center` を維持する。汎用アイコンやエフェクトには `--align center` を使用する。
-6. エンジン統合でフレーム矩形やソースオフセットが必要な場合は、JSONメタデータを生成する。
+1. 指定された input directory と output path を使う。どちらかが不明なときだけ確認する
+2. 既定では自然順で並べる。`frame_2.png` が `frame_10.png` より前に来る
+3. ユーザーが layout を指定しない限り、正方形に近い grid を使う。16 frames は `4x4`
+4. 透明度を保持し、既定では透明背景にする
+5. 可変サイズの character frame は `--align bottom-center` を維持し、足元や baseline の揺れを減らす。icon や effect では `--align center` を使う
+6. engine integration で frame rectangle や source offset が必要なら JSON metadata を生成する
 
 ## クイックコマンド
 
-デフォルトのスプライトシート生成:
+既定のスプライトシート:
 
 ```bash
 python3 "<skill>/scripts/make_spritesheet.py" --input-dir "frames" --output "spritesheet.png"
 ```
 
-4列に固定してPNGの隣にメタデータを出力:
+4 columns に固定し、PNG の隣に metadata を書く:
 
 ```bash
 python3 "<skill>/scripts/make_spritesheet.py" --input-dir "frames" --output "spritesheet.png" --columns 4 --metadata
 ```
 
-固定セルサイズ・中央揃え・スペーシングを使用:
+固定 cell、center alignment、spacing を使う:
 
 ```bash
 python3 "<skill>/scripts/make_spritesheet.py" --input-dir "frames" --output "spritesheet.png" --columns 4 --cell-width 256 --cell-height 256 --align center --spacing 2
 ```
 
-ファイルを書き出さずに出力内容をプレビュー:
+書き込まずに出力計画を確認する:
 
 ```bash
 python3 "<skill>/scripts/make_spritesheet.py" --input-dir "frames" --output "spritesheet.png" --dry-run
 ```
 
-## スクリプトの動作
+## スクリプトの挙動
 
-- 入力: RGBA・RGB・グレースケール・グレースケール+アルファ・インデックスカラーPNGを含む、非インターレース8ビットPNGファイル。
-- 出力: 8ビットRGBA PNG。
-- デフォルトセルサイズ: 全入力フレーム中の最大幅・最大高さ。
-- デフォルトグリッド: `ceil(sqrt(frame_count))` 列と必要な行数。16フレームの場合は `4x4`。
-- デフォルト順序: 自然順ファイル名ソート。
-- デフォルト揃え位置: `bottom-center`。
-- デフォルトのマージン・スペーシング: `0`。
-- デフォルト背景: 透明。
+- 入力: non-interlaced 8-bit PNG。RGBA、RGB、grayscale、grayscale-alpha、indexed-color に対応
+- 出力: 8-bit RGBA PNG
+- 既定 cell size: 全 input frame の最大 width/height
+- 既定 grid: `ceil(sqrt(frame_count))` columns と必要な rows。16 frames は `4x4`
+- 既定 order: natural filename order
+- 既定 alignment: `bottom-center`
+- 既定 margin/spacing: `0`
+- 既定 background: transparent
 
 ## オプション
 
-- `--pattern "*.png"`: `--input-dir` 内の入力ファイルを絞り込む。
-- `--columns N` / `--rows N`: グリッドレイアウトを制御する。
-- `--cell-width N` / `--cell-height N`: セルサイズを固定する。最大フレームより小さいセルは拒否される。
-- `--align VALUE`: `top-left`・`top-center`・`top-right`・`center-left`・`center`・`center-right`・`bottom-left`・`bottom-center`・`bottom-right` のいずれか。
-- `--margin N`: 外側のマージン（ピクセル単位）。
-- `--spacing N`: セル間のスペーシング（ピクセル単位）。
-- `--background transparent|#RRGGBB|#RRGGBBAA`: 背景の塗りつぶし。
-- `--metadata [path]`: JSONメタデータを書き出す。パスを省略すると `<output>.json` に書き出す。
-- `--order natural|lex`: ファイル名ソートの動作を選択する。
+- `--pattern "*.png"`: `--input-dir` 内の対象ファイルを選ぶ
+- `--columns N` / `--rows N`: grid layout を制御する
+- `--cell-width N` / `--cell-height N`: cell dimensions を固定する。最大 frame より小さい cell は拒否される
+- `--align VALUE`: `top-left`, `top-center`, `top-right`, `center-left`, `center`, `center-right`, `bottom-left`, `bottom-center`, `bottom-right` のいずれか
+- `--margin N`: 外側 margin pixels
+- `--spacing N`: cell 間 spacing pixels
+- `--background transparent|#RRGGBB|#RRGGBBAA`: 背景塗り
+- `--metadata [path]`: JSON metadata を書く。path なしなら `<output>.json`
+- `--order natural|lex`: filename sort を選ぶ
 
 ## トラブルシューティング
 
-- アニメーションジッターが発生する: キャラクターには `--align bottom-center`、エフェクトには `--align center` で再実行する。
-- 出力セルが大きすぎる: 入力フレームの寸法を確認する。サイズ可変なフレームはセルサイズに最大フレームサイズが使用される。
-- エンジンが1行のみを想定している: `--columns <frame-count>` または `--rows 1` を使用する。
-- エンジンが正確なセルサイズを想定している: `--cell-width` と `--cell-height` を指定する。
-- サポートされていないPNGエラー: ソースフレームを先に非インターレース8ビットPNGに変換する。
+- アニメーションが予想外に揺れる: character は `--align bottom-center`、effect は `--align center` で再実行する
+- output cell が大きすぎる: source frame dimensions を確認する。可変サイズ frame は最大 frame size が cell size になる
+- engine が1行を期待する: `--columns <frame-count>` または `--rows 1` を使う
+- engine が正確な cell size を期待する: `--cell-width` と `--cell-height` を渡す
+- unsupported PNG error: source frames を non-interlaced 8-bit PNG に変換してから実行する

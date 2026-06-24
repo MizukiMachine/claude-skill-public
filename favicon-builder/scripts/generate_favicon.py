@@ -492,14 +492,12 @@ def add_noise(img: Image.Image, intensity: float) -> Image.Image:
         return img
 
     width, height = img.size
-    # Seed deterministically so CLI/CI runs are reproducible (per size + intensity).
-    rng = random.Random(width * 100003 + int(intensity * 100000))
     noise_img = Image.new("RGBA", (width, height))
     pixels = noise_img.load()
 
     for y in range(height):
         for x in range(width):
-            noise = int((rng.random() - 0.5) * 255 * intensity)
+            noise = int((random.random() - 0.5) * 255 * intensity)
             gray = 128 + noise
             alpha = int(30 * intensity)
             pixels[x, y] = (gray, gray, gray, alpha)
@@ -733,96 +731,6 @@ def render_letter(
     return result
 
 
-def get_emoji_font() -> tuple[ImageFont.FreeTypeFont | None, int]:
-    """
-    Locate a color emoji font and load it at a usable strike size.
-
-    Color emoji fonts (Noto, Apple) are bitmap fonts that only load at specific
-    strike sizes, so we try the common strikes and fall back gracefully.
-
-    Returns:
-        (font, strike_px) or (None, 0) when no emoji font is available.
-    """
-    font_paths = [
-        # macOS
-        "/System/Library/Fonts/Apple Color Emoji.ttc",
-        # Linux
-        "/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf",
-        "/usr/share/fonts/NotoColorEmoji.ttf",
-        "/usr/share/fonts/google-noto-emoji/NotoColorEmoji.ttf",
-        # Windows (outline COLR/CPAL font: any size loads)
-        "C:/Windows/Fonts/seguiemj.ttf",
-    ]
-    # 109 = Noto strike; 96/160 = Apple strikes; last entries help outline fonts.
-    strike_sizes = (109, 96, 160, 137, 128, 64)
-
-    for path in font_paths:
-        if not os.path.exists(path):
-            continue
-        for strike in strike_sizes:
-            try:
-                return ImageFont.truetype(path, strike), strike
-            except (IOError, OSError):
-                continue
-    return None, 0
-
-
-def render_emoji(
-    img: Image.Image,
-    emoji: str,
-    scale_ratio: float = 0.62,
-) -> Image.Image:
-    """
-    Render a color emoji centered on the favicon background.
-
-    Falls back to monogram rendering when no color emoji font is installed so
-    the suite still produces something usable.
-
-    Args:
-        img: Background image (RGBA)
-        emoji: Emoji string (1-2 codepoints)
-        scale_ratio: Glyph size as a fraction of the canvas
-
-    Returns:
-        Image with the emoji composited on top
-    """
-    size = img.size[0]
-    font, strike = get_emoji_font()
-    if font is None:
-        # No emoji font: degrade to a monogram of the first character.
-        return render_letter(img, emoji[:1] or "?", (255, 255, 255))
-
-    # Render the glyph large on a transparent canvas, then crop + downscale.
-    canvas = max(strike * 2, 64)
-    glyph = Image.new("RGBA", (canvas, canvas), (0, 0, 0, 0))
-    gdraw = ImageDraw.Draw(glyph)
-    try:
-        gdraw.text((canvas // 2, canvas // 2), emoji, font=font,
-                   embedded_color=True, anchor="mm")
-    except (TypeError, ValueError):
-        # Older Pillow / fonts without anchor support.
-        gdraw.text((0, 0), emoji, font=font, embedded_color=True)
-
-    bbox = glyph.getbbox()
-    if not bbox:
-        return img
-    glyph = glyph.crop(bbox)
-
-    target = max(1, int(size * scale_ratio))
-    gw, gh = glyph.size
-    factor = target / max(gw, gh)
-    glyph = glyph.resize(
-        (max(1, int(gw * factor)), max(1, int(gh * factor))),
-        Image.Resampling.LANCZOS,
-    )
-
-    result = img.copy()
-    gx = (size - glyph.size[0]) // 2
-    gy = (size - glyph.size[1]) // 2
-    result.alpha_composite(glyph, (gx, gy))
-    return result
-
-
 # ============================================================================
 # MAIN GENERATION
 # ============================================================================
@@ -839,7 +747,6 @@ def generate_favicon(
     inner_glow_intensity: float = 0.0,
     noise_intensity: float = 0.0,
     corner_radius: float = 0.22,
-    emoji: str | None = None,
 ) -> Image.Image:
     """
     Generate a professional-quality favicon.
@@ -847,7 +754,6 @@ def generate_favicon(
     Args:
         size: Output size in pixels
         letter: Letter/monogram to display
-        emoji: Emoji to display instead of a letter (takes precedence)
         bg_color: Background color (hex)
         bg_color2: Gradient end color (hex), None for solid
         fg_color: Foreground/text color (hex)
@@ -901,11 +807,8 @@ def generate_favicon(
     if noise_intensity > 0 and size >= 64:
         img = add_noise(img, noise_intensity)
 
-    # Render content: emoji takes precedence over letter monogram.
-    if emoji:
-        img = render_emoji(img, emoji)
-    else:
-        img = render_letter(img, letter, fg_rgb, shadow_intensity)
+    # Render letter
+    img = render_letter(img, letter, fg_rgb, shadow_intensity)
 
     # Drop shadow (applied last, affects whole icon)
     if shadow_intensity > 0 and size >= 32:
@@ -1308,26 +1211,10 @@ def create_svg_file(filepath: str, letter: str, settings: dict) -> None:
     defs_markup = build_svg_defs(defs)
     overlays_markup = "\n".join(overlays)
 
-    emoji = settings.get("emoji")
-    if emoji:
-        safe_emoji = html.escape(emoji, quote=True)
-        content = (
-            f'  <text x="16" y="17" '
-            f'font-family="\'Apple Color Emoji\', \'Segoe UI Emoji\', \'Noto Color Emoji\', sans-serif" '
-            f'font-size="20" text-anchor="middle" dominant-baseline="central"{content_filter}>{safe_emoji}</text>'
-        )
-    else:
-        content = (
-            f'  <text x="16" y="16" '
-            f'font-family="-apple-system, BlinkMacSystemFont, \'Segoe UI\', sans-serif" '
-            f'font-size="18" font-weight="bold" text-anchor="middle" dominant-baseline="central" '
-            f'fill="{fg_color}"{content_filter}>{safe_letter}</text>'
-        )
-
     svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">{defs_markup}
   <rect width="32" height="32" rx="{rx:.1f}" fill="{fill}"{background_filter}/>
 {overlays_markup}
-{content}
+  <text x="16" y="16" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18" font-weight="bold" text-anchor="middle" dominant-baseline="central" fill="{fg_color}"{content_filter}>{safe_letter}</text>
 </svg>"""
 
     with open(filepath, "w", encoding="utf-8") as f:
@@ -1362,10 +1249,6 @@ Available icons: """ + ", ".join(LUCIDE_ICONS.keys()) + """
         "--lucide", "-i",
         choices=list(LUCIDE_ICONS.keys()),
         help="Use a Lucide icon (requires cairosvg: pip install cairosvg)"
-    )
-    parser.add_argument(
-        "--emoji", "-e",
-        help="Use an emoji as the icon (needs a color emoji font, e.g. Noto Color Emoji)"
     )
     parser.add_argument(
         "--bg", help="Background color in hex (default: #6366f1)"
@@ -1409,11 +1292,8 @@ Available icons: """ + ", ".join(LUCIDE_ICONS.keys()) + """
     if not HAS_PILLOW:
         parser.error("Pillow is required for generation. Install with: python3 -m pip install Pillow")
 
-    if args.emoji and args.lucide:
-        parser.error("Use only one of --emoji or --lucide, not both.")
-
-    # Validate: must have a content source; default to a letter monogram.
-    if not args.letter and not args.lucide and not args.emoji:
+    # Validate: must have either --letter or --lucide
+    if not args.letter and not args.lucide:
         args.letter = "A"  # Default
 
     for attr in ("bg", "bg2", "fg"):
@@ -1446,12 +1326,6 @@ Available icons: """ + ", ".join(LUCIDE_ICONS.keys()) + """
             print("   Falling back to letter mode...\n")
             args.letter = args.lucide[0].upper()
             args.lucide = None
-    elif args.emoji:
-        print(f"Emoji: {args.emoji}")
-        if get_emoji_font()[0] is None:
-            print("\nWarning: no color emoji font found.")
-            print("   Install one (e.g. fonts-noto-color-emoji) for emoji output.")
-            print("   Falling back to monogram mode...\n")
     else:
         print(f"Letter: {args.letter.upper()}")
 
@@ -1500,12 +1374,11 @@ Available icons: """ + ", ".join(LUCIDE_ICONS.keys()) + """
             noise_intensity=args.noise,
         )
     else:
-        # Generate using letter monogram or emoji
+        # Generate using letter
         files = generate_favicon_suite(
             output_dir=args.output,
-            letter=args.letter or "A",
+            letter=args.letter,
             style=args.style,
-            emoji=args.emoji,
             bg_color=args.bg,
             bg_color2=args.bg2,
             fg_color=args.fg,

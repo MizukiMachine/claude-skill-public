@@ -1,126 +1,144 @@
 ---
 name: aseprite-inference
-description: "Aseprite ファイル（.ase/.aseprite、よくある誤記 .aes）から構造・メタデータを推定する。ヘッダー/フレーム/チャンク（レイヤー、セル、タグ、スライス、パレット、タイルセット）を解析し、再生時間や範囲を算出して、エンジンやツール向けのJSONを生成する。"
+description: "Asepriteファイルからレイヤー、セル、タグ、パレットなどの構造を解析する。フレーム範囲や再生時間を推定し、エンジン向けJSONを作るときに使う。"
 metadata:
-  short-description: "Infer metadata from Aseprite files."
+  short-description: "Asepriteファイルからmetadataを推定"
 ---
 
 # Aseprite Inference
 
-`.ase`/`.aseprite` ファイルを*レイヤー化されたピクセル（またはタイルマップ）celの構造化タイムライン*として理解する。このスキルは**有用なメタデータ**（アニメーションタイミング、フレームごとのbounds、レイヤー階層、タグ、スライス、タイルセット、パレット）を**推測**し、当て推量なしに**エンジン向けJSON**を生成する助けとなる。
+`.ase` / `.aseprite` を、layered pixel または tilemap cel の構造化 timeline として読む。animation timing、per-frame bounds、layer hierarchy、tags、slices、tilesets、palettes などの有用な metadata を推定し、engine-ready JSON を作る。
 
-## 哲学: 仮定より推論を優先する
+## 考え方: 仮定より推定
 
-Asepriteファイルが「真実」であり、コードはその仮説にすぎない。期待値をハードコーディングするより、**読み込んで検証する**ことを優先する。
+Aseprite file を「真実」、実装コードを「仮説」として扱う。hard-code せず、読み取りと検証を優先する。
 
-**推論の前に問うべきこと:**
-- 求めているのは**制作意図**（タグ/スライス/ユーザーデータ）か、**レンダリング意図**（可視ピクセル/bounds/順序）か?
-- **ピクセル**（celイメージの展開）が必要か、それとも**構造のみ**（レイヤー/タイミング/タグ）で十分か?
-- スプライトが **RGBA / Grayscale / Indexed / Tilemap** のどれかによって、透明度/boundsのロジックが変わるか?
+**推定前に確認すること:**
+
+- 欲しいのは **authoring intent** (tags/slices/user data) か、**render intent** (visible pixels/bounds/ordering) か
+- **pixels** の decode が必要か、**structure-only** (layers/timing/tags) で足りるか
+- sprite は **RGBA / Grayscale / Indexed / Tilemap** のどれで、それが transparency/bounds logic に影響するか
 
 **基本原則**
-1. **chunk駆動で動く:** 未知のchunkは問題ない — `chunk_size` でスキップし、クラッシュしない。
-2. **タイミングはフレームごとに扱う:** `header.speed` は非推奨; 各フレームは独自のdurationを持つ（互換フォールバックあり）。
-3. **デコードモードを分離する:** まず「高速メタデータパス」を実行し、ピクセル/タイルのデコードは必要なときだけ行う。
-4. **推論を明示する:** 分かっていること*と*仮定したこと（例: indexed透明度の扱い）を両方出力する。
 
-## クイックスタート（推奨）
+1. **chunk-driven にする**: unknown chunks は `chunk_size` で skip し、crash しない
+2. **timing は per-frame として扱う**: `header.speed` は deprecated。各 frame duration を使い、必要なら fallback する
+3. **decode mode を分ける**: まず fast metadata pass。pixel/tile decode は必要なときだけ
+4. **推定を明示する**: わかっていることと仮定したことを両方 output する。例: indexed transparency
 
-付属のインスペクタを使ってファイルをJSONに変換し、内容を把握する:
+## Quick Start
 
-```bash
-python3 scripts/aseprite_inspect.py path/to/sprite.aseprite --json
-```
-
-ピクセルに基づく推論（例: tight bounds）が必要な場合は、オプトインする:
+同梱 inspector で JSON に変換する。
 
 ```bash
-python3 scripts/aseprite_inspect.py path/to/sprite.aseprite --json --decode-cels
+python3 .claude/skills/aseprite-inference/scripts/aseprite_inspect.py path/to/sprite.aseprite --json
 ```
 
-## 信頼できる推論の対象
+tight bounds など pixel-derived inference が必要な場合だけ decode を有効にする。
 
-- **アニメーション構造:** フレーム数 + フレームごとのduration + タイムライン全体。
-- **レイヤーモデル:** 階層（子レベル）、ブレンドモード、opacity、background/referenceフラグ、任意のUUID。
-- **cel配置:** フレームごと・レイヤーごとのcel、リンクされたcel、z-indexの調整、opacity。
-- **タグ:** 名前付きアニメーション範囲と再生方向/リピート動作。
-- **スライス:** フレームキー付き矩形; 任意の9-sliceセンターとpivot（ヒットボックス/アンカーに最適）。
-- **タイルセット/タイルマップ:** タイルの寸法、タイル数、タイルマップマスク（ID + フリップ）。
-- **パレット:** インデックスカラーパレットの変化; メインヘッダーからの透明度インデックス。
-- **ユーザーデータ:** レイヤー/cel/タグ/タイルセットに付属するテキスト/色/プロパティ（存在する場合）。
+```bash
+python3 .claude/skills/aseprite-inference/scripts/aseprite_inspect.py path/to/sprite.aseprite --json --decode-cels
+```
 
-**celピクセルをデコードする**と、追加で以下を推論できる:
-- cel/フレームごとの**tight bounds**（非透明領域の範囲）。
-- **スパース/空フレーム**の検出。
-- **ヒューリスティックなスプライトシートパッキングヒント**（フレームboundsのサイズ/変動）。
+## 信頼して推定できること
 
-## 一般的なワークフロー
+- **Animation structure**: frame count、per-frame durations、total timeline
+- **Layer model**: hierarchy、blend modes、opacities、background/reference flags、optional UUIDs
+- **Cel placement**: per-frame per-layer cels、linked cels、z-index adjustments、opacity
+- **Tags**: named animation ranges、playback direction、repeat behavior
+- **Slices**: frame-keyed rectangles、optional 9-slice centers/pivots。hitbox/anchor に有用
+- **Tilesets/tilemaps**: tile dimensions、tile count、tilemap masks (ID + flips)
+- **Palettes**: indexed-color palette changes、main header の transparency index
+- **User data**: layer/cel/tag/tileset に付く text/color/properties
 
-### 1) エンジンメタデータのビルド（JSON）
-- まず（構造のみで）インスペクトし、tight boundsが必要なときだけデコードを追加する。
-- 出力の優先項目: `frames[]`、`layers[]`、`tags[]`、`slices[]`、正規化された `frameMs[]`。
-- 決定論的なレンダリング順序が必要な場合は、**z-indexルール**（celヘッダー）+ レイヤー順序を組み込む。
-- キャラクターのグラウンディングには、制作アンカー（スライス/pivot/ユーザーデータがある場合）を出力する。ただし、ランタイムオフセットを確定する前に、エクスポートされたPNGのalphaにおける最終的な足元の位置を（例えば `gamedev-assets` 経由で）検証すること。
+cel pixels を decode した場合はさらに次を推定できる。
 
-### 2) 「なぜ見えないのか?」のデバッグ
-- レイヤーの可視性フラグ + opacityを確認する。
-- celが別のフレームに**リンク**されていないか確認する。
-- インデックスカラースプライトの場合: 透明インデックス + backgroundレイヤーのセマンティクスを確認する。
+- cel/frame ごとの **tight bounds** (non-transparent extents)
+- **sparsity/empty frames** の検出
+- frame bounds size/variability からの sprite-sheet packing hints
 
-### 3) スライスをヒットボックス/アンカーに変換する
-- フレームごとのスライスキーを使ってランタイムヒットボックスを生成する。
-- pivotがある場合はそれを使用し、ない場合はpivotを推論（例: スライスの中心）してフォールバックする。
+## よく使うワークフロー
 
-## 避けるべきアンチパターン
+### 1. engine metadata (JSON) を作る
 
-❌ **アンチパターン: “speed” が権威あるものと仮定する**  
-問題: 非推奨のため; フレームdurationが実際のタイムラインである。  
-改善: フレームdurationがゼロのときだけ互換フォールバックを適用する。
+- まず structure-only で inspect し、tight bounds が必要なときだけ decode を足す
+- `frames[]`, `layers[]`, `tags[]`, `slices[]`, normalized `frameMs[]` を出す
+- deterministic render ordering が必要なら cel header の **z-index rules** と layer ordering を取り込む
+- character grounding では slice/pivot/user-data を出しつつ、runtime offsets 固定前に exported PNG の alpha bounds を `gamedev-assets` などで確認する
 
-❌ **アンチパターン: パレットが常に存在する / 常に256エントリーと仮定する**  
-改善: 存在する場合にパレットchunkをパースする; インデックスカラースプライトでも透明インデックスの処理が必要な場合がある。
+### 2. "なぜ見えないか" を debug する
 
-❌ **アンチパターン: 未知のchunkでハードフェイルする**  
-改善: chunk sizeでスキップして処理を続ける; デバッグ用に未知chunkのサマリーを保存する。
+- layer visibility flags と opacity を確認する
+- cel が別 frame に **linked** されていないか確認する
+- indexed sprites では transparent index と background layer semantics を確認する
 
-❌ **アンチパターン: デフォルトですべてを展開する**  
-改善: 必要なものだけデコードする; 大きなスプライトには安全上限を設ける。
+### 3. slices を hitboxes/anchors に変換する
 
-❌ **アンチパターン: インデックスピクセルをRGBAとして扱う**  
-問題: インデックスcelピクセルはパレットインデックスであり、透明度は通常透明インデックス（ヘッダー）によるもの。  
-改善: “indexed” を独自のパスとして維持し、実際にパレットをパースした場合のみRGBAにマッピングする（パレット欠落ケースも記録する）。
+- frame ごとの slice key から runtime hitbox を作る
+- pivot があれば使い、なければ slice center などを fallback として推定する
 
-❌ **アンチパターン: リンクされたcelを無視する**  
-問題: フレームが「失われる」か、空のboundsを誤って推論することになる。  
-改善: ピクセル/bounds推論が必要な場合は、リンクを解決するポストパスを実施する。
+## 避けること
 
-❌ **アンチパターン: レイヤーのUIグルーピングがレンダリンググルーピングと同じと仮定する**  
-問題: グループのコンポジット動作はヘッダーフラグとblend/opacityの有効性ルールに依存する。  
-改善: デフォルトではグループを構造的なものとして扱い、レンダラー/エクスポーターを構築する場合のみグループコンポジットを実装する。
+**`speed` を authority とみなす**
 
-❌ **アンチパターン: 制作意図とレンダリング意図を混同する**  
-問題: タグ/スライス/ユーザーデータは意図を表し、ピクセルは外観を表す。これらは食い違うことがある。  
-改善: 両方の種類の事実を出力し、明示的に要求されない限り一方で他方を「修正」しない。
+問題: `header.speed` は deprecated で、各 frame duration が本来の timeline を表す。
+改善: frame duration が zero の場合だけ compatibility fallback を適用する。
 
-## バリエーションガイダンス（収束しないこと）
+**palette が常に存在する、または常に256 entries と仮定する**
 
-- ゲームエンジン向けには、必要に応じてoutput schemaを変える: 最小限のタイミング+タグ vs 完全なレイヤー/celごとのメタデータ。
-- デバッグには「chunk dump」スタイルの出力を優先し、ランタイムにはコンパクトで正規化されたJSONを優先する。
-- タイルマップには、ターゲットに合わせて「タイル使用サマリー」と「完全なセルごとのタイルストリーム」を使い分ける。
+問題: palette chunks の有無や entry count は file によって違い、indexed sprites では transparency index も意味を持つ。
+改善: palette chunks を parse し、indexed sprites では transparency index と background layer semantics を確認する。
 
-## 参考資料とスクリプト
+**unknown chunks で hard-fail する**
 
-- スクリプト: `scripts/aseprite_inspect.py` (バイナリパーサー + JSON; 任意のcel/タイルデコード)
-- リファレンス: `references/aseprite-format-cheatsheet.md` (chunkマップ + 注意点)
-- リファレンス: `references/inference-recipes.md` (bounds/タイミング/順序の安全な計算方法)
+問題: unknown chunk を即 failure にすると、新しい Aseprite features や custom chunks に弱い parser になる。
+改善: chunk size で skip し、unknown chunk summary を debugging 用に残す。
+
+**すべてを既定で decompress する**
+
+問題: 不要な pixel decode は遅く、大きな sprites で memory risk を増やす。
+改善: structure-only pass を先に行い、必要な cel/tile だけ decode し、大きな sprite には safety limits を置く。
+
+**indexed pixels を RGBA とみなす**
+
+問題: indexed cel pixels は palette indices であり、transparency は通常 transparent index (header) で表される。直接 RGBA と解釈すると色と transparency が壊れる。
+改善: "indexed" を独自の path として保ち、実際に palette を parse した後だけ RGBA に map する (そして palette が欠落しているケースを記録する)。
+
+**linked cels を無視する**
+
+問題: linked cel は別 frame の cel data を参照するため、bounds inference や duration analysis がずれる。
+改善: post-pass で link を解決してから bounds や emitted metadata を確定する。
+
+**layer UI grouping を render grouping と同一視する**
+
+問題: group compositing は header flags、blend mode、opacity rules に依存し、UI tree だけでは render order を決められない。
+改善: layer hierarchy と render flags / opacity / blend rules を分けて出力する。
+
+**authoring intent と render intent を混同する**
+
+問題: tags、slices、user data は intent を表し、pixels は appearance を表す。これらは食い違うことがある。
+改善: 両方の事実を output し、明示的に要求されない限り一方で他方を "correct" しない。
+
+## Variation Guidance
+
+- game engine では、最小 timing+tags から full per-layer/per-cel metadata まで schema を用途で変える
+- debugging では chunk dump style、runtime では compact normalized JSON を優先する
+- tilemaps では target に応じて tile usage summaries と full per-cell tile streams を使い分ける
+
+## References & Scripts
+
+- Script: `scripts/aseprite_inspect.py` (binary parser + JSON。optional cel/tile decode)
+- Reference: `references/aseprite-format-cheatsheet.md` (chunk map + gotchas)
+- Reference: `references/inference-recipes.md` (bounds/timing/order を安全に計算する方法)
 
 ## 覚えておくこと
 
-このドメインは*精度*が重要。
-- **仮定を明示した**出力を優先する（例: インデックス透明度の扱い、ピクセルvs寸法から導いたbounds）。
-- このドメインはプロダクショングレードのAsepriteツールをサポートする: chunk駆動パーシング + 厳格なboundsチェック + 任意のデコードパス。
+この領域では精度が重要。
 
-## 期待されること
+- indexed transparency handling、bounds derived from pixels vs dimensions など、仮定を明示する output を優先する
+- chunk-driven parsing、strict bounds checks、optional decode passes で production-grade Aseprite tooling を作る
 
-- **新しいchunkタイプに対してロバスト**で、**不正な入力に対して安全**なパーサーを目指す。
-- ファイルデータから正当化できない巧妙な推論より、「ありのままのJSON」を優先する。
+## 期待値
+
+- 新しい chunk types に強く、malformed input に対して安全な parser を目指す
+- 根拠を file data から説明できない賢すぎる推定より、事実を正直に表す JSON を優先する
