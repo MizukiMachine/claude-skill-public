@@ -32,20 +32,26 @@ def render_mmd_to_png(
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
         if result.returncode == 0:
-            print(f"✓ Generated: {output_path.name}")
+            print(f"[OK] Generated: {output_path.name}")
             return True
         else:
-            print(f"✗ Error rendering {mmd_path.name}: {result.stderr}", file=sys.stderr)
+            print(f"[ERROR] Error rendering {mmd_path.name}: {result.stderr}", file=sys.stderr)
             return False
     except FileNotFoundError:
         print("Error: 'mmdc' (mermaid-cli) not found. Install with: npm install -g @mermaid-js/mermaid-cli", file=sys.stderr)
         sys.exit(1)
     except subprocess.TimeoutExpired:
-        print(f"✗ Timeout rendering {mmd_path.name}", file=sys.stderr)
+        print(f"[ERROR] Timeout rendering {mmd_path.name}", file=sys.stderr)
         return False
 
 
-def render_all_diagrams(input_dir: Path, output_dir: Path, scale: int = 4) -> tuple[int, int]:
+def render_all_diagrams(
+    input_dir: Path,
+    output_dir: Path,
+    scale: int = 4,
+    width: int = 2400,
+    height: int = 1600,
+) -> tuple[int, int]:
     """Render all .mmd files in directory to PNG. Returns (success_count, total_count)."""
     if not input_dir.exists():
         print(f"Error: Input directory '{input_dir}' not found", file=sys.stderr)
@@ -63,7 +69,13 @@ def render_all_diagrams(input_dir: Path, output_dir: Path, scale: int = 4) -> tu
     success = 0
     for mmd_path in mmd_files:
         png_path = output_dir / f"{mmd_path.stem}.png"
-        if render_mmd_to_png(mmd_path, png_path, scale=scale):
+        if render_mmd_to_png(
+            mmd_path,
+            png_path,
+            width=width,
+            height=height,
+            scale=scale,
+        ):
             success += 1
 
     print(f"\nCompleted: {success}/{len(mmd_files)} diagrams rendered")
@@ -83,7 +95,13 @@ def main():
     args = parser.parse_args()
     output_dir = args.output or args.input_dir
 
-    success, total = render_all_diagrams(args.input_dir, output_dir, args.scale)
+    success, total = render_all_diagrams(
+        args.input_dir,
+        output_dir,
+        scale=args.scale,
+        width=args.width,
+        height=args.height,
+    )
     sys.exit(0 if success == total else 1)
 
 
